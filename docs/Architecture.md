@@ -44,10 +44,20 @@ Practical rules:
 
 - Errors travel as gRPC status codes. Response messages never carry error fields. Each contract
   documents its code mapping in its `.proto` file.
+- Some codes come from the transport rather than from an integration, and a host has to handle
+  them even though no integration ever chooses them. An integration that is **not installed**
+  reads as `UNIMPLEMENTED`, not `UNAVAILABLE` — grpc-binder reports a `bindService()` that
+  returned false that way. `request.proto` documents the full set.
+- Whether a **killed** integration surfaces as an error at all is platform-dependent. The same
+  force-stop answered `UNAVAILABLE` on a phone and `OK` on a SHIELD, which had already restarted
+  the service. So "the integration died" is not detectable from a status code alone: the
+  package-removed broadcast covers the permanent case, and the rest is ordinary retry.
 - The Binder transaction limit is about 1 MB. Page all results. Send artwork as URLs, never as
   bytes.
-- The REQUEST stub spike validates the transport on real hardware: a phone and a SHIELD-class TV
-  device. It also measures the APK cost after R8. The contract stays a draft until then.
+- The REQUEST stub spike validated the transport on real hardware. Bind-to-handshake p95 was
+  119–128 ms on a phone (Android 16) and 22–37 ms on a SHIELD (Android 11), against a proposed
+  ~300 ms bar — so the TV, the surface the spike existed to worry about, is the faster of the two
+  by roughly 4x. The APK cost after R8 is a separate build measurement and is not yet recorded.
 
 ## Media identity
 

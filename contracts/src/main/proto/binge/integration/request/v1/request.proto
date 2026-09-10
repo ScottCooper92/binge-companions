@@ -10,6 +10,8 @@ syntax = "proto3";
 // never renders UI for one.
 //
 // Error model: failures travel as gRPC status codes, not response fields.
+//
+// Codes the INTEGRATION returns deliberately:
 //   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
 //   UNAUTHENTICATED                 — the integration's own provider session is
 //                                     broken; the host directs the user to the
@@ -17,6 +19,27 @@ syntax = "proto3";
 //   PERMISSION_DENIED               — the provider user may not perform this action.
 //   RESOURCE_EXHAUSTED              — the user's request quota on the provider is spent.
 //   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
+//
+// Codes the TRANSPORT produces, which no integration chooses and every host must
+// handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
+// ScottCooper92/Binge#2306; the first of these is the one that surprises:
+//   UNIMPLEMENTED    — the integration is NOT INSTALLED. grpc-binder reports a
+//                      `bindService()` that returned false this way, with
+//                      "bindService(...) returned false" as the description,
+//                      rather than as UNAVAILABLE. A host that reads the list
+//                      above and treats UNAVAILABLE as "integration gone" will
+//                      meet an uninstalled one as an undocumented code. It must
+//                      NOT be retried: nothing is there to answer.
+//   UNAVAILABLE      — the integration was installed but its process is gone
+//                      (force-stopped, or reaped). Retryable, and normally the
+//                      next bind restarts it.
+//
+// Whether a killed integration surfaces as UNAVAILABLE or simply succeeds is
+// PLATFORM-DEPENDENT: the same force-stop answered UNAVAILABLE on the phone and
+// OK on the SHIELD, which had restarted the service by the time the call landed.
+// So a host cannot detect "the integration died" from a status code alone — it
+// needs the package-removed broadcast for the permanent case, and to treat the
+// transient case as ordinary retry.
 package binge.integration.request.v1;
 
 import "binge/integration/v1/common.proto";

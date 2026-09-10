@@ -8,13 +8,13 @@ This page shows where each contract and each platform piece stands. The stages a
 - *Spike-validated*: a real companion app has served the contract on hardware.
 - *Stable*: the artifacts are on Maven Central. The append-only guarantee applies.
 
-_Last updated: 2026-08-28._
+_Last updated: 2026-09-09._
 
 ## Contracts
 
 | Contract | Action | Stage | Notes |
 | --- | --- | --- | --- |
-| REQUEST | `com.binge.integration.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. Next: the host-client + stub-companion spike on phone and TV hardware. |
+| REQUEST | `com.binge.integration.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. The phone/TV transport spike has run and held (ScottCooper92/Binge#2306) — the shape stays draft until a real companion serves it with production traffic. |
 | STREAM | `com.binge.integration.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.integration.TRACKING` | Not started | |
 | PLAYER | `com.binge.integration.PLAYER` | In design | External-player hand-off with a progress callback. Watch tracking survives the hand-off. |
