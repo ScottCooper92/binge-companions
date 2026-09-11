@@ -27,4 +27,4 @@ _Last updated: 2026-09-11._
 | `binge-integration-sdk` | Not started | Binder server bootstrap, `SecurityPolicy` wiring, handshake scaffold. |
 | Conformance harness | Not started | Runs over any channel, so companion authors need no emulator. |
 | Reference companion (Binge Seerr) | Not started | The repository exists and builds, but holds a placeholder rather than a companion. The extraction of the in-tree Seerr integration follows the spike. |
-| Host support in Binge | In progress | Discovery, consent and the grpc-binder client are written and unit-tested. What they have never done is talk to a companion across a real Binder boundary — that is the spike. |
+| Host support in Binge | Draft | Discovery, consent and the grpc-binder client are written and unit-tested. They have not yet talked to a companion across a real Binder boundary — that is the spike. |
