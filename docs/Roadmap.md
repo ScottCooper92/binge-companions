@@ -9,9 +9,11 @@ Build in this order. Each stage proves the previous one before the surface grows
 3. **Host client + stub companion** — the discovery and consent flow in Binge, plus its
    grpc-binder client. A stub companion app proves them on real hardware: a phone and a
    SHIELD-class TV device. This spike validates the transport choice. It also measures the APK
-   cost after R8.
+   cost after R8. ✅ (held — see ScottCooper92/Binge#2306 and #1784)
 4. **Reference companion: Binge Seerr** — extract the in-tree Seerr integration from Binge into a
-   real companion app. It serves REQUEST v1 with production traffic.
+   real companion app. It serves REQUEST v1 with production traffic. ✅ at contract parity
+   ([binge-seerr](https://github.com/ScottCooper92/binge-seerr)); production traffic is what
+   moves the contract out of draft.
 5. **SDK + conformance harness** — publish `binge-integration-sdk`: the binder server bootstrap,
    the `SecurityPolicy` wiring, and the handshake scaffold. Also publish a conformance suite.
    Companion authors run it in their own CI. It needs no emulator.
