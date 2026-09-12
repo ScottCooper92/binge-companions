@@ -80,6 +80,17 @@ The boundary rule: a behavior variation over the same data model is a capability
 with its own lifecycle is a new contract. Capability enums grow by appending. Peers ignore values
 they do not know. Feature detection never uses version numbers.
 
+### Hand-offs
+
+Some capabilities are not an rpc but a screen. Provider-specific UI lives in the companion app, so
+where the host cannot render a choice — REQUEST's advanced options are the first case: destination
+server, quality profile, root folder — the companion exports an Activity and the host starts it for
+a result with the title as extras. The companion owns the whole flow and the submit. It answers
+`RESULT_OK` once it has submitted; the host re-reads status either way. No option schema crosses
+the boundary. The action and the extras are named in the SDK's `CompanionManifest`, and the
+host resolves the Activity by action and package, on the companion the user consented to, before
+it starts anything.
+
 ## Security: mutual verification
 
 - **Host side.** Binge asks the user for consent for each companion app. The consent record holds

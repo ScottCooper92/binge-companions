@@ -58,6 +58,12 @@ enum Capability {
   CAPABILITY_REQUEST_4K = 1;
   // Offers an advanced-options flow (destination/profile/folder) in the
   // integration app; the host offers a hand-off instead of a plain request.
+  // The hand-off is an exported Activity on the
+  // `com.binge.integration.ADVANCED_REQUEST` action, started for a result with
+  // the title as extras (media type number, TMDB id, season numbers, 4K). The
+  // integration owns the picker and the submit and answers RESULT_OK once it
+  // has submitted; the host re-reads status whatever the result. The SDK's
+  // `CompanionManifest` names the keys. No option schema crosses the boundary.
   CAPABILITY_ADVANCED_OPTIONS = 2;
   // Server-streamed status updates (`ObserveStatus`).
   CAPABILITY_OBSERVE_STATUS = 3;
