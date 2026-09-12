@@ -69,9 +69,12 @@ Verification is mutual. It is part of the contract:
 
 ```
 contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC services)
+sdk/         Android library for companion apps: the exported Service base, the caller policy,
+             the manifest keys and the handshake helper
 ```
 
-The SDK, the conformance harness, and the reference companion app join as they are built.
+The conformance harness joins when it is built. The reference companion app lives in its own
+repository, [binge-seerr](https://github.com/ScottCooper92/binge-seerr).
 
 ## Building
 

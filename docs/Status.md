@@ -8,7 +8,7 @@ This page shows where each contract and each platform piece stands. The stages a
 - *Spike-validated*: a real companion app has served the contract on hardware.
 - *Stable*: the artifacts are on Maven Central. The append-only guarantee applies.
 
-_Last updated: 2026-09-11._
+_Last updated: 2026-09-12._
 
 ## Contracts
 
@@ -24,7 +24,7 @@ _Last updated: 2026-09-11._
 | Piece | Stage | Notes |
 | --- | --- | --- |
 | `binge-integration-contracts` | Draft | Builds in this repository (protobuf-javalite + grpc-kotlin stubs). Not yet published. |
-| `binge-integration-sdk` | Not started | Binder server bootstrap, `SecurityPolicy` wiring, handshake scaffold. |
+| `binge-integration-sdk` | Draft | `sdk/` builds here: `IntegrationService` (Binder server bootstrap), `HostPolicy` (caller verification), `CompanionManifest` keys, handshake helper. Binge's release certificate digest is not yet published, so `BingeHosts.release` matches nothing until it is. Not yet published. |
 | Conformance harness | Not started | Runs over any channel, so companion authors need no emulator. |
 | Reference companion (Binge Seerr) | Not started | The repository exists and builds, but holds a placeholder rather than a companion. The extraction of the in-tree Seerr integration follows the spike. |
 | Host support in Binge | Draft | Discovery, consent and the grpc-binder client are written and unit-tested. They have not yet talked to a companion across a real Binder boundary — that is the spike. |
