@@ -22,7 +22,9 @@ import android.content.Intent
  * ```
  *
  * A companion that declares `CAPABILITY_ADVANCED_OPTIONS` also exports the Activity the host hands
- * the title to. The `DEFAULT` category is what lets the host resolve it by action and package:
+ * the title to. The `DEFAULT` category is what lets the host resolve it by action and package —
+ * and by any other app, which is why the Activity checks its caller with [HandOffPolicy] before
+ * it acts on the extras, as the Service does with [HostPolicy]:
  *
  * ```xml
  * <activity android:name=".AdvancedRequestActivity" android:exported="true">
@@ -50,7 +52,8 @@ object CompanionManifest {
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a
      * result, scoped to the companion's package, with the title in the `EXTRA_*` keys below; the
      * companion owns the picker and the submit, and answers `RESULT_OK` once it has submitted. The
-     * host re-reads the title's status whatever the result. [Intent.toAdvancedRequest] reads it.
+     * host re-reads the title's status whatever the result. [Intent.toAdvancedRequest] reads it,
+     * after [HandOffPolicy] has admitted the caller.
      */
     const val ACTION_ADVANCED_REQUEST = "com.binge.integration.ADVANCED_REQUEST"
 
