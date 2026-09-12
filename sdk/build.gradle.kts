@@ -37,7 +37,6 @@ dependencies {
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
     api(project(":contracts"))
     api(libs.grpc.binder)
-    implementation(libs.androidx.annotation)
 
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)
