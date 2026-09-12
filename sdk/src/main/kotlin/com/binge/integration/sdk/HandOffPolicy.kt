@@ -43,6 +43,6 @@ class HandOffCallerPolicy internal constructor(
             warn("Admitting hand-off from $callingPackage without verification (debug-only policy)")
             return true
         }
-        return pinned.isKnown(callingPackage) && pinned.isTrusted(callingPackage)
+        return pinned.isTrusted(callingPackage)
     }
 }
