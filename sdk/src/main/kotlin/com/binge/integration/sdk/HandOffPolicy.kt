@@ -5,7 +5,8 @@ import android.util.Log
 
 /**
  * The companion half of the mutual check for a hand-off Activity — the one behind
- * `CAPABILITY_ADVANCED_OPTIONS`. The Activity is exported and resolvable by action, so any app on
+ * `CAPABILITY_ADVANCED_OPTIONS`, and the settings one on `CompanionManifest.ACTION_SETTINGS`.
+ * The Activity is exported and resolvable by action, so any app on
  * the device can start it with extras of its own choosing; this is what says whether the one that
  * did is a host the companion serves, before the Activity acts on what it was handed.
  */
@@ -30,7 +31,14 @@ object HandOffPolicy {
 /**
  * The decision for one caller, testable on the JVM. A null [permits] argument is refused under
  * every policy: `Activity.callingPackage` is set only when the caller started the Activity for a
- * result, which is how a host starts every hand-off, so its absence means this was not a host.
+ * result, which is how a host starts every hand-off, including the settings one — it answers
+ * nothing, but is still started with `startActivityForResult` so `callingPackage` is populated.
+ * Its absence means this was not a host.
+ *
+ * `Activity.referrer` is not an alternative here: it is read from `Intent.EXTRA_REFERRER` /
+ * `EXTRA_REFERRER_NAME` before it falls back to the system-tracked caller, and those are ordinary
+ * extras any app can set on the Intent it starts the Activity with. Only `callingPackage`, which
+ * the system sets and a caller cannot forge, is a caller identity this check may trust.
  */
 class HandOffCallerPolicy internal constructor(
     private val pinned: PinnedHosts?,
