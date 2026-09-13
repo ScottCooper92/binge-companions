@@ -65,14 +65,21 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-`build` covers the Kotlin compile, the JUnit 5 tests and `ktlintCheck` — the ktlint
-plugin wires itself into `check`, and `build` depends on it. There is no detekt, no
-coverage floor and no screenshot suite in this repository, so do not look for one and
-do not report a finding as though one had caught it.
+`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck` and `detekt` —
+ktlint and detekt both wire themselves into `check`, and `build` depends on it. There
+is no coverage floor and no screenshot suite in this repository, so do not look for one
+and do not report a finding as though one had caught it.
 
 Formatting is `ktlint_official` with the settings in `.editorconfig`, which are Binge's
 minus its Compose lines. `:contracts` excludes `build/generated` — protoc's output is
 not checked in, so there is nothing there to format.
+
+detekt runs on `:sdk` only, off the root `detekt.yml`, which records deviations from
+detekt's defaults rather than a full ruleset. It runs **with type resolution**: the
+compile classpath is wired onto the task in `sdk/build.gradle.kts`, and without it
+`UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
+`detekt-baseline.xml`, because the first run found nothing; keep it that way rather than
+creating one.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a
