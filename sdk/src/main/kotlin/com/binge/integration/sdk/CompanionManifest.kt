@@ -34,6 +34,9 @@ import android.content.Intent
  *     </intent-filter>
  * </activity>
  * ```
+ *
+ * A companion with a screen of its own to manage may also export it on [ACTION_SETTINGS], the
+ * same way; the host shows a way into it on the companion's row only when the Activity resolves.
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -56,6 +59,17 @@ object CompanionManifest {
      * after [HandOffPolicy] has admitted the caller.
      */
     const val ACTION_ADVANCED_REQUEST = "com.binge.integration.ADVANCED_REQUEST"
+
+    /**
+     * The action of an Activity a companion may export for the host's "manage" affordance: its
+     * own settings or hub, taking no extras and answering nothing. The host resolves it by action
+     * and package, as it does the advanced hand-off, and starts it with `startActivityForResult`
+     * too, discarding the result — that is what gives the companion a `callingPackage` it can
+     * trust, so it admits the caller with [HandOffCallerPolicy.permits], the same as the advanced
+     * hand-off. Optional: a companion with nothing to manage declares nothing, and the host shows
+     * nothing.
+     */
+    const val ACTION_SETTINGS = "com.binge.integration.SETTINGS"
 
     /** `Int`: the title's `binge.integration.v1.MediaType` number — `1` for a movie, `2` for TV. */
     const val EXTRA_MEDIA_TYPE = "com.binge.integration.extra.MEDIA_TYPE"
