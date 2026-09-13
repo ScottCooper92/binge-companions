@@ -82,6 +82,8 @@ enum Capability {
   // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
   // integration with, and a flag that its own session needs the user.
   CAPABILITY_ATTENTION = 10;
+  // Change which seasons a TV request covers, in place (`EditRequest`).
+  CAPABILITY_EDIT_SEASONS = 11;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -187,7 +189,8 @@ message RequestStatus {
   // The host validates every URL before opening it.
   string watch_url = 5;
   // The declared capabilities that apply to THIS title for THIS user right now —
-  // e.g. approve appears only on pending requests the user may moderate.
+  // e.g. approve appears only on pending requests the user may moderate, and
+  // CAPABILITY_EDIT_SEASONS only on a TV request the user may still change.
   repeated Capability allowed_actions = 6;
 }
 
@@ -219,6 +222,14 @@ message RequestInfo {
   // The seasons this request covers; empty for movies.
   repeated int32 season_numbers = 5;
 }
+
+message EditRequestRequest {
+  int32 request_id = 1;
+  // The full replacement set, as `SubmitRequestRequest.season_numbers` is; not a delta.
+  repeated int32 season_numbers = 2;
+}
+
+message EditRequestResponse {}
 
 message CancelRequestRequest {
   int32 request_id = 1;
@@ -296,6 +307,10 @@ service RequestService {
   // whenever its provider reports change; it owns the polling cadence against its
   // own server, which is why the contract has no poll-interval negotiation.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
+  // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
+  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for a season the
+  // show does not have.
+  rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
   // Requires CAPABILITY_CANCEL.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
   // Requires CAPABILITY_APPROVE.
