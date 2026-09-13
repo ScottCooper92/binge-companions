@@ -65,10 +65,10 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck` and `detekt` —
-ktlint and detekt both wire themselves into `check`, and `build` depends on it. There
-is no coverage floor and no screenshot suite in this repository, so do not look for one
-and do not report a finding as though one had caught it.
+`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt` and
+`koverVerify` — all three wire themselves into `check`, and `build` depends on it. There
+is no screenshot suite in this repository, so do not look for one and do not report a
+finding as though one had caught it.
 
 Formatting is `ktlint_official` with the settings in `.editorconfig`, which are Binge's
 minus its Compose lines. `:contracts` excludes `build/generated` — protoc's output is
@@ -80,6 +80,18 @@ compile classpath is wired onto the task in `sdk/build.gradle.kts`, and without 
 `UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
 `detekt-baseline.xml`, because the first run found nothing; keep it that way rather than
 creating one.
+
+Coverage gates `:sdk` at **85% of lines**, measured after excluding the handful of classes
+that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`
+and the `PackageManager` extension. That is not a fudge: each of those already has its
+decision split out into a JVM-testable class the tests do cover, and the KDoc at each one
+says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both halves.
+`:contracts` has no gate at all — generated stubs, nothing to write a test for.
+
+The floor was set from a measurement (90.4% at the time) rather than inherited, so it
+ratchets. **A third module has to apply kover or say in its build file why not.** Binge
+enforces that with a root `checkCoverageGate` task; with two modules that is overkill, so
+here it is a convention — which means the next module is where it can silently go wrong.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a

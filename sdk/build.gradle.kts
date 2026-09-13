@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kover)
 }
 
 group = "io.github.scottcooper92"
@@ -81,5 +82,36 @@ kotlin.target.compilations.configureEach {
     val outputClasses = output.classesDirs
     tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
         classpath.from(classpathFiles, outputClasses)
+    }
+}
+
+// Coverage gates :sdk and not :contracts: generated protobuf and grpc-kotlin stubs would swamp the
+// figure with code no test should be written for. The exclusions below are the same idea one level
+// down - each is a class that exists only to hold an Android type, and each already has its
+// JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
+// HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy. AdvancedRequestKt
+// is deliberately NOT excluded - it holds both halves, so excluding it would drop a tested function
+// from the measurement.
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    // Context + PackageManager + Log factories, and the PackageManager extension.
+                    "com.binge.integration.sdk.HostPolicy",
+                    "com.binge.integration.sdk.HostPolicy\$*",
+                    "com.binge.integration.sdk.HostPolicyKt",
+                    "com.binge.integration.sdk.HandOffPolicy",
+                    // An android.app.Service standing up a Binder-transport gRPC server. There is
+                    // no JVM unit test of this short of an instrumented one.
+                    "com.binge.integration.sdk.IntegrationService",
+                )
+            }
+        }
+        verify {
+            rule {
+                minBound(85)
+            }
+        }
     }
 }
