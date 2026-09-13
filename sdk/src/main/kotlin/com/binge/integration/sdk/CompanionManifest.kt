@@ -62,10 +62,12 @@ object CompanionManifest {
 
     /**
      * The action of an Activity a companion may export for the host's "manage" affordance: its
-     * own settings or hub, taking no extras. The host resolves it by action and package, as it
-     * does the advanced hand-off, and starts it plainly, not for a result — so the companion
-     * admits the caller with [HandOffPolicy.permitsPlainStart] rather than [HandOffCallerPolicy.permits].
-     * Optional: a companion with nothing to manage declares nothing, and the host shows nothing.
+     * own settings or hub, taking no extras and answering nothing. The host resolves it by action
+     * and package, as it does the advanced hand-off, and starts it with `startActivityForResult`
+     * too, discarding the result — that is what gives the companion a `callingPackage` it can
+     * trust, so it admits the caller with [HandOffCallerPolicy.permits], the same as the advanced
+     * hand-off. Optional: a companion with nothing to manage declares nothing, and the host shows
+     * nothing.
      */
     const val ACTION_SETTINGS = "com.binge.integration.SETTINGS"
 

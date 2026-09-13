@@ -31,9 +31,14 @@ object HandOffPolicy {
 /**
  * The decision for one caller, testable on the JVM. A null [permits] argument is refused under
  * every policy: `Activity.callingPackage` is set only when the caller started the Activity for a
- * result, which is how a host starts every hand-off that answers, so its absence means this was
- * not a host. The settings hand-off is started plainly and carries no `callingPackage`, so it
- * answers [permitsPlainStart] from the referrer instead.
+ * result, which is how a host starts every hand-off, including the settings one — it answers
+ * nothing, but is still started with `startActivityForResult` so `callingPackage` is populated.
+ * Its absence means this was not a host.
+ *
+ * `Activity.referrer` is not an alternative here: it is read from `Intent.EXTRA_REFERRER` /
+ * `EXTRA_REFERRER_NAME` before it falls back to the system-tracked caller, and those are ordinary
+ * extras any app can set on the Intent it starts the Activity with. Only `callingPackage`, which
+ * the system sets and a caller cannot forge, is a caller identity this check may trust.
  */
 class HandOffCallerPolicy internal constructor(
     private val pinned: PinnedHosts?,
@@ -42,25 +47,10 @@ class HandOffCallerPolicy internal constructor(
     /** Whether the Activity may act on its extras, given `Activity.callingPackage`. */
     fun permits(callingPackage: String?): Boolean {
         if (callingPackage == null) return false
-        return admits(callingPackage)
-    }
-
-    /**
-     * Whether the Activity on `CompanionManifest.ACTION_SETTINGS` may show itself, given the
-     * package `Activity.referrer` names (an `android-app://<package>` uri; null for anything else).
-     * A plain start carries no `callingPackage`, and the referrer is what the system attaches
-     * in its place; it names the starting app, or nothing when the start came from elsewhere.
-     */
-    fun permitsPlainStart(referrerPackage: String?): Boolean {
-        if (referrerPackage == null) return false
-        return admits(referrerPackage)
-    }
-
-    private fun admits(packageName: String): Boolean {
         if (pinned == null) {
-            warn("Admitting hand-off from $packageName without verification (debug-only policy)")
+            warn("Admitting hand-off from $callingPackage without verification (debug-only policy)")
             return true
         }
-        return pinned.isTrusted(packageName)
+        return pinned.isTrusted(callingPackage)
     }
 }

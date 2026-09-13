@@ -41,16 +41,4 @@ class HandOffCallerPolicyTest {
     fun `the debug policy admits any caller that asked for a result`() {
         assertTrue(HandOffCallerPolicy(pinned = null).permits(OTHER))
     }
-
-    @Test
-    fun `a plain start is judged by its referrer under the same allowlist, and refused without one`() {
-        signers[HOST] = setOf(CERT)
-        val policy = pinned(KnownHost(HOST, setOf(CERT)))
-
-        assertTrue(policy.permitsPlainStart(HOST))
-        assertFalse(policy.permitsPlainStart(OTHER))
-        assertFalse(policy.permitsPlainStart(null))
-        assertTrue(HandOffCallerPolicy(pinned = null).permitsPlainStart(OTHER))
-        assertFalse(HandOffCallerPolicy(pinned = null).permitsPlainStart(null))
-    }
 }
