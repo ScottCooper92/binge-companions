@@ -91,11 +91,19 @@ the boundary. The action and the extras are named in the SDK's `CompanionManifes
 host resolves the Activity by action and package, on the companion the user consented to, before
 it starts anything.
 
+A second hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
+companion may export for the host's "manage" affordance on its row — its own settings or hub. It
+takes no extras and answers nothing; the host resolves it by action and package, shows the
+affordance only when something resolves, and starts it plainly. A companion with nothing to manage
+declares nothing.
+
 The check is mutual here too. An exported Activity is reachable by every app on the device, so
 before it acts on its extras the companion asks the SDK's `HandOffPolicy` whether the caller is a
 host it serves — the same package-and-certificate allowlist its Service pins with `HostPolicy`,
-read from `Activity.callingPackage`, which only a caller that asked for a result carries. A
-release companion pins; a debug one may admit any caller, as with the Service.
+read from `Activity.callingPackage`, which only a caller that asked for a result carries. The
+settings hand-off is started plainly and so has no `callingPackage`; it reads the package from
+`Activity.referrer` instead, which the system attaches for the starting app. A release companion
+pins; a debug one may admit any caller, as with the Service.
 
 ## Security: mutual verification
 
