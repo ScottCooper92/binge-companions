@@ -3,6 +3,7 @@ import com.google.protobuf.gradle.id
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.protobuf)
+    alias(libs.plugins.ktlint)
 }
 
 group = "io.github.scottcooper92"
@@ -60,4 +61,12 @@ protobuf {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+ktlint {
+    // The stubs under build/generated are protoc's output and are not checked in, so there is
+    // nothing here to format and no author to format it for.
+    filter {
+        exclude { it.file.path.contains("generated/") }
+    }
 }

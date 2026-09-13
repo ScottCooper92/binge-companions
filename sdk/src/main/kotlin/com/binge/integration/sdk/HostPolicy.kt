@@ -26,7 +26,12 @@ object HostPolicy {
     fun pinned(context: Context, hosts: Collection<KnownHost>): SecurityPolicy =
         HostSecurityPolicy(
             hosts = hosts,
-            packagesForUid = { uid -> context.packageManager.getPackagesForUid(uid).orEmpty().toList() },
+            packagesForUid = { uid ->
+                context.packageManager
+                    .getPackagesForUid(uid)
+                    .orEmpty()
+                    .toList()
+            },
             signerSha256s = { packageName -> context.packageManager.signerSha256s(packageName) },
         )
 
@@ -99,7 +104,10 @@ internal fun PackageManager.signerSha256s(packageName: String): Set<String> {
     val info = runCatching { getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES) }.getOrNull()
     val signing = info?.signingInfo ?: return emptySet()
     if (signing.hasMultipleSigners()) return emptySet()
-    return signing.apkContentsSigners.orEmpty().map(Signature::sha256).toSet()
+    return signing.apkContentsSigners
+        .orEmpty()
+        .map(Signature::sha256)
+        .toSet()
 }
 
 private fun Signature.sha256(): String =
