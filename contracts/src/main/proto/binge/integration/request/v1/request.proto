@@ -226,6 +226,11 @@ message RequestInfo {
 message EditRequestRequest {
   int32 request_id = 1;
   // The full replacement set, as `SubmitRequestRequest.season_numbers` is; not a delta.
+  //
+  // Empty is INVALID_ARGUMENT here, where on a submit it means the provider's default
+  // scope: a request covers at least one season, and removing every season is what
+  // `CancelRequest` is for. Said out loud because the two fields share a name, so the
+  // submit rule reads as though it carries over.
   repeated int32 season_numbers = 2;
 }
 
@@ -308,8 +313,8 @@ service RequestService {
   // own server, which is why the contract has no poll-interval negotiation.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
   // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
-  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for a season the
-  // show does not have.
+  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
+  // set, a season the show does not have, or a request for a movie.
   rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
   // Requires CAPABILITY_CANCEL.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
