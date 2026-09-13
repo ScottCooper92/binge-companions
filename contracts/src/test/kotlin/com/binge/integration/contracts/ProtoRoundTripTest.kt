@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class ProtoRoundTripTest {
-
     @Test
     fun `MediaId round-trips through bytes`() {
         val id = mediaId {
@@ -26,7 +25,8 @@ class ProtoRoundTripTest {
     fun `unknown capability values survive a parse by an older peer`() {
         // An older host must tolerate capabilities added after it shipped. Lite parsing
         // keeps unrecognised enum numbers, so nothing is lost on a re-serialise.
-        val fromNewerPeer = HandshakeResponse.newBuilder()
+        val fromNewerPeer = HandshakeResponse
+            .newBuilder()
             .addCapabilitiesValue(9999)
             .addCapabilities(Capability.CAPABILITY_REQUEST_4K)
             .build()

@@ -65,13 +65,19 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-That is the whole gate — there is no linter, no coverage floor and no screenshot
-suite in this repository, so do not look for one and do not report a finding as
-though one had caught it.
+`build` covers the Kotlin compile, the JUnit 5 tests and `ktlintCheck` — the ktlint
+plugin wires itself into `check`, and `build` depends on it. There is no detekt, no
+coverage floor and no screenshot suite in this repository, so do not look for one and
+do not report a finding as though one had caught it.
+
+Formatting is `ktlint_official` with the settings in `.editorconfig`, which are Binge's
+minus its Compose lines. `:contracts` excludes `build/generated` — protoc's output is
+not checked in, so there is nothing there to format.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
-`lint` or `breaking` configuration in `buf.yaml`, and do not add a
-`# buf:lint:ignore` comment. A `buf breaking` failure is the gate working: the
+`lint` or `breaking` configuration in `buf.yaml`, do not add a
+`# buf:lint:ignore` comment, and do not add a ktlint baseline or a
+`ktlint-disable` comment — `./gradlew ktlintFormat` is the fix. A `buf breaking` failure is the gate working: the
 correct response is to make the change additive, or to stop and ask whether this
 needs a `v2`.
 
