@@ -79,6 +79,9 @@ enum Capability {
   CAPABILITY_REPORT_ISSUE = 8;
   // Blocklist a title so it can no longer be requested (`BlockTitle`).
   CAPABILITY_BLOCK = 9;
+  // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
+  // integration with, and a flag that its own session needs the user.
+  CAPABILITY_ATTENTION = 10;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -257,6 +260,31 @@ message BlockTitleRequest {
 
 message BlockTitleResponse {}
 
+// What the host may badge the integration with. The count is the host's to show on the
+// integration's row and tab; the flag is a warning state on the row whose tap hands
+// off to the integration app, where the user can sign in again.
+message Attention {
+  // Items waiting on the signed-in user on the provider, as the integration counts
+  // them: requests they moderate, issues they handle. 0 when nothing waits.
+  uint32 pending_count = 1;
+  // The integration's provider session is broken and only the integration app can
+  // repair it. The same condition every rpc answers UNAUTHENTICATED for, reported
+  // here so the host can show it before it calls anything.
+  bool needs_reconnect = 2;
+}
+
+message GetAttentionRequest {}
+
+message GetAttentionResponse {
+  Attention attention = 1;
+}
+
+message ObserveAttentionRequest {}
+
+message ObserveAttentionResponse {
+  Attention attention = 1;
+}
+
 // Served by an integration app from a bound Service exported with the
 // `com.binge.integration.REQUEST` intent action, over gRPC's Android Binder
 // transport. `Handshake` is the host's first call on every new connection.
@@ -281,4 +309,10 @@ service RequestService {
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
   // Requires CAPABILITY_BLOCK.
   rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
+  // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
+  // everywhere; a broken session on a connected provider is `needs_reconnect`.
+  rpc GetAttention(GetAttentionRequest) returns (GetAttentionResponse);
+  // Requires CAPABILITY_ATTENTION. The integration pushes a fresh value whenever its
+  // count or its session changes, on its own cadence, as `ObserveStatus` does.
+  rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
 }
