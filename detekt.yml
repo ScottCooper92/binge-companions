@@ -1,0 +1,72 @@
+# detekt config for :sdk. `buildUponDefaultConfig = true` is set in sdk/build.gradle.kts, so this
+# file records only DEVIATIONS from detekt's defaults - it is not a full ruleset dump.
+#
+# Formatting is ktlint's job. detekt's own `formatting` ruleset ships in the separate
+# detekt-formatting artifact, which is deliberately NOT on the classpath, so it never loads.
+# MaxLineLength and WildcardImport overlap ktlint's max-line-length and no-wildcard-imports and
+# are turned off here so the two tools cannot double-report the same line.
+#
+# Ported from Binge's detekt.yml, minus everything Compose-shaped: there is no UI in this
+# repository, so the raised complexity thresholds Binge needs for screen composables would only
+# make this config weaker than detekt's defaults for no reason. The custom `binge:` rules are
+# not here either - they live in an unpublished module in Binge, and copying the source into a
+# second repository would fork a live ruleset.
+
+build:
+  maxIssues: 0
+
+potential-bugs:
+  # The `!!` ban. Needs type resolution, which sdk/build.gradle.kts wires onto the detekt task;
+  # without that classpath the rule loads and silently never fires.
+  UnsafeCallOnNullableType:
+    active: true
+  # Off, as in Binge. These two are type-resolution-only rules that come along for free with the
+  # classpath wired above, rather than anything asked for here - and UnreachableCode is measurably
+  # wrong on this module's dominant idiom. It marks the three statements after
+  # `runCatching { getPackageManager... }.getOrNull()` in HostPolicy.signerSha256s as unreachable:
+  # detekt cannot resolve the Android platform type the call returns, so it infers Nothing. The
+  # same shape with a Kotlin type is not flagged, which is how that was pinned down.
+  UnreachableCode:
+    active: false
+  UnnecessarySafeCall:
+    active: false
+
+coroutines:
+  # An SDK that hardcodes a dispatcher is one its consumers cannot test.
+  InjectDispatcher:
+    active: true
+
+exceptions:
+  # The SDK maps failures onto gRPC status codes. A swallowed exception there is a wrong status
+  # on the wire, which a companion author then has to debug from the far side of a Binder call.
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+
+style:
+  # Follow-ups are GitHub issues here, and the test is scope rather than severity (CLAUDE.md).
+  # A comment scan, so no type resolution needed; the TODO()/FIXME() stdlib functions are calls
+  # rather than comments and are never flagged. Bare markers are matched too, so `// TODO` is caught.
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'Track deferred work in a GitHub issue, not a TODO comment (CLAUDE.md).'
+        value: 'TODO'
+      - reason: 'Track deferred work in a GitHub issue, not a FIXME comment (CLAUDE.md).'
+        value: 'FIXME'
+      - reason: 'STOPSHIP markers must be resolved before shipping; open a GitHub issue instead.'
+        value: 'STOPSHIP'
+  # excludeGuardClauses is the substantive part, not the count: a run of leading
+  # `if (!precondition) return` lines is a readability win, and detekt's default of 2 total
+  # returns punishes exactly that shape - which is most of what a caller policy is.
+  ReturnCount:
+    active: true
+    max: 3
+    excludeGuardClauses: true
+  MagicNumber:
+    active: true
+  MaxLineLength:
+    active: false
+  WildcardImport:
+    active: false
