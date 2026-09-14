@@ -14,6 +14,7 @@ intent action:
 | `com.binge.integration.STREAM` | Resolve a title to playable sources |
 | `com.binge.integration.TRACKING` | Sync watch state with an external tracker |
 | `com.binge.integration.PLAYER` | External playback with a progress callback |
+| `com.binge.integration.LIBRARY` | The user's own media server (availability, play, watch state) |
 
 - Binge declares matching `<queries>` entries. Android 11+ needs them for package visibility.
 - The Service's manifest `<meta-data>` carries the display name, the icon, and the supported
@@ -120,8 +121,99 @@ Service.
 ## Play stance
 
 - No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
-- STREAM and PLAYER prefer hand-off over in-app playback. Each contract makes its own
+- STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision.
+
+## LIBRARY: the user's own media server
+
+Binge decides what to watch and remembers what you decided. REQUEST gets a title into a library.
+Neither answers "watch it, and remember that I did". That is the media server's job, and LIBRARY is
+the contract for it: whether a title is in the user's library, a way to play it, and what they have
+played, with progress.
+
+Jellyfin is the first companion. The shape has to fit Emby and Plex without a `v2`, so nothing in it
+names a server's own concepts.
+
+### What crosses, and what does not
+
+- **Identity is the platform's**: media type + TMDB id (+ season/episode), as everywhere. The
+  companion translates into its server's item ids and keeps whatever index that needs. A server item
+  with no TMDB id is not addressable through this contract; building that index is the companion's
+  problem, and it is the same problem the reference companion already solves for REQUEST.
+- **Availability answers in the response, not in a status code.** "Not in the library" is what
+  `GetAvailability` is for, so it is data: the rpc succeeds and says no. `NOT_FOUND` is left to the
+  rpcs that need an item to exist — a play target or a watch state for something the server does not
+  have.
+- **Every list is paged and artwork is a URL.** The Binder ceiling is a ceiling here too, and a
+  continue-watching row is exactly the shape that tempts an author to inline a poster.
+
+### Play is a hand-off, not a stream
+
+`GetPlayTarget` returns what the host should start: an Intent description — package, action, data
+URI — for the server's own app where it is installed, and a web URL where it is not.
+
+The alternative, handing back a stream URL, is the one this contract refuses. It would make Binge a
+player for someone else's server: the bytes would cross, and transcoding, codec negotiation,
+subtitle selection and whatever DRM the server applies would all become the host's problem. The
+server's own app already does that work, on the device, with its own account. So the platform moves
+data and never bytes, which is the same rule the Play stance above states for STREAM and PLAYER.
+
+A companion with nothing installed to hand to answers with the web URL rather than an error. That is
+a worse experience, not a failure, and the host should not have to tell the two apart.
+
+### Watch state flows both ways, on consent
+
+Reading is the default: once the user allows the integration, `GetWatchState` and
+`ObserveWatchState` report played, progress and the last played instant, per episode for a series.
+
+Writing is a second, explicit consent, because `SetPlayed` changes data on the user's server. The
+two are therefore two capabilities — `WATCH_STATE` and `WATCH_STATE_WRITE` — and not one with a
+flag. A companion whose signed-in user may read but not write declares only the first, and the host
+hides the affordance rather than offering a control the server would refuse.
+
+### Streams are companion-cadence
+
+`ObserveAvailability` and `ObserveWatchState` push on the companion's schedule, exactly as
+`ObserveStatus` does in REQUEST. A companion with a websocket to its server pushes on change; one
+that polls pushes when it polls; the host cannot tell which it has and must not try.
+
+The consequence for a host: render what you last received, and never read silence as a signal. "No
+update for thirty seconds" means nothing in common between two companions.
+
+### Capabilities
+
+`AVAILABILITY`, `PLAY`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. A companion
+declares the set from what its server supports **and** what the signed-in user may do, and the host
+hides UI for what is undeclared.
+
+The mandatory core is the handshake alone — smaller than REQUEST's, which also requires submit and
+status. REQUEST's core is what every request server does by definition. The servers LIBRARY has to
+fit vary more: one may serve availability and nothing else, another may have continue-watching rows
+and no way to mark anything played. Gating every rpc is what lets those be the same contract.
+
+As everywhere: feature detection never uses version numbers.
+
+### Discovery
+
+The Service action is `com.binge.integration.LIBRARY`. A companion may serve REQUEST and LIBRARY
+from one exported Service or from two; the host binds per action, so which it is stays the
+companion's business. Consent is per package, as Security above describes, so a companion serving
+both is consented once and its certificate pinned once.
+
+### Where LIBRARY stops
+
+LIBRARY is the user's own server. It is not the other three contracts, and the line
+matters because the capability rule — a behaviour variation is a capability, a new data model is a
+new contract — is what keeps them apart:
+
+- **STREAM** resolves a title to playable sources that are not the user's library.
+- **TRACKING** syncs watch state with a tracker that is not a media server.
+- **PLAYER** hands playback to an external player and receives a progress callback.
+
+LIBRARY's play hand-off overlaps PLAYER's territory, and its watch state overlaps TRACKING's. The
+overlap is deliberate for now: a media server plays its own media and knows what you watched, and
+splitting that across three contracts would make one companion serve three actions to do one job.
+Whether the other two survive LIBRARY is a decision for when one of them is actually built.
 
 ## Versioning
 
