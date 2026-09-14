@@ -192,6 +192,15 @@ message RequestStatus {
   // e.g. approve appears only on pending requests the user may moderate, and
   // CAPABILITY_EDIT_SEASONS only on a TV request the user may still change.
   repeated Capability allowed_actions = 6;
+  // When the integration last confirmed this status with its provider, epoch
+  // milliseconds; 0 when the integration doesn't say.
+  //
+  // An integration answering from a cache carries the time it fetched, not the
+  // time it replied — that is the whole point of the field. A host may show how
+  // fresh a status is, and must not branch on whether it is set: 0 means unknown,
+  // not old. An integration that cannot reach its provider but holds an earlier
+  // status may return it with the time it was observed, rather than an error.
+  int64 observed_at_epoch_ms = 7;
 }
 
 message SeasonAvailability {
@@ -310,7 +319,9 @@ service RequestService {
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
   // Requires CAPABILITY_OBSERVE_STATUS. The integration pushes a fresh status
   // whenever its provider reports change; it owns the polling cadence against its
-  // own server, which is why the contract has no poll-interval negotiation.
+  // own server, which is why the contract has no poll-interval negotiation. It
+  // need not push when only `observed_at_epoch_ms` would change: while the stream
+  // is open the host knows the status is at least as fresh as the last push.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
   // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
   // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
