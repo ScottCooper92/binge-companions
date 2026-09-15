@@ -137,6 +137,8 @@ Service.
 - No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision.
+- Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` hands a short-lived source to a
+  player the user chose, and that player renders it. See `Ecosystem.md` > Playback.
 
 ## LIBRARY: the user's own media server
 
@@ -175,6 +177,13 @@ data and never bytes, which is the same rule the Play stance above states for ST
 A companion with nothing installed to hand to answers with the web URL rather than an error. That is
 a worse experience, not a failure, and the host should not have to tell the two apart.
 
+**One opt-in exception: `PLAYBACK_SOURCE`.** A companion may also hand the host a playback source for
+an installed player the user chose: a URL minted for the signed-in viewer, short-lived and for one
+title, with any headers it needs and an expiry. The host starts the player and renders nothing, so
+the bytes still never cross Binder and the transcoding problem stays the server's and the player's.
+It is a capability, so a companion that does not want it declares nothing and its titles play through
+the server's own app only. The flow, the players and their limits are in `Ecosystem.md` > Playback.
+
 ### Watch state flows both ways, on consent
 
 Reading is the default: once the user allows the integration, `GetWatchState` and
@@ -196,7 +205,7 @@ update for thirty seconds" means nothing in common between two companions.
 
 ### Capabilities
 
-`AVAILABILITY`, `PLAY`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. A companion
+`AVAILABILITY`, `PLAY`, `PLAYBACK_SOURCE`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. A companion
 declares the set from what its server supports **and** what the signed-in user may do, and the host
 hides UI for what is undeclared.
 
@@ -222,12 +231,17 @@ new contract — is what keeps them apart:
 
 - **STREAM** resolves a title to playable sources that are not the user's library.
 - **TRACKING** syncs watch state with a tracker that is not a media server.
-- **PLAYER** hands playback to an external player and receives a progress callback.
+- **PLAYER** would hand playback to an external player and receive a progress callback. It is
+  deferred.
 
 LIBRARY's play hand-off overlaps PLAYER's territory, and its watch state overlaps TRACKING's. The
-overlap is deliberate for now: a media server plays its own media and knows what you watched, and
-splitting that across three contracts would make one companion serve three actions to do one job.
-Whether the other two survive LIBRARY is a decision for when one of them is actually built.
+overlap is deliberate: a media server plays its own media and knows what you watched, and splitting
+that across three contracts would make one companion serve three actions to do one job.
+
+PLAYER is deferred rather than built. The host's Play sheet offers the players already installed,
+through Android's standard video intents, and `PLAYBACK_SOURCE` feeds them. What would bring PLAYER
+back — live progress, decoding negotiation, track selection — is listed in `Ecosystem.md` > Players.
+Whether TRACKING survives LIBRARY is still a decision for when it is actually built.
 
 ## Versioning
 

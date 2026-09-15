@@ -1,6 +1,7 @@
 # Roadmap
 
-Build in this order. Each stage proves the previous one before the surface grows.
+Build in this order. Each stage proves the previous one before the surface grows. `Ecosystem.md` is
+the journey these stages add up to.
 
 1. **Platform record** — this repository, the architecture pages, CI. ✅
 2. **REQUEST contract v1 (draft)** — the `.proto` messages and the `RequestService` definition in
@@ -18,19 +19,23 @@ Build in this order. Each stage proves the previous one before the surface grows
    the `SecurityPolicy` wiring, and the handshake scaffold. Also publish a conformance suite.
    Companion authors run it in their own CI. It needs no emulator.
 6. **LIBRARY contract** — the user's own media server: whether a title is in their library, a way
-   to play it, and what they have played. Jellyfin is the first companion, and the shape has to fit
-   Emby and Plex without a `v2`. Play is a hand-off, never a stream. See `Architecture.md` >
-   LIBRARY.
-7. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
-   Hand-off first. LIBRARY does not overlap this one: it answers for the server the user already
-   runs, STREAM for everything else.
-8. **PLAYER contract** — hand off playback to an external player, with a progress callback. Watch
-   tracking survives the hand-off.
+   to play it, and what they have played. The shape has to fit Emby and Plex without a `v2`. Play
+   is a hand-off; `PLAYBACK_SOURCE` is the one opt-in exception, for an installed player the user
+   chose. See `Architecture.md` > LIBRARY.
+7. **Jellyfin companion** — the first LIBRARY companion, serving `PLAYBACK_SOURCE`. Its own UI is
+   sign-in; browsing and playing the library stay with Jellyfin's own app.
+8. **Host playback in Binge** — LIBRARY discovery and consent, availability and watch state on
+   title pages, and the Play sheet: the server's own app, or an installed player with progress
+   written back. TV first. See `Ecosystem.md` > Playback.
+9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
+   Hand-off first, through the same Play sheet. LIBRARY does not overlap this one: it answers for
+   the server the user already runs, STREAM for everything else.
 
-   LIBRARY's own play hand-off covers part of this, and its watch state covers part of a TRACKING
-   contract that is not in this list yet. Whether either survives LIBRARY is deliberately not
-   decided here — `Architecture.md` > Where LIBRARY stops leaves it to whenever one of them is
-   actually built, and nothing since has made that call.
+**Deferred: PLAYER.** Handing playback to an external player with a live progress callback. The
+Play sheet and the players already installed cover the case for now. It comes back if users hit
+the limits `Ecosystem.md` > Players lists: progress lost when a player dies, no decoding
+negotiation, no track selection from the host. **Not yet sketched: TRACKING**, watch state synced
+with a tracker that is not a media server.
 
 Artifacts publish to Maven Central under `io.github.scottcooper92` when the REQUEST contract is
 stable.
