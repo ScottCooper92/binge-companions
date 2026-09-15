@@ -48,7 +48,13 @@ object CompanionManifest {
     /** A drawable resource in the companion's own package. Optional; the host has a generic glyph. */
     const val META_ICON = "com.binge.integration.icon"
 
-    /** Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix. */
+    /**
+     * Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix.
+     *
+     * A host reads this as **either a String or an Int**, and must read both: aapt types a bare
+     * number as an Int, so `android:value="1"` never arrives as a String while `"1,2"` does. Read
+     * only the String form and every single-major companion reports as declaring nothing.
+     */
     const val META_MAJORS = "com.binge.integration.majors"
 
     /**
