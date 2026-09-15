@@ -85,8 +85,10 @@ class LibraryProtoRoundTripTest {
                 nanos = 0
             }
             episodes += episodeWatchState {
-                seasonNumber = 1
-                episodeNumber = 4
+                episode = episodeRef {
+                    seasonNumber = 1
+                    episodeNumber = 4
+                }
                 this.state = watchState {
                     played = true
                     runtimeMillis = 2_700_000
@@ -99,6 +101,7 @@ class LibraryProtoRoundTripTest {
         assertEquals(state, parsed)
         assertEquals(1_757_000_000L, parsed.lastPlayed.seconds)
         assertTrue(parsed.getEpisodes(0).state.played)
+        assertEquals(4, parsed.getEpisodes(0).episode.episodeNumber)
     }
 
     @Test

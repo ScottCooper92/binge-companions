@@ -95,8 +95,11 @@ message HandshakeResponse {
 message Availability {
   AvailabilityState state = 1;
   // The server's own id for the item, opaque to the host and never parsed by it. Empty
-  // when the title is not in the library. The host may hand it back in a later call;
-  // translating it into anything else is the integration's business.
+  // when the title is not in the library.
+  //
+  // Nothing in this contract takes it back: every rpc keys off `MediaId`, deliberately,
+  // so a host never has to hold server state to ask a question. It is here for display
+  // and for support ("which item is this?"), not as a handle.
   string item_id = 2;
   // The library the item sits in, as the server names it ("Movies", "TV Shows"). For
   // display only; empty when the server does not say.
@@ -169,6 +172,12 @@ message GetPlayTargetResponse {
   PlayTarget target = 1;
 }
 
+// One episode of the series a `MediaId` addresses.
+message EpisodeRef {
+  int32 season_number = 1;
+  int32 episode_number = 2;
+}
+
 // What the user has watched of one title.
 message WatchState {
   bool played = 1;
@@ -185,9 +194,8 @@ message WatchState {
 }
 
 message EpisodeWatchState {
-  int32 season_number = 1;
-  int32 episode_number = 2;
-  WatchState state = 3;
+  EpisodeRef episode = 1;
+  WatchState state = 2;
 }
 
 message GetWatchStateRequest {
@@ -211,12 +219,6 @@ message SetPlayedRequest {
   bool played = 2;
   // For a series, the single episode to mark. Absent marks the whole title.
   EpisodeRef episode = 3;
-}
-
-// One episode of the series a `MediaId` addresses.
-message EpisodeRef {
-  int32 season_number = 1;
-  int32 episode_number = 2;
 }
 
 message SetPlayedResponse {}
