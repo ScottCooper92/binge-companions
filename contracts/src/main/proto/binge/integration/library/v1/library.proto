@@ -1,0 +1,294 @@
+syntax = "proto3";
+
+// The LIBRARY contract: the user's own media server — whether a title is in their
+// library, a way to play it, and what they have played.
+//
+// Mandatory core: `Handshake` alone. That is smaller than REQUEST's, deliberately.
+// REQUEST's core is what every request server does by definition; the servers LIBRARY
+// has to fit vary far more. One may serve availability and nothing else, another may
+// have continue-watching rows and no way to mark anything played. Gating every rpc on
+// a capability is what lets those be the same contract.
+//
+// Play is a HAND-OFF, never a stream. `GetPlayTarget` returns what the host should
+// start — the server's own app where it is installed, a web URL where it is not. The
+// alternative, handing back a stream URL, would make the host a player for someone
+// else's server: transcoding, codec negotiation, subtitle selection and whatever DRM
+// the server applies would all become its problem. The platform moves data and never
+// bytes. See docs/Architecture.md > LIBRARY.
+//
+// Error model: failures travel as gRPC status codes, not response fields.
+//
+// Codes the INTEGRATION returns deliberately:
+//   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
+//   UNAUTHENTICATED                 — the integration's own server session is broken;
+//                                     the host directs the user to the integration app
+//                                     to reconnect.
+//   PERMISSION_DENIED               — the server user may not perform this action.
+//                                     `SetPlayed` answers this when the signed-in user
+//                                     may read watch state but not write it, which is
+//                                     also why WATCH_STATE_WRITE is its own capability.
+//   NOT_FOUND                       — the server has no such item. Reserved for the rpcs
+//                                     that need one to exist: a play target, or a watch
+//                                     state for something absent. `GetAvailability` does
+//                                     NOT use it — "not in the library" is an answer, not
+//                                     a failure, and travels in the response.
+//   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
+//
+// The transport codes are the same ones REQUEST documents at length, and for the same
+// reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
+// `bindService()` that returned false this way, not as UNAVAILABLE), and UNAVAILABLE
+// means it was installed but its process is gone. See request.proto's header.
+package binge.integration.library.v1;
+
+import "binge/integration/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_package = "com.binge.integration.contracts.library.v1";
+option java_multiple_files = true;
+
+// What a LIBRARY integration can do beyond the handshake. Declared once per connection
+// in `HandshakeResponse.capabilities`, from what the server supports AND what the
+// signed-in user may do. The host hides UI for what is undeclared and never calls a
+// gated rpc.
+//
+// Append-only: new capabilities get new numbers; hosts ignore values they don't know.
+// As everywhere on this platform, feature detection never uses version numbers.
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  // Answers `GetAvailability` and `ObserveAvailability`.
+  CAPABILITY_AVAILABILITY = 1;
+  // Answers `GetPlayTarget`.
+  CAPABILITY_PLAY = 2;
+  // Answers `GetWatchState` and `ObserveWatchState` — reading only.
+  CAPABILITY_WATCH_STATE = 3;
+  // Answers `SetPlayed`. Separate from CAPABILITY_WATCH_STATE rather than a flag on it,
+  // because writing changes data on the user's own server and is a second, explicit
+  // consent. A companion whose signed-in user may read but not write declares only the
+  // first, and the host hides the affordance rather than offering a control the server
+  // would refuse.
+  CAPABILITY_WATCH_STATE_WRITE = 4;
+  // Answers `ListContinueWatching` and `ListNextUp`.
+  CAPABILITY_CONTINUE_WATCHING = 5;
+}
+
+// Whether the user's server holds a title.
+enum AvailabilityState {
+  AVAILABILITY_STATE_UNSPECIFIED = 0;
+  AVAILABILITY_STATE_NOT_IN_LIBRARY = 1;
+  AVAILABILITY_STATE_IN_LIBRARY = 2;
+}
+
+message HandshakeRequest {
+  binge.integration.v1.HostInfo host = 1;
+}
+
+message HandshakeResponse {
+  // Everything this connection can ever do, for this server and this signed-in user.
+  repeated Capability capabilities = 1;
+  // Display name of the connected server (a proper noun, never translated).
+  string provider_name = 2;
+  // Version of the integration app, for the host's integrations screen.
+  string integration_version_name = 3;
+}
+
+// What the user's server holds for one title.
+message Availability {
+  AvailabilityState state = 1;
+  // The server's own id for the item, opaque to the host and never parsed by it. Empty
+  // when the title is not in the library. The host may hand it back in a later call;
+  // translating it into anything else is the integration's business.
+  string item_id = 2;
+  // The library the item sits in, as the server names it ("Movies", "TV Shows"). For
+  // display only; empty when the server does not say.
+  string library_name = 3;
+  // Per-season detail, populated for a series so the host can show which parts are held.
+  repeated SeasonAvailability seasons = 4;
+}
+
+message SeasonAvailability {
+  int32 season_number = 1;
+  AvailabilityState state = 2;
+  // The episodes of this season the server holds. Empty when the season is not in the
+  // library, or when the server reports at season granularity only.
+  repeated int32 episode_numbers = 3;
+}
+
+message GetAvailabilityRequest {
+  binge.integration.v1.MediaId media = 1;
+}
+
+message GetAvailabilityResponse {
+  Availability availability = 1;
+}
+
+message ObserveAvailabilityRequest {
+  binge.integration.v1.MediaId media = 1;
+}
+
+message ObserveAvailabilityResponse {
+  Availability availability = 1;
+}
+
+// One extra to put on the Intent the host starts. Values are strings on the wire; an
+// integration that needs another type encodes it and its own app decodes it, because
+// the host only copies these across and never interprets them.
+message IntentExtra {
+  string key = 1;
+  string value = 2;
+}
+
+// An Intent the host should start to play the title in the server's own app.
+message AndroidIntent {
+  // The package the Intent is addressed to. The host sets it explicitly rather than
+  // letting the system resolve, so a third app cannot answer for the server's.
+  string package_name = 1;
+  string action = 2;
+  string data_uri = 3;
+  repeated IntentExtra extras = 4;
+}
+
+// A URL to open when nothing is installed to hand to. A worse experience, not a
+// failure: an integration answers with this rather than an error, and the host should
+// not have to tell the two apart.
+message WebUrl {
+  string url = 1;
+}
+
+message PlayTarget {
+  oneof target {
+    AndroidIntent android_intent = 1;
+    WebUrl web_url = 2;
+  }
+}
+
+message GetPlayTargetRequest {
+  binge.integration.v1.MediaId media = 1;
+}
+
+message GetPlayTargetResponse {
+  PlayTarget target = 1;
+}
+
+// What the user has watched of one title.
+message WatchState {
+  bool played = 1;
+  // How far in they stopped. 0 when the server reports no resume point, which is not
+  // the same as "at the start of a played item" — read `played` for that.
+  int64 position_millis = 2;
+  // The item's length as the server measures it; 0 when it does not say. The host needs
+  // it to draw progress, and cannot get it from TMDB for an episode reliably.
+  int64 runtime_millis = 3;
+  // When the user last played it. Absent when the server does not say.
+  google.protobuf.Timestamp last_played = 4;
+  // Per-episode detail for a series. Empty for a movie.
+  repeated EpisodeWatchState episodes = 5;
+}
+
+message EpisodeWatchState {
+  int32 season_number = 1;
+  int32 episode_number = 2;
+  WatchState state = 3;
+}
+
+message GetWatchStateRequest {
+  binge.integration.v1.MediaId media = 1;
+}
+
+message GetWatchStateResponse {
+  WatchState state = 1;
+}
+
+message ObserveWatchStateRequest {
+  binge.integration.v1.MediaId media = 1;
+}
+
+message ObserveWatchStateResponse {
+  WatchState state = 1;
+}
+
+message SetPlayedRequest {
+  binge.integration.v1.MediaId media = 1;
+  bool played = 2;
+  // For a series, the single episode to mark. Absent marks the whole title.
+  EpisodeRef episode = 3;
+}
+
+// One episode of the series a `MediaId` addresses.
+message EpisodeRef {
+  int32 season_number = 1;
+  int32 episode_number = 2;
+}
+
+message SetPlayedResponse {}
+
+// One row of a continue-watching or next-up list.
+message LibraryEntry {
+  binge.integration.v1.MediaId media = 1;
+  WatchState state = 2;
+  // Artwork as a URL, never bytes: the Binder transaction limit is about 1 MB and it is
+  // a hard ceiling. A row of posters inlined is exactly the shape that hits it. The host
+  // validates every URL before loading it.
+  string artwork_url = 3;
+  // What the server calls the title, for a host that has nothing else to show yet.
+  string title = 4;
+  // The episode this row is about, for a series. Absent for a movie.
+  EpisodeRef episode = 5;
+}
+
+message ListContinueWatchingRequest {
+  // Empty for the first page; otherwise the previous response's `next_page_token`.
+  string page_token = 1;
+  // The most entries to return. 0 lets the integration choose. An integration may
+  // return fewer than asked and must not read a short page as the end — only an empty
+  // `next_page_token` says that.
+  int32 page_size = 2;
+}
+
+message ListContinueWatchingResponse {
+  repeated LibraryEntry entries = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+message ListNextUpRequest {
+  string page_token = 1;
+  int32 page_size = 2;
+}
+
+message ListNextUpResponse {
+  repeated LibraryEntry entries = 1;
+  string next_page_token = 2;
+}
+
+// Served by an integration app from a bound Service exported with the
+// `com.binge.integration.LIBRARY` intent action, over gRPC's Android Binder transport.
+// `Handshake` is the host's first call on every new connection.
+//
+// A companion may serve REQUEST and LIBRARY from one exported Service or from two; the
+// host binds per action, so which it is stays the companion's business. Consent is per
+// package, so a companion serving both is consented once and its certificate pinned
+// once.
+service LibraryService {
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+  // Requires CAPABILITY_AVAILABILITY. "Not in the library" is a successful answer
+  // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND.
+  rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse);
+  // Requires CAPABILITY_AVAILABILITY. The integration pushes on its own schedule — one
+  // with a websocket to its server pushes on change, one that polls pushes when it
+  // polls. The host cannot tell which it has and must not try: render what you last
+  // received, and never read silence as a signal.
+  rpc ObserveAvailability(ObserveAvailabilityRequest) returns (stream ObserveAvailabilityResponse);
+  // Requires CAPABILITY_PLAY. NOT_FOUND when the server does not hold the title.
+  rpc GetPlayTarget(GetPlayTargetRequest) returns (GetPlayTargetResponse);
+  // Requires CAPABILITY_WATCH_STATE. NOT_FOUND when the server does not hold the title.
+  rpc GetWatchState(GetWatchStateRequest) returns (GetWatchStateResponse);
+  // Requires CAPABILITY_WATCH_STATE. Companion-cadence, as ObserveAvailability is.
+  rpc ObserveWatchState(ObserveWatchStateRequest) returns (stream ObserveWatchStateResponse);
+  // Requires CAPABILITY_WATCH_STATE_WRITE. PERMISSION_DENIED when the signed-in user may
+  // read watch state but not write it, NOT_FOUND when the server does not hold the title.
+  rpc SetPlayed(SetPlayedRequest) returns (SetPlayedResponse);
+  // Requires CAPABILITY_CONTINUE_WATCHING. Paged, as every list on this platform is.
+  rpc ListContinueWatching(ListContinueWatchingRequest) returns (ListContinueWatchingResponse);
+  // Requires CAPABILITY_CONTINUE_WATCHING.
+  rpc ListNextUp(ListNextUpRequest) returns (ListNextUpResponse);
+}
