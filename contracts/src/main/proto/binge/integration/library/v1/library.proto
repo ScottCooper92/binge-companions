@@ -164,18 +164,21 @@ message PlayTarget {
   }
 }
 
-message GetPlayTargetRequest {
-  binge.integration.v1.MediaId media = 1;
-}
-
-message GetPlayTargetResponse {
-  PlayTarget target = 1;
-}
-
 // One episode of the series a `MediaId` addresses.
 message EpisodeRef {
   int32 season_number = 1;
   int32 episode_number = 2;
+}
+
+message GetPlayTargetRequest {
+  binge.integration.v1.MediaId media = 1;
+  // For a series, the episode to play. Absent lets the integration choose — typically
+  // the next unwatched episode, the same as if the host had no opinion.
+  EpisodeRef episode = 2;
+}
+
+message GetPlayTargetResponse {
+  PlayTarget target = 1;
 }
 
 // What the user has watched of one title.

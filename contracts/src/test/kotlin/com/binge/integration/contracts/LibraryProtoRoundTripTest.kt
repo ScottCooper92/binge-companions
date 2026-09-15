@@ -3,6 +3,7 @@ package com.binge.integration.contracts
 import com.binge.integration.contracts.library.v1.Availability
 import com.binge.integration.contracts.library.v1.AvailabilityState
 import com.binge.integration.contracts.library.v1.Capability
+import com.binge.integration.contracts.library.v1.GetPlayTargetRequest
 import com.binge.integration.contracts.library.v1.HandshakeResponse
 import com.binge.integration.contracts.library.v1.ListContinueWatchingResponse
 import com.binge.integration.contracts.library.v1.PlayTarget
@@ -11,6 +12,7 @@ import com.binge.integration.contracts.library.v1.androidIntent
 import com.binge.integration.contracts.library.v1.availability
 import com.binge.integration.contracts.library.v1.episodeRef
 import com.binge.integration.contracts.library.v1.episodeWatchState
+import com.binge.integration.contracts.library.v1.getPlayTargetRequest
 import com.binge.integration.contracts.library.v1.handshakeResponse
 import com.binge.integration.contracts.library.v1.intentExtra
 import com.binge.integration.contracts.library.v1.libraryEntry
@@ -141,6 +143,25 @@ class LibraryProtoRoundTripTest {
         assertEquals(page, parsed)
         assertEquals(4, parsed.getEntries(0).episode.episodeNumber)
         assertEquals("cursor-2", parsed.nextPageToken)
+    }
+
+    @Test
+    fun `a play target request can name the episode, not just the title`() {
+        val request = getPlayTargetRequest {
+            media = mediaId {
+                mediaType = MediaType.MEDIA_TYPE_TV
+                tmdbId = 1396
+            }
+            episode = episodeRef {
+                seasonNumber = 2
+                episodeNumber = 3
+            }
+        }
+
+        val parsed = GetPlayTargetRequest.parseFrom(request.toByteArray())
+
+        assertEquals(request, parsed)
+        assertEquals(3, parsed.episode.episodeNumber)
     }
 
     @Test
