@@ -8,14 +8,14 @@ This page shows where each contract and each platform piece stands. The stages a
 - *Spike-validated*: a real companion app has served the contract on hardware.
 - *Stable*: the artifacts are on Maven Central. The append-only guarantee applies.
 
-_Last updated: 2026-09-14._
+_Last updated: 2026-09-15._
 
 ## Contracts
 
 | Contract | Action | Stage | Notes |
 | --- | --- | --- | --- |
 | REQUEST | `com.binge.integration.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. The transport spike held on a phone and a SHIELD-class TV (ScottCooper92/Binge#2306), and the reference companion serves every v1 operation against a real Seerr instance. The stage moves once that companion has served the contract on hardware with production traffic. |
-| LIBRARY | `com.binge.integration.LIBRARY` | In design | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. No `.proto` yet — the package is #19 and the SDK support #20. Jellyfin is the first companion. |
+| LIBRARY | `com.binge.integration.LIBRARY` | **Draft** | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. The v1 messages are in `contracts/` (#19); the SDK support is #20. Jellyfin is the first companion. |
 | STREAM | `com.binge.integration.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.integration.TRACKING` | Not started | |
 | PLAYER | `com.binge.integration.PLAYER` | In design | External-player hand-off with a progress callback. Watch tracking survives the hand-off. |
