@@ -8,7 +8,7 @@ This page shows where each contract and each platform piece stands. The stages a
 - *Spike-validated*: a real companion app has served the contract on hardware.
 - *Stable*: the artifacts are on Maven Central. The append-only guarantee applies.
 
-_Last updated: 2026-09-16._
+_Last updated: 2026-09-14._
 
 ## Contracts
 
@@ -18,7 +18,7 @@ _Last updated: 2026-09-16._
 | LIBRARY | `com.binge.integration.LIBRARY` | In design | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. No `.proto` yet — the package is #19 and the SDK support #20. Jellyfin is the first companion. |
 | STREAM | `com.binge.integration.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.integration.TRACKING` | Not started | |
-| PLAYER | `com.binge.integration.PLAYER` | Deferred | The Play sheet and the intents to installed players cover the hand-off for now. See `Architecture.md` > Where LIBRARY stops for what would bring it back. |
+| PLAYER | `com.binge.integration.PLAYER` | In design | External-player hand-off with a progress callback. Watch tracking survives the hand-off. |
 
 ## Platform pieces
 
