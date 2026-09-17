@@ -18,3 +18,4 @@ rootProject.name = "binge-integrations"
 
 include(":contracts")
 include(":sdk")
+include(":detekt-rules")

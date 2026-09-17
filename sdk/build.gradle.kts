@@ -46,6 +46,9 @@ dependencies {
     testImplementation(libs.grpc.inprocess)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // Binge's custom `binge:` comment-quality rules (#39), loaded onto this module's detekt run.
+    detektPlugins(project(":detekt-rules"))
 }
 
 // detekt analyses `:sdk` and not `:contracts`: the only Kotlin under contracts/src/main is protoc's

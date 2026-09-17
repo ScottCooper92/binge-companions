@@ -3,40 +3,11 @@ package com.binge.integration.sdk
 import android.content.Intent
 
 /**
- * The strings a companion's `AndroidManifest.xml` must carry for the host to find it.
- *
- * The host reads these WITHOUT binding. It lists the companion and decides whether the two can
- * parse each other from manifest data alone, so a companion process never starts just to be
- * listed. A typo here is silent: the Service exists, the host sees it, and it is reported as
- * declaring no contract at all.
- *
- * ```xml
- * <service android:name=".RequestCompanionService" android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.binge.integration.REQUEST" />
- *     </intent-filter>
- *     <meta-data android:name="com.binge.integration.name" android:value="@string/companion_name" />
- *     <meta-data android:name="com.binge.integration.icon" android:resource="@drawable/ic_companion" />
- *     <meta-data android:name="com.binge.integration.majors" android:value="1" />
- * </service>
- * ```
- *
- * A companion that declares `CAPABILITY_ADVANCED_OPTIONS` also exports the Activity the host hands
- * the title to. The `DEFAULT` category is what lets the host resolve it by action and package —
- * and by any other app, which is why the Activity checks its caller with [HandOffPolicy] before
- * it acts on the extras, as the Service does with [HostPolicy]:
- *
- * ```xml
- * <activity android:name=".AdvancedRequestActivity" android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.binge.integration.ADVANCED_REQUEST" />
- *         <category android:name="android.intent.category.DEFAULT" />
- *     </intent-filter>
- * </activity>
- * ```
- *
- * A companion with a screen of its own to manage may also export it on [ACTION_SETTINGS], the
- * same way; the host shows a way into it on the companion's row only when the Activity resolves.
+ * The strings a companion's `AndroidManifest.xml` must carry for the host to find it: the intent
+ * actions, `<meta-data>` keys and hand-off Activity extras named below. The host reads the
+ * Service's `<meta-data>` without binding, so a typo here is silent — the Service is found and
+ * reported as declaring no contract at all. See `docs/Architecture.md` > Transport and >
+ * Hand-offs for the manifest XML shape and the mutual-verification story behind [HandOffPolicy].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -68,12 +39,10 @@ object CompanionManifest {
 
     /**
      * The action of an Activity a companion may export for the host's "manage" affordance: its
-     * own settings or hub, taking no extras and answering nothing. The host resolves it by action
-     * and package, as it does the advanced hand-off, and starts it with `startActivityForResult`
-     * too, discarding the result — that is what gives the companion a `callingPackage` it can
-     * trust, so it admits the caller with [HandOffCallerPolicy.permits], the same as the advanced
-     * hand-off. Optional: a companion with nothing to manage declares nothing, and the host shows
-     * nothing.
+     * own settings or hub, taking no extras and answering nothing. Started the same way as
+     * [ACTION_ADVANCED_REQUEST] — for a result, so `callingPackage` is populated for
+     * [HandOffCallerPolicy.permits] — but the result itself is discarded. Optional: a companion
+     * with nothing to manage declares nothing. See `docs/Architecture.md` > Hand-offs.
      */
     const val ACTION_SETTINGS = "com.binge.integration.SETTINGS"
 
