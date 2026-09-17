@@ -8,9 +8,10 @@
 #
 # Ported from Binge's detekt.yml, minus everything Compose-shaped: there is no UI in this
 # repository, so the raised complexity thresholds Binge needs for screen composables would only
-# make this config weaker than detekt's defaults for no reason. The custom `binge:` rules are
-# not here either - they live in an unpublished module in Binge, and copying the source into a
-# second repository would fork a live ruleset.
+# make this config weaker than detekt's defaults for no reason. The custom `binge:` rules below
+# are a copy, not a dependency on Binge's own module (#39): each repo that wants them carries its
+# own subset rather than a published ruleset, and this one takes only the lexical comment rules -
+# FileLength and the Tv* focus rules stayed in Binge, see the `binge:` block below for why.
 
 build:
   maxIssues: 0
@@ -70,3 +71,24 @@ style:
     active: false
   WildcardImport:
     active: false
+
+# Binge's custom comment-quality gates (`detekt-rules` module, loaded via detektPlugins in
+# sdk/build.gradle.kts), copied per #39 rather than depended on: each repo that wants the `binge:`
+# rules carries its own subset. This one takes the lexical comment rules only - stable, no type
+# resolution, no repo-specific allowlist. FileLength (a repo-specific grandfather list) and the
+# Tv* focus rules (Android TV, which this repository has none of) stayed in Binge.
+binge:
+  BannerComment:
+    active: true
+  ConsecutiveInlineComments:
+    active: true
+    # 2 is the bar's default cap; a subtle invariant may earn a third line, so gate at 4+.
+    threshold: 3
+  DeclarationCommentShouldBeKDoc:
+    active: true
+  KDocLength:
+    active: true
+    # Prose lines only - block tags (@param, @return, ...) are not counted (CLAUDE.md "Comments").
+    classThreshold: 6
+    functionThreshold: 6
+    propertyThreshold: 6
