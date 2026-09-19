@@ -19,7 +19,31 @@ intent action:
 - Binge declares matching `<queries>` entries. Android 11+ needs them for package visibility.
 - The Service's manifest `<meta-data>` carries the display name, the icon, and the supported
   contract majors. From this data alone, Binge renders its integrations list and detects a version
-  mismatch. Binge does not need to start the companion process for either.
+  mismatch. Binge does not need to start the companion process for either. The three keys are
+  `com.binge.integration.name`, `com.binge.integration.icon` and `com.binge.integration.majors`:
+
+  ```xml
+  <meta-data android:name="com.binge.integration.name" android:value="@string/companion_name" />
+  <meta-data android:name="com.binge.integration.icon" android:resource="@drawable/ic_companion" />
+  <meta-data android:name="com.binge.integration.majors" android:value="1" />
+  ```
+
+  A host reads `majors` as **either a String or an Int**, and must read both. aapt types a bare
+  number as an Int, so `android:value="1"` — the ordinary way to declare a single major — never
+  arrives as a String, while `android:value="1,2"` does. A host that reads only the String form
+  reports every single-major companion as having declared nothing, and its author has no way to
+  see why. The same applies to `name`, which is a String when written literally and a resource id
+  when written as `@string/…`.
+- A companion may serve more than one contract from the same exported Service — REQUEST and
+  LIBRARY together, say, rather than one Service per action — since consent and the certificate pin
+  are per package, not per Service. A Service is free to declare more than one `<intent-filter>`
+  action; what it may not do is declare a single, bare `majors` for more than one of them, since
+  `majors` alone cannot say which contract's package a value names. The host first reads which
+  actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
+  multi-action Service: `com.binge.integration.majors.request`, `com.binge.integration.majors.library`,
+  and so on, one key per action the Service filters on. A single-action Service keeps using the
+  bare `com.binge.integration.majors` key exactly as above; the per-contract keys only apply once a
+  Service names more than one action. Both forms follow the same String-or-Int reading rule.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
 

@@ -21,9 +21,16 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
 ## How it works
 
 - **Discovery.** A companion app exports one bound Service for each capability. Binge matches the
-  Service by its intent action (`com.binge.integration.REQUEST`, `.STREAM`, `.TRACKING`,
-  `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the contract
-  version. Binge can list installed companion apps without a start of their processes.
+  Service by its intent action (`com.binge.integration.REQUEST`, `.LIBRARY`, `.STREAM`,
+  `.TRACKING`, `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the
+  contract version. Binge can list installed companion apps without a start of their processes. A
+  companion may serve more than one contract — REQUEST and LIBRARY, say — from the same exported
+  Service, since `IntegrationService` takes a list of service implementations, or from a Service of
+  its own per contract; which it is stays the companion's business, since consent and the
+  certificate pin are per package, not per Service. A Service whose `<intent-filter>` names more
+  than one action declares its majors per contract (`CompanionManifest.META_MAJORS_REQUEST` /
+  `META_MAJORS_LIBRARY`) rather than the bare `META_MAJORS` a single-action Service uses, so the
+  host always knows which contract's package a majors value names.
 - **Transport.** Calls cross the app boundary as gRPC. The transport is the official Android
   Binder transport (`io.grpc:grpc-binder`). The messages are protocol buffers. The `.proto` files
   in `contracts/` are the normative contract. A companion app implements a generated service base.
@@ -32,6 +39,12 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   bytes. This respects the Binder transaction limit of about 1 MB.
 - **Media identity.** Every payload identifies media as media type + TMDB id (+ season/episode).
   The companion app translates to other id spaces.
+- **The play hand-off.** LIBRARY's `GetPlayTarget` answers with a `PlayTarget`: an Intent to start
+  in the server's own app, or a web URL when nothing is installed. Both ends build and read it the
+  same way — a companion builds one with the SDK's `playTarget { androidIntent(...) }` /
+  `playTarget { webUrl(...) }`, and the host turns it into a startable `Intent` with
+  `PlayTarget.toIntent(context)`, which checks the target package actually resolves before handing
+  back an Intent addressed to it.
 - **Versioning.** The proto package version (for example `v1` in `binge.integration.request.v1`)
   is the contract major version. Changes inside a package must be additive. CI enforces this with
   `buf breaking`. A handshake rpc opens every connection. The handshake declares the companion
@@ -53,6 +66,7 @@ Verification is mutual. It is part of the contract:
 | Action | Purpose | Status |
 | --- | --- | --- |
 | `com.binge.integration.REQUEST` | Request movies and shows on a media-request server; track and manage request status | Draft |
+| `com.binge.integration.LIBRARY` | The user's own media server: availability, a play hand-off, watch state | Draft |
 | `com.binge.integration.STREAM` | Resolve a title to playable sources (hand-off first) | Planned |
 | `com.binge.integration.TRACKING` | Sync watch state with an external tracker | Planned |
 | `com.binge.integration.PLAYER` | Hand off playback to an external player, with a progress callback | Planned |
@@ -70,7 +84,8 @@ Verification is mutual. It is part of the contract:
 ```
 contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC services)
 sdk/         Android library for companion apps: the exported Service base, the caller policy,
-             the manifest keys and the handshake helper
+             the manifest keys, the handshake helper and the LIBRARY play-target hand-off (built
+             by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`)
 ```
 
 The conformance harness joins when it is built. The reference companion app lives in its own
