@@ -37,10 +37,34 @@ import android.content.Intent
  *
  * A companion with a screen of its own to manage may also export it on [ACTION_SETTINGS], the
  * same way; the host shows a way into it on the companion's row only when the Activity resolves.
+ *
+ * A companion may serve REQUEST and LIBRARY from the same exported Service, or from two — which it
+ * is stays the companion's business, since consent and the certificate pin are per package, not per
+ * Service. A Service whose `<intent-filter>` names only one of [ACTION_REQUEST] / [ACTION_LIBRARY]
+ * declares [META_MAJORS] as shown above; one that names both declares [META_MAJORS_REQUEST] and
+ * [META_MAJORS_LIBRARY] instead, so each contract's majors stay unambiguous:
+ *
+ * ```xml
+ * <service android:name=".CompanionService" android:exported="true">
+ *     <intent-filter>
+ *         <action android:name="com.binge.integration.REQUEST" />
+ *     </intent-filter>
+ *     <intent-filter>
+ *         <action android:name="com.binge.integration.LIBRARY" />
+ *     </intent-filter>
+ *     <meta-data android:name="com.binge.integration.name" android:value="@string/companion_name" />
+ *     <meta-data android:name="com.binge.integration.icon" android:resource="@drawable/ic_companion" />
+ *     <meta-data android:name="com.binge.integration.majors.request" android:value="1" />
+ *     <meta-data android:name="com.binge.integration.majors.library" android:value="1" />
+ * </service>
+ * ```
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
     const val ACTION_REQUEST = "com.binge.integration.REQUEST"
+
+    /** The intent action a LIBRARY companion's Service filters on. */
+    const val ACTION_LIBRARY = "com.binge.integration.LIBRARY"
 
     /** Display name: a literal, or a string resource in the companion's own package. */
     const val META_NAME = "com.binge.integration.name"
@@ -48,8 +72,27 @@ object CompanionManifest {
     /** A drawable resource in the companion's own package. Optional; the host has a generic glyph. */
     const val META_ICON = "com.binge.integration.icon"
 
-    /** Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix. */
+    /**
+     * Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix.
+     *
+     * Use this bare key when the Service's `<intent-filter>` names exactly one of [ACTION_REQUEST]
+     * / [ACTION_LIBRARY]. A Service that filters on **both** declares majors per contract instead,
+     * with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] — a bare, unsuffixed `majors` on a
+     * multi-action Service cannot say which contract's package it names, so the host must not
+     * guess from it. See the class doc for the two-action manifest shape.
+     *
+     * A host reads this as **either a String or an Int**, and must read both: aapt types a bare
+     * number as an Int, so `android:value="1"` never arrives as a String while `"1,2"` does. Read
+     * only the String form and every single-major companion reports as declaring nothing. The same
+     * applies to [META_MAJORS_REQUEST] and [META_MAJORS_LIBRARY].
+     */
     const val META_MAJORS = "com.binge.integration.majors"
+
+    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on [ACTION_LIBRARY]. */
+    const val META_MAJORS_REQUEST = "com.binge.integration.majors.request"
+
+    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on [ACTION_REQUEST]. */
+    const val META_MAJORS_LIBRARY = "com.binge.integration.majors.library"
 
     /**
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a
