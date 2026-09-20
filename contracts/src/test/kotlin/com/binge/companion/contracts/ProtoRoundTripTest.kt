@@ -1,10 +1,10 @@
-package com.binge.integration.contracts
+package com.binge.companion.contracts
 
-import com.binge.integration.contracts.request.v1.Capability
-import com.binge.integration.contracts.request.v1.HandshakeResponse
-import com.binge.integration.contracts.v1.MediaId
-import com.binge.integration.contracts.v1.MediaType
-import com.binge.integration.contracts.v1.mediaId
+import com.binge.companion.contracts.request.v1.Capability
+import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.v1.MediaId
+import com.binge.companion.contracts.v1.MediaType
+import com.binge.companion.contracts.v1.mediaId
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

@@ -9,7 +9,7 @@ group = "io.github.scottcooper92"
 version = "0.1.0-SNAPSHOT"
 
 android {
-    namespace = "com.binge.integration.sdk"
+    namespace = "com.binge.companion.sdk"
     compileSdk = 37
 
     defaultConfig {
@@ -101,13 +101,13 @@ kover {
             excludes {
                 classes(
                     // Context + PackageManager + Log factories, and the PackageManager extension.
-                    "com.binge.integration.sdk.HostPolicy",
-                    "com.binge.integration.sdk.HostPolicy\$*",
-                    "com.binge.integration.sdk.HostPolicyKt",
-                    "com.binge.integration.sdk.HandOffPolicy",
+                    "com.binge.companion.sdk.HostPolicy",
+                    "com.binge.companion.sdk.HostPolicy\$*",
+                    "com.binge.companion.sdk.HostPolicyKt",
+                    "com.binge.companion.sdk.HandOffPolicy",
                     // An android.app.Service standing up a Binder-transport gRPC server. There is
                     // no JVM unit test of this short of an instrumented one.
-                    "com.binge.integration.sdk.IntegrationService",
+                    "com.binge.companion.sdk.IntegrationService",
                 )
             }
         }

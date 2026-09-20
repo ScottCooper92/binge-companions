@@ -4,7 +4,7 @@ syntax = "proto3";
 // providers) and tracking what happens to them.
 //
 // Mandatory core: `Handshake`, `SubmitRequest`, `GetStatus`. A service that cannot
-// serve the core must not export the `com.binge.integration.REQUEST` action.
+// serve the core must not export the `com.binge.companion.REQUEST` action.
 // Everything else is optional and gated by the `Capability` set returned from
 // `Handshake` — the host never calls an rpc whose capability was not declared, and
 // never renders UI for one.
@@ -40,11 +40,11 @@ syntax = "proto3";
 // So a host cannot detect "the integration died" from a status code alone — it
 // needs the package-removed broadcast for the permanent case, and to treat the
 // transient case as ordinary retry.
-package binge.integration.request.v1;
+package binge.companion.request.v1;
 
-import "binge/integration/v1/common.proto";
+import "binge/companion/v1/common.proto";
 
-option java_package = "com.binge.integration.contracts.request.v1";
+option java_package = "com.binge.companion.contracts.request.v1";
 option java_multiple_files = true;
 
 // What a REQUEST integration can do beyond the mandatory core. Declared once per
@@ -59,7 +59,7 @@ enum Capability {
   // Offers an advanced-options flow (destination/profile/folder) in the
   // integration app; the host offers a hand-off instead of a plain request.
   // The hand-off is an exported Activity on the
-  // `com.binge.integration.ADVANCED_REQUEST` action, started for a result with
+  // `com.binge.companion.ADVANCED_REQUEST` action, started for a result with
   // the title as extras (media type number, TMDB id, season numbers, 4K). The
   // integration owns the picker and the submit and answers RESULT_OK once it
   // has submitted; the host re-reads status whatever the result. The SDK's
@@ -130,7 +130,7 @@ enum IssueType {
 }
 
 message HandshakeRequest {
-  binge.integration.v1.HostInfo host = 1;
+  binge.companion.v1.HostInfo host = 1;
 }
 
 message HandshakeResponse {
@@ -139,12 +139,12 @@ message HandshakeResponse {
   repeated Capability capabilities = 1;
   // Display name of the connected provider (a proper noun, never translated).
   string provider_name = 2;
-  // Version of the integration app, for the host's integrations screen.
-  string integration_version_name = 3;
+  // Version of the companion app, for the host's companion apps screen.
+  string companion_version_name = 3;
 }
 
 message SubmitRequestRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   // TV only: the seasons to request. Empty means the provider's default scope.
   repeated int32 season_numbers = 2;
   // Requires CAPABILITY_REQUEST_4K.
@@ -161,7 +161,7 @@ message SubmitRequestResponse {
 }
 
 message GetStatusRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message GetStatusResponse {
@@ -169,7 +169,7 @@ message GetStatusResponse {
 }
 
 message ObserveStatusRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message ObserveStatusResponse {
@@ -270,7 +270,7 @@ message RetryRequestRequest {
 message RetryRequestResponse {}
 
 message ReportIssueRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   IssueType type = 2;
   string message = 3;
 }
@@ -278,7 +278,7 @@ message ReportIssueRequest {
 message ReportIssueResponse {}
 
 message BlockTitleRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   // The display label the provider stores against the blocklist entry.
   string title = 2;
 }
@@ -311,7 +311,7 @@ message ObserveAttentionResponse {
 }
 
 // Served by an integration app from a bound Service exported with the
-// `com.binge.integration.REQUEST` intent action, over gRPC's Android Binder
+// `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
 // transport. `Handshake` is the host's first call on every new connection.
 service RequestService {
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);

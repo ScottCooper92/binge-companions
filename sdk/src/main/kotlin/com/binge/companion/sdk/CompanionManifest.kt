@@ -1,4 +1,4 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 import android.content.Intent
 
@@ -11,13 +11,13 @@ import android.content.Intent
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
-    const val ACTION_REQUEST = "com.binge.integration.REQUEST"
+    const val ACTION_REQUEST = "com.binge.companion.REQUEST"
 
     /** Display name: a literal, or a string resource in the companion's own package. */
-    const val META_NAME = "com.binge.integration.name"
+    const val META_NAME = "com.binge.companion.name"
 
     /** A drawable resource in the companion's own package. Optional; the host has a generic glyph. */
-    const val META_ICON = "com.binge.integration.icon"
+    const val META_ICON = "com.binge.companion.icon"
 
     /**
      * Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix.
@@ -26,7 +26,7 @@ object CompanionManifest {
      * number as an Int, so `android:value="1"` never arrives as a String while `"1,2"` does. Read
      * only the String form and every single-major companion reports as declaring nothing.
      */
-    const val META_MAJORS = "com.binge.integration.majors"
+    const val META_MAJORS = "com.binge.companion.majors"
 
     /**
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a
@@ -35,7 +35,7 @@ object CompanionManifest {
      * host re-reads the title's status whatever the result. [Intent.toAdvancedRequest] reads it,
      * after [HandOffPolicy] has admitted the caller.
      */
-    const val ACTION_ADVANCED_REQUEST = "com.binge.integration.ADVANCED_REQUEST"
+    const val ACTION_ADVANCED_REQUEST = "com.binge.companion.ADVANCED_REQUEST"
 
     /**
      * The action of an Activity a companion may export for the host's "manage" affordance: its
@@ -44,17 +44,17 @@ object CompanionManifest {
      * [HandOffCallerPolicy.permits] — but the result itself is discarded. Optional: a companion
      * with nothing to manage declares nothing. See `docs/Architecture.md` > Hand-offs.
      */
-    const val ACTION_SETTINGS = "com.binge.integration.SETTINGS"
+    const val ACTION_SETTINGS = "com.binge.companion.SETTINGS"
 
-    /** `Int`: the title's `binge.integration.v1.MediaType` number — `1` for a movie, `2` for TV. */
-    const val EXTRA_MEDIA_TYPE = "com.binge.integration.extra.MEDIA_TYPE"
+    /** `Int`: the title's `binge.companion.v1.MediaType` number — `1` for a movie, `2` for TV. */
+    const val EXTRA_MEDIA_TYPE = "com.binge.companion.extra.MEDIA_TYPE"
 
     /** `Int`: the title's TMDB id. */
-    const val EXTRA_TMDB_ID = "com.binge.integration.extra.TMDB_ID"
+    const val EXTRA_TMDB_ID = "com.binge.companion.extra.TMDB_ID"
 
     /** `IntArray`, TV only: the seasons the user picked in the host. Absent or empty means the companion's default. */
-    const val EXTRA_SEASON_NUMBERS = "com.binge.integration.extra.SEASON_NUMBERS"
+    const val EXTRA_SEASON_NUMBERS = "com.binge.companion.extra.SEASON_NUMBERS"
 
     /** `Boolean`: whether the user asked for the 4K version. */
-    const val EXTRA_IS_4K = "com.binge.integration.extra.IS_4K"
+    const val EXTRA_IS_4K = "com.binge.companion.extra.IS_4K"
 }

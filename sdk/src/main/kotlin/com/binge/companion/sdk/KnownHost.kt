@@ -1,4 +1,4 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 /**
  * A host app a companion is willing to serve: its package name and the SHA-256 digests of the
