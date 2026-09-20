@@ -15,6 +15,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
 
 > **Status: pre-alpha.** The contracts are in active design. Nothing is stable. No artifacts are
 > published. See [docs/Architecture.md](docs/Architecture.md) for the platform decisions,
+> [docs/Ecosystem.md](docs/Ecosystem.md) for how Binge, the contracts and the apps work together,
 > [docs/Roadmap.md](docs/Roadmap.md) for the build order, and [docs/Status.md](docs/Status.md)
 > for progress.
 

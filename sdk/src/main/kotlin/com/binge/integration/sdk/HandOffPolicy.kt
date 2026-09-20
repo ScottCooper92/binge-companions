@@ -31,14 +31,10 @@ object HandOffPolicy {
 /**
  * The decision for one caller, testable on the JVM. A null [permits] argument is refused under
  * every policy: `Activity.callingPackage` is set only when the caller started the Activity for a
- * result, which is how a host starts every hand-off, including the settings one — it answers
- * nothing, but is still started with `startActivityForResult` so `callingPackage` is populated.
- * Its absence means this was not a host.
- *
- * `Activity.referrer` is not an alternative here: it is read from `Intent.EXTRA_REFERRER` /
- * `EXTRA_REFERRER_NAME` before it falls back to the system-tracked caller, and those are ordinary
- * extras any app can set on the Intent it starts the Activity with. Only `callingPackage`, which
- * the system sets and a caller cannot forge, is a caller identity this check may trust.
+ * result — which is how a host starts every hand-off, including the settings one — and its
+ * absence means this was not a host. `Activity.referrer` is not an alternative: it is populated
+ * from ordinary Intent extras before falling back to the system-tracked caller, so any app could
+ * forge it. See `docs/Architecture.md` > Hand-offs.
  */
 class HandOffCallerPolicy internal constructor(
     private val pinned: PinnedHosts?,

@@ -8,7 +8,10 @@ This page shows where each contract and each platform piece stands. The stages a
 - *Spike-validated*: a real companion app has served the contract on hardware.
 - *Stable*: the artifacts are on Maven Central. The append-only guarantee applies.
 
-_Last updated: 2026-09-15._
+A contract can also be *Deferred*: a decision, not a stage in the progression above — set aside on
+purpose, with what would bring it back written down.
+
+_Last updated: 2026-09-19._
 
 ## Contracts
 
@@ -18,7 +21,7 @@ _Last updated: 2026-09-15._
 | LIBRARY | `com.binge.integration.LIBRARY` | **Draft** | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. The v1 messages are in `contracts/` (#19); the SDK support is #20. Jellyfin is the first companion. |
 | STREAM | `com.binge.integration.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.integration.TRACKING` | Not started | |
-| PLAYER | `com.binge.integration.PLAYER` | In design | External-player hand-off with a progress callback. Watch tracking survives the hand-off. |
+| PLAYER | `com.binge.integration.PLAYER` | Deferred | The Play sheet and the players people already have cover the case for now (#51). See `Architecture.md` > Where LIBRARY stops and `Ecosystem.md` > Players for what would bring it back. |
 
 ## Platform pieces
 
