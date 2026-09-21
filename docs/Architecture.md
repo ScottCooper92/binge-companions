@@ -10,22 +10,22 @@ intent action:
 
 | Action | Capability |
 | --- | --- |
-| `com.binge.integration.REQUEST` | Media-request servers (request, track, manage) |
-| `com.binge.integration.STREAM` | Resolve a title to playable sources |
-| `com.binge.integration.TRACKING` | Sync watch state with an external tracker |
-| `com.binge.integration.PLAYER` | External playback with a progress callback |
-| `com.binge.integration.LIBRARY` | The user's own media server (availability, play, watch state) |
+| `com.binge.companion.REQUEST` | Media-request servers (request, track, manage) |
+| `com.binge.companion.STREAM` | Resolve a title to playable sources |
+| `com.binge.companion.TRACKING` | Sync watch state with an external tracker |
+| `com.binge.companion.PLAYER` | External playback with a progress callback |
+| `com.binge.companion.LIBRARY` | The user's own media server (availability, play, watch state) |
 
 - Binge declares matching `<queries>` entries. Android 11+ needs them for package visibility.
 - The Service's manifest `<meta-data>` carries the display name, the icon, and the supported
   contract majors. From this data alone, Binge renders its integrations list and detects a version
   mismatch. Binge does not need to start the companion process for either. The three keys are
-  `com.binge.integration.name`, `com.binge.integration.icon` and `com.binge.integration.majors`:
+  `com.binge.companion.name`, `com.binge.companion.icon` and `com.binge.companion.majors`:
 
   ```xml
-  <meta-data android:name="com.binge.integration.name" android:value="@string/companion_name" />
-  <meta-data android:name="com.binge.integration.icon" android:resource="@drawable/ic_companion" />
-  <meta-data android:name="com.binge.integration.majors" android:value="1" />
+  <meta-data android:name="com.binge.companion.name" android:value="@string/companion_name" />
+  <meta-data android:name="com.binge.companion.icon" android:resource="@drawable/ic_companion" />
+  <meta-data android:name="com.binge.companion.majors" android:value="1" />
   ```
 
   A host reads `majors` as **either a String or an Int**, and must read both. aapt types a bare
@@ -218,7 +218,7 @@ As everywhere: feature detection never uses version numbers.
 
 ### Discovery
 
-The Service action is `com.binge.integration.LIBRARY`. A companion may serve REQUEST and LIBRARY
+The Service action is `com.binge.companion.LIBRARY`. A companion may serve REQUEST and LIBRARY
 from one exported Service or from two; the host binds per action, so which it is stays the
 companion's business. Consent is per package, as Security above describes, so a companion serving
 both is consented once and its certificate pinned once.
@@ -247,7 +247,7 @@ Whether TRACKING survives LIBRARY is still a decision for when it is actually bu
 
 Capabilities answer "what can you do?". Versions answer "can we parse each other?".
 
-- The proto package version (`binge.integration.request.v1`) is the contract **major**. Inside a
+- The proto package version (`binge.companion.request.v1`) is the contract **major**. Inside a
   package, every change must be additive: new fields, new enum values, new rpcs. CI fails any
   other change with `buf breaking`. Additive changes need no negotiation. Protobuf field numbers
   and unknown-field preservation keep old and new peers compatible in both directions.

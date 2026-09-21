@@ -26,7 +26,7 @@ New fields, new enum values, new rpcs. Never a renumbering, never a removal, nev
 a change of meaning. `buf breaking` enforces the mechanical part in CI; the part it
 cannot enforce is designing a message you will not later want to renumber.
 
-A genuinely breaking change is a new package — `binge.integration.request.v2` — with
+A genuinely breaking change is a new package — `binge.companion.request.v2` — with
 its own service, served side by side with `v1` from the same exported Service. That
 is an escape hatch and a deliberate human decision, not a refactor. See
 `docs/Architecture.md` > Versioning.
@@ -37,7 +37,7 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 
 ## Proto conventions
 
-- Package is `binge.integration.<contract>.v<major>`, and the directory mirrors it.
+- Package is `binge.companion.<contract>.v<major>`, and the directory mirrors it.
 - `buf lint` runs the `STANDARD` category; `buf breaking` runs `FILE` against `main`.
   Both gate CI. Neither is negotiable in a PR — see Gates below.
 - Field numbers are allocated in order and never reused. Removing a field means a

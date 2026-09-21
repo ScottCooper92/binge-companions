@@ -1,4 +1,4 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

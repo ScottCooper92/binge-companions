@@ -6,9 +6,9 @@ syntax = "proto3";
 // package, evolution is strictly additive (new fields, new enum values, new rpcs) and is
 // enforced by `buf breaking` in CI. A breaking change means a new package (`v2`) served
 // side-by-side, never an edit here.
-package binge.integration.v1;
+package binge.companion.v1;
 
-option java_package = "com.binge.integration.contracts.v1";
+option java_package = "com.binge.companion.contracts.v1";
 option java_multiple_files = true;
 
 // The kind of title a `MediaId` addresses.

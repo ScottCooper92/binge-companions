@@ -1,6 +1,6 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
-import com.binge.integration.contracts.request.v1.Capability
+import com.binge.companion.contracts.request.v1.Capability
 import io.grpc.Status
 import io.grpc.StatusException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,12 +14,12 @@ class CapabilitiesTest {
             handshakeResponse(
                 capabilities = setOf(Capability.CAPABILITY_BLOCK, Capability.CAPABILITY_REQUEST_4K),
                 providerName = "Example",
-                integrationVersionName = "1.2.3",
+                companionVersionName = "1.2.3",
             )
 
         assertEquals(listOf(Capability.CAPABILITY_REQUEST_4K, Capability.CAPABILITY_BLOCK), response.capabilitiesList)
         assertEquals("Example", response.providerName)
-        assertEquals("1.2.3", response.integrationVersionName)
+        assertEquals("1.2.3", response.companionVersionName)
     }
 
     @Test

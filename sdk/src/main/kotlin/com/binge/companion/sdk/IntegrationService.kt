@@ -1,4 +1,4 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 import android.app.Service
 import android.content.Intent

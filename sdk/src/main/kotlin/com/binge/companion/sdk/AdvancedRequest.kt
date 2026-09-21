@@ -1,7 +1,7 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 import android.content.Intent
-import com.binge.integration.contracts.v1.MediaType
+import com.binge.companion.contracts.v1.MediaType
 
 /**
  * The title a host hands to the Activity behind `CAPABILITY_ADVANCED_OPTIONS`, so the companion can

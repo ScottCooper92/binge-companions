@@ -1,4 +1,4 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
 import io.grpc.Status
 import org.junit.jupiter.api.Assertions.assertEquals
