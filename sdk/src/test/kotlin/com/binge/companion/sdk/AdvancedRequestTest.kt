@@ -1,6 +1,6 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
-import com.binge.integration.contracts.v1.MediaType
+import com.binge.companion.contracts.v1.MediaType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

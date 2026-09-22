@@ -38,12 +38,12 @@ syntax = "proto3";
 // reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
 // `bindService()` that returned false this way, not as UNAVAILABLE), and UNAVAILABLE
 // means it was installed but its process is gone. See request.proto's header.
-package binge.integration.library.v1;
+package binge.companion.library.v1;
 
-import "binge/integration/v1/common.proto";
+import "binge/companion/v1/common.proto";
 import "google/protobuf/timestamp.proto";
 
-option java_package = "com.binge.integration.contracts.library.v1";
+option java_package = "com.binge.companion.contracts.library.v1";
 option java_multiple_files = true;
 
 // What a LIBRARY integration can do beyond the handshake. Declared once per connection
@@ -79,7 +79,7 @@ enum AvailabilityState {
 }
 
 message HandshakeRequest {
-  binge.integration.v1.HostInfo host = 1;
+  binge.companion.v1.HostInfo host = 1;
 }
 
 message HandshakeResponse {
@@ -117,7 +117,7 @@ message SeasonAvailability {
 }
 
 message GetAvailabilityRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message GetAvailabilityResponse {
@@ -125,7 +125,7 @@ message GetAvailabilityResponse {
 }
 
 message ObserveAvailabilityRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message ObserveAvailabilityResponse {
@@ -171,7 +171,7 @@ message EpisodeRef {
 }
 
 message GetPlayTargetRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   // For a series, the episode to play. Absent lets the integration choose — typically
   // the next unwatched episode, the same as if the host had no opinion.
   EpisodeRef episode = 2;
@@ -202,7 +202,7 @@ message EpisodeWatchState {
 }
 
 message GetWatchStateRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message GetWatchStateResponse {
@@ -210,7 +210,7 @@ message GetWatchStateResponse {
 }
 
 message ObserveWatchStateRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
 }
 
 message ObserveWatchStateResponse {
@@ -218,7 +218,7 @@ message ObserveWatchStateResponse {
 }
 
 message SetPlayedRequest {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   bool played = 2;
   // For a series, the single episode to mark. Absent marks the whole title.
   EpisodeRef episode = 3;
@@ -228,7 +228,7 @@ message SetPlayedResponse {}
 
 // One row of a continue-watching or next-up list.
 message LibraryEntry {
-  binge.integration.v1.MediaId media = 1;
+  binge.companion.v1.MediaId media = 1;
   WatchState state = 2;
   // Artwork as a URL, never bytes: the Binder transaction limit is about 1 MB and it is
   // a hard ceiling. A row of posters inlined is exactly the shape that hits it. The host
@@ -266,7 +266,7 @@ message ListNextUpResponse {
 }
 
 // Served by an integration app from a bound Service exported with the
-// `com.binge.integration.LIBRARY` intent action, over gRPC's Android Binder transport.
+// `com.binge.companion.LIBRARY` intent action, over gRPC's Android Binder transport.
 // `Handshake` is the host's first call on every new connection.
 //
 // A companion may serve REQUEST and LIBRARY from one exported Service or from two; the

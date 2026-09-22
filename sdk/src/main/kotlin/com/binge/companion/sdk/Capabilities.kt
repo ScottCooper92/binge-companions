@@ -1,7 +1,7 @@
-package com.binge.integration.sdk
+package com.binge.companion.sdk
 
-import com.binge.integration.contracts.request.v1.Capability
-import com.binge.integration.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.Capability
+import com.binge.companion.contracts.request.v1.HandshakeResponse
 import io.grpc.Status
 import io.grpc.StatusException
 
@@ -15,13 +15,13 @@ import io.grpc.StatusException
 fun handshakeResponse(
     capabilities: Set<Capability>,
     providerName: String,
-    integrationVersionName: String,
+    companionVersionName: String,
 ): HandshakeResponse =
     HandshakeResponse
         .newBuilder()
         .addAllCapabilities(capabilities.sortedBy(Capability::getNumber))
         .setProviderName(providerName)
-        .setIntegrationVersionName(integrationVersionName)
+        .setCompanionVersionName(companionVersionName)
         .build()
 
 /**

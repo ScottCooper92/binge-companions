@@ -15,7 +15,7 @@ the journey these stages add up to.
    real companion app. It serves REQUEST v1 with production traffic. ✅ at contract parity
    ([binge-seerr](https://github.com/ScottCooper92/binge-seerr)); production traffic is what
    moves the contract out of draft.
-5. **SDK + conformance harness** — publish `binge-integration-sdk`: the binder server bootstrap,
+5. **SDK + conformance harness** — publish `binge-companion-sdk`: the binder server bootstrap,
    the `SecurityPolicy` wiring, and the handshake scaffold. Also publish a conformance suite.
    Companion authors run it in their own CI. It needs no emulator.
 6. **LIBRARY contract** — the user's own media server: whether a title is in their library, a way
