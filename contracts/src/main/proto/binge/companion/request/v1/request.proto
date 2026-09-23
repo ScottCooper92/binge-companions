@@ -77,18 +77,14 @@ enum Capability {
   CAPABILITY_CANCEL = 7;
   // Report a media problem against an available title (`ReportIssue`).
   CAPABILITY_REPORT_ISSUE = 8;
-  // Blocklist a title so it can no longer be requested (`BlockTitle`).
+  // Blocklist a title so it can no longer be requested (`BlockTitle`), and take
+  // it off again (`UnblockTitle`).
   CAPABILITY_BLOCK = 9;
   // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
   // integration with, and a flag that its own session needs the user.
   CAPABILITY_ATTENTION = 10;
   // Change which seasons a TV request covers, in place (`EditRequest`).
   CAPABILITY_EDIT_SEASONS = 11;
-  // Take a title off the blocklist so it can be requested again (`UnblockTitle`).
-  // Its own capability rather than implied by CAPABILITY_BLOCK: a companion that
-  // blocks but predates this rpc answers it UNIMPLEMENTED, which a host reads as
-  // the companion not being installed.
-  CAPABILITY_UNBLOCK = 12;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -360,11 +356,12 @@ service RequestService {
   // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
   // report against (available or partially available).
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
-  // Requires CAPABILITY_BLOCK.
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
+  // that is not AVAILABILITY_BLOCKLISTED offers this rpc.
   rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
-  // Requires CAPABILITY_UNBLOCK, and a blocklisted title: `allowed_actions` lists
-  // it only on AVAILABILITY_BLOCKLISTED. NOT_FOUND when the title is not on the
-  // blocklist.
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on an
+  // AVAILABILITY_BLOCKLISTED title offers this rpc. NOT_FOUND when the title is
+  // not on the blocklist.
   rpc UnblockTitle(UnblockTitleRequest) returns (UnblockTitleResponse);
   // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
   // everywhere; a broken session on a connected provider is `needs_reconnect`.
