@@ -188,7 +188,7 @@ class LibraryProtoRoundTripTest {
         val readOnly = handshakeResponse {
             capabilities += listOf(Capability.CAPABILITY_WATCH_STATE, Capability.CAPABILITY_AVAILABILITY)
             providerName = "Example Server"
-            integrationVersionName = "0.1.0"
+            companionVersionName = "0.1.0"
         }
 
         val parsed = HandshakeResponse.parseFrom(readOnly.toByteArray())

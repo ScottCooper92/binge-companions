@@ -87,8 +87,8 @@ message HandshakeResponse {
   repeated Capability capabilities = 1;
   // Display name of the connected server (a proper noun, never translated).
   string provider_name = 2;
-  // Version of the integration app, for the host's integrations screen.
-  string integration_version_name = 3;
+  // Version of the companion app, for the host's companion apps screen.
+  string companion_version_name = 3;
 }
 
 // What the user's server holds for one title.
