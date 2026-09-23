@@ -88,8 +88,11 @@ status. A declared capability gates every other rpc.
 - **Static capabilities.** The handshake response declares them once. They cover everything this
   connection can ever do, for this provider and this user. The host hides UI for undeclared
   capabilities. The host never calls a gated rpc without its capability.
-- **Dynamic per-item actions.** Each status response lists the subset that applies to that title
-  now. For example, approve appears only on a pending request that the user may moderate.
+- **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
+  subset — capabilities that aren't about any one existing request. A capability that is about one
+  specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
+  `allowed_actions` instead, so it can say "approve applies to request #7, not #8" — one flat
+  title-level list cannot (REQUEST#63).
 
 The boundary rule: a behavior variation over the same data model is a capability. A new data model
 with its own lifecycle is a new contract. Capability enums grow by appending. Peers ignore values
