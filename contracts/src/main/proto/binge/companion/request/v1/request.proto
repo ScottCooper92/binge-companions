@@ -77,7 +77,8 @@ enum Capability {
   CAPABILITY_CANCEL = 7;
   // Report a media problem against an available title (`ReportIssue`).
   CAPABILITY_REPORT_ISSUE = 8;
-  // Blocklist a title so it can no longer be requested (`BlockTitle`).
+  // Blocklist a title so it can no longer be requested (`BlockTitle`), and take
+  // it off again (`UnblockTitle`).
   CAPABILITY_BLOCK = 9;
   // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
   // integration with, and a flag that its own session needs the user.
@@ -296,6 +297,12 @@ message BlockTitleRequest {
 
 message BlockTitleResponse {}
 
+message UnblockTitleRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message UnblockTitleResponse {}
+
 // What the host may badge the integration with. The count is the host's to show on the
 // integration's row and tab; the flag is a warning state on the row whose tap hands
 // off to the integration app, where the user can sign in again.
@@ -349,8 +356,13 @@ service RequestService {
   // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
   // report against (available or partially available).
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
-  // Requires CAPABILITY_BLOCK.
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
+  // that is not AVAILABILITY_BLOCKLISTED offers this rpc.
   rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on an
+  // AVAILABILITY_BLOCKLISTED title offers this rpc. NOT_FOUND when the title is
+  // not on the blocklist.
+  rpc UnblockTitle(UnblockTitleRequest) returns (UnblockTitleResponse);
   // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
   // everywhere; a broken session on a connected provider is `needs_reconnect`.
   rpc GetAttention(GetAttentionRequest) returns (GetAttentionResponse);
