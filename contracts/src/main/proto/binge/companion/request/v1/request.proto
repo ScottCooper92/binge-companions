@@ -77,7 +77,8 @@ enum Capability {
   CAPABILITY_CANCEL = 7;
   // Report a media problem against an available title (`ReportIssue`).
   CAPABILITY_REPORT_ISSUE = 8;
-  // Blocklist a title so it can no longer be requested (`BlockTitle`).
+  // Blocklist a title so it can no longer be requested (`BlockTitle`), and take
+  // it off again (`UnblockTitle`).
   CAPABILITY_BLOCK = 9;
   // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
   // integration with, and a flag that its own session needs the user.
@@ -188,9 +189,13 @@ message RequestStatus {
   // Deep link to the title in the media server's web client, when the provider has one.
   // The host validates every URL before opening it.
   string watch_url = 5;
-  // The declared capabilities that apply to THIS title for THIS user right now —
-  // e.g. approve appears only on pending requests the user may moderate, and
-  // CAPABILITY_EDIT_SEASONS only on a TV request the user may still change.
+  // The title-level capabilities that apply to THIS title for THIS user right now —
+  // the ones that aren't about any one existing request, such as whether a new
+  // request may still be submitted at all. A capability that is about one specific
+  // request (CAPABILITY_APPROVE, CAPABILITY_DECLINE, CAPABILITY_RETRY,
+  // CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that request's own
+  // RequestInfo.allowed_actions instead — see #63 for why one flat list here
+  // cannot express "approve applies to request #7, not #8".
   repeated Capability allowed_actions = 6;
   // When the integration last confirmed this status with its provider, epoch
   // milliseconds; 0 when the integration doesn't say.
@@ -230,6 +235,13 @@ message RequestInfo {
   int64 requested_at_epoch_ms = 4;
   // The seasons this request covers; empty for movies.
   repeated int32 season_numbers = 5;
+  // The capabilities that apply to THIS request right now — e.g. CAPABILITY_APPROVE
+  // only when this specific request is pending and the connected user may moderate
+  // it, CAPABILITY_CANCEL only when this one is theirs (or they may manage
+  // requests) and it hasn't already resolved. A companion populates this from
+  // whatever authorization its real server actually enforces per request, rather
+  // than the host guessing from state and requested_by alone.
+  repeated Capability allowed_actions = 6;
 }
 
 message EditRequestRequest {
@@ -285,6 +297,12 @@ message BlockTitleRequest {
 
 message BlockTitleResponse {}
 
+message UnblockTitleRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message UnblockTitleResponse {}
+
 // What the host may badge the integration with. The count is the host's to show on the
 // integration's row and tab; the flag is a warning state on the row whose tap hands
 // off to the integration app, where the user can sign in again.
@@ -338,8 +356,13 @@ service RequestService {
   // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
   // report against (available or partially available).
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
-  // Requires CAPABILITY_BLOCK.
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
+  // that is not AVAILABILITY_BLOCKLISTED offers this rpc.
   rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on an
+  // AVAILABILITY_BLOCKLISTED title offers this rpc. NOT_FOUND when the title is
+  // not on the blocklist.
+  rpc UnblockTitle(UnblockTitleRequest) returns (UnblockTitleResponse);
   // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
   // everywhere; a broken session on a connected provider is `needs_reconnect`.
   rpc GetAttention(GetAttentionRequest) returns (GetAttentionResponse);
