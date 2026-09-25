@@ -64,6 +64,12 @@ enum Capability {
   // integration owns the picker and the submit and answers RESULT_OK once it
   // has submitted; the host re-reads status whatever the result. The SDK's
   // `CompanionManifest` names the keys. No option schema crosses the boundary.
+  //
+  // Superseded for a destination expressible as a handful of named choices per
+  // axis by CAPABILITY_ADVANCED_REQUEST_OPTIONS below, which renders the same
+  // picker host-side instead of handing off. Kept for an integration whose
+  // advanced flow genuinely is not a choice list (a wizard, dependent form
+  // fields) and still wants a screen of its own.
   CAPABILITY_ADVANCED_OPTIONS = 2;
   // Server-streamed status updates (`ObserveStatus`).
   CAPABILITY_OBSERVE_STATUS = 3;
@@ -85,6 +91,13 @@ enum Capability {
   CAPABILITY_ATTENTION = 10;
   // Change which seasons a TV request covers, in place (`EditRequest`).
   CAPABILITY_EDIT_SEASONS = 11;
+  // The advanced-request destination — server, quality profile, root folder —
+  // as data instead of a hand-off screen: `GetAdvancedRequestOptions`,
+  // `GetDestinationOptions` and `SubmitAdvancedRequest`. Each axis comes back
+  // as a `Choice` list the host renders itself (a picker bottom sheet, say),
+  // with the integration's own default preselected. See "Hand-offs" in
+  // docs/Architecture.md for how this relates to CAPABILITY_ADVANCED_OPTIONS.
+  CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -257,6 +270,70 @@ message EditRequestRequest {
 
 message EditRequestResponse {}
 
+// One entry in a destination picker: the integration's own id for it, echoed back
+// verbatim on `SubmitAdvancedRequestRequest`, and the label the host shows as-is.
+message Choice {
+  string id = 1;
+  string label = 2;
+}
+
+// The advanced-request destination for one title: the server / quality-profile /
+// root-folder axes this integration offers, and which choice is preselected on
+// each — the same destination a plain `SubmitRequest` (no override) would use. An
+// axis this integration doesn't have (a single-server setup with no root-folder
+// concept, say) comes back with an empty `choices` list; the host omits that
+// picker row rather than assuming every axis is always present.
+message DestinationChoices {
+  repeated Choice servers = 1;
+  string selected_server_id = 2;
+  repeated Choice profiles = 3;
+  string selected_profile_id = 4;
+  repeated Choice root_folders = 5;
+  string selected_root_folder_id = 6;
+}
+
+message GetAdvancedRequestOptionsRequest {
+  binge.companion.v1.MediaId media = 1;
+  // Requires CAPABILITY_REQUEST_4K to set true; as `SubmitRequestRequest.is_4k`.
+  bool is_4k = 2;
+}
+
+message GetAdvancedRequestOptionsResponse {
+  DestinationChoices destination = 1;
+}
+
+// Re-resolves the profile / root-folder axes for one server, once the host's
+// picker moves off the preselected one. `destination.servers` and
+// `destination.selected_server_id` are unset on the response —
+// `GetAdvancedRequestOptions` owns the server axis, this rpc only the two that
+// depend on it.
+message GetDestinationOptionsRequest {
+  binge.companion.v1.MediaId media = 1;
+  bool is_4k = 2;
+  string server_id = 3;
+}
+
+message GetDestinationOptionsResponse {
+  DestinationChoices destination = 1;
+}
+
+message SubmitAdvancedRequestRequest {
+  binge.companion.v1.MediaId media = 1;
+  // TV only: as `SubmitRequestRequest.season_numbers`.
+  repeated int32 season_numbers = 2;
+  bool is_4k = 3;
+  // Empty means "the integration's own default for this axis" — the same default
+  // `GetAdvancedRequestOptions` preselected, so a host that never touched a
+  // picker submits identically to a plain `SubmitRequest`.
+  string server_id = 4;
+  string profile_id = 5;
+  string root_folder_id = 6;
+}
+
+message SubmitAdvancedRequestResponse {
+  SubmitRequestResponse result = 1;
+}
+
 message CancelRequestRequest {
   int32 request_id = 1;
 }
@@ -345,6 +422,17 @@ service RequestService {
   // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
   // set, a season the show does not have, or a request for a movie.
   rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. The destination choices for a
+  // fresh advanced-request picker, every axis preselected exactly as a plain
+  // `SubmitRequest` would resolve them.
+  rpc GetAdvancedRequestOptions(GetAdvancedRequestOptionsRequest) returns (GetAdvancedRequestOptionsResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Re-resolves the profile and
+  // root-folder axes after the host's picker moves off the preselected server.
+  rpc GetDestinationOptions(GetDestinationOptionsRequest) returns (GetDestinationOptionsResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Submits with the picker's
+  // choices; an empty field falls back to that axis's preselected default, so
+  // submitting with every field untouched is a plain request.
+  rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
   // Requires CAPABILITY_CANCEL.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
   // Requires CAPABILITY_APPROVE.
