@@ -101,13 +101,23 @@ they do not know. Feature detection never uses version numbers.
 ### Hand-offs
 
 Some capabilities are not an rpc but a screen. Provider-specific UI lives in the companion app, so
-where the host cannot render a choice — REQUEST's advanced options are the first case: destination
-server, quality profile, root folder — the companion exports an Activity and the host starts it for
+where the host cannot render a choice, the companion exports an Activity and the host starts it for
 a result with the title as extras. The companion owns the whole flow and the submit. It answers
 `RESULT_OK` once it has submitted; the host re-reads status either way. No option schema crosses
 the boundary. The action and the extras are named in the SDK's `CompanionManifest`, and the
 host resolves the Activity by action and package, on the companion the user consented to, before
 it starts anything.
+
+REQUEST's advanced options — destination server, quality profile, root folder — were this pattern's
+first case (`CAPABILITY_ADVANCED_OPTIONS`), and still are for a companion whose advanced flow
+genuinely isn't reducible to a choice list. But "the host cannot render a choice" turned out to be
+true only while the choices had no shared shape to cross the boundary in. Once a destination is
+modelled as a handful of named axes, each a list of `{id, label}` choices with one preselected
+(`CAPABILITY_ADVANCED_REQUEST_OPTIONS`, `GetAdvancedRequestOptions` / `GetDestinationOptions` /
+`SubmitAdvancedRequest`), the host renders its own picker from data instead of handing off —
+same boundary rule as everywhere else in the contract (a behavior variation over one data model is
+a capability), not an exception to it. The two capabilities coexist: a companion declares whichever
+fits its flow, and a host that only understands the older one keeps getting the hand-off.
 
 A second hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
 companion may export for the host's "manage" affordance on its row — its own settings or hub. It
