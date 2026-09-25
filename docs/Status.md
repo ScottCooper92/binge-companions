@@ -11,13 +11,13 @@ This page shows where each contract and each platform piece stands. The stages a
 A contract can also be *Deferred*: a decision, not a stage in the progression above — set aside on
 purpose, with what would bring it back written down.
 
-_Last updated: 2026-09-23._
+_Last updated: 2026-09-25._
 
 ## Contracts
 
 | Contract | Action | Stage | Notes |
 | --- | --- | --- | --- |
-| REQUEST | `com.binge.companion.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. The transport spike held on a phone and a SHIELD-class TV (ScottCooper92/Binge#2306), and the reference companion serves every v1 operation against a real Seerr instance except `UnblockTitle`, which it does not yet serve. The stage moves once that companion has served the contract on hardware with production traffic. |
+| REQUEST | `com.binge.companion.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. The transport spike held on a phone and a SHIELD-class TV (ScottCooper92/Binge#2306), and the reference companion serves every v1 operation against a real Seerr instance except `UnblockTitle`, `GetAdvancedRequestOptions`, `GetDestinationOptions` and `SubmitAdvancedRequest`, which it does not yet serve. The stage moves once that companion has served the contract on hardware with production traffic. |
 | LIBRARY | `com.binge.companion.LIBRARY` | In design | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. No `.proto` yet — the package is #19 and the SDK support #20. Jellyfin is the first companion. |
 | STREAM | `com.binge.companion.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.companion.TRACKING` | Not started | |
@@ -30,5 +30,5 @@ _Last updated: 2026-09-23._
 | `binge-companion-contracts` | Draft | Builds in this repository (protobuf-javalite + grpc-kotlin stubs). Consumed as source: Binge vendors a pinned copy of the `.proto` files, and binge-seerr includes this build through a submodule. Not yet published. |
 | `binge-companion-sdk` | Draft | `sdk/` builds here: `IntegrationService` (Binder server bootstrap), `HostPolicy` (the Service's caller verification) and `HandOffPolicy` (the hand-off Activities': the advanced picker's and the settings one's), `CompanionManifest` keys, hand-off actions and extras, handshake helper. binge-seerr consumes it as source through the same submodule. Binge's release certificate digest is not yet published, so `BingeHosts.release` matches nothing until it is, and only a debug build of Binge passes a companion's policy. Not yet published. |
 | Conformance harness | Not started | Runs over any channel, so companion authors need no emulator. |
-| Reference companion (Binge Seerr) | Draft | [binge-seerr](https://github.com/ScottCooper92/binge-seerr) serves every REQUEST v1 operation against the connected Seerr instance except `UnblockTitle`, the capability set is derived from the signed-in user's permissions, and the setup screen is built on the shared design system. The in-tree Seerr integration it replaces is deleted from Binge. |
+| Reference companion (Binge Seerr) | Draft | [binge-seerr](https://github.com/ScottCooper92/binge-seerr) serves every REQUEST v1 operation against the connected Seerr instance except `UnblockTitle`, `GetAdvancedRequestOptions`, `GetDestinationOptions` and `SubmitAdvancedRequest`, the capability set is derived from the signed-in user's permissions, and the setup screen is built on the shared design system. The in-tree Seerr integration it replaces is deleted from Binge. |
 | Host support in Binge | Draft | Discovery, consent and the grpc-binder client are written and unit-tested, and each companion is exposed through a `RequestIntegration` contributed by the bridge. Binge's emulator lane drives bind → handshake → request between Binge and a stub companion over a real Binder, and the hardware spike measured latency, memory and APK cost (ScottCooper92/Binge#2306, #1784). |
