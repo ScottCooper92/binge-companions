@@ -94,9 +94,12 @@ enum Capability {
   // The advanced-request destination — server, quality profile, root folder —
   // as data instead of a hand-off screen: `GetAdvancedRequestOptions`,
   // `GetDestinationOptions` and `SubmitAdvancedRequest`. Each axis comes back
-  // as a `Choice` list the host renders itself (a picker bottom sheet, say),
-  // with the integration's own default preselected. See "Hand-offs" in
-  // docs/Architecture.md for how this relates to CAPABILITY_ADVANCED_OPTIONS.
+  // as a choice list the host renders itself (a picker bottom sheet, say), with
+  // the integration's own default preselected. 4K has no toggle of its own
+  // here: a 4K instance is just another `ServerChoice` with `is_4k` set, so
+  // picking one is how an advanced request asks for 4K — see `ServerChoice`.
+  // See "Hand-offs" in docs/Architecture.md for how this capability relates to
+  // CAPABILITY_ADVANCED_OPTIONS.
   CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
 }
 
@@ -270,21 +273,35 @@ message EditRequestRequest {
 
 message EditRequestResponse {}
 
-// One entry in a destination picker: the integration's own id for it, echoed back
-// verbatim on `SubmitAdvancedRequestRequest`, and the label the host shows as-is.
+// One entry in a profile or root-folder picker: the integration's own id for it,
+// echoed back verbatim on `SubmitAdvancedRequestRequest`, and the label the host
+// shows as-is.
 message Choice {
   string id = 1;
   string label = 2;
 }
 
+// One entry in the server/destination picker. Its own message, not `Choice`,
+// because the server axis is where 4K lives: an integration that offers both a
+// regular and a 4K instance for a title lists both here, and `is_4k` is how the
+// host tells them apart — there is no separate 4K toggle in the advanced flow.
+// Picking a 4K entry is how an advanced request asks for 4K; a plain request's
+// `SubmitRequestRequest.is_4k` (gated by CAPABILITY_REQUEST_4K) is the unrelated,
+// simpler path for a host that never opens the destination picker at all.
+message ServerChoice {
+  string id = 1;
+  string label = 2;
+  bool is_4k = 3;
+}
+
 // The advanced-request destination for one title: the server / quality-profile /
 // root-folder axes this integration offers, and which choice is preselected on
-// each — the same destination a plain `SubmitRequest` (no override) would use. An
-// axis this integration doesn't have (a single-server setup with no root-folder
-// concept, say) comes back with an empty `choices` list; the host omits that
-// picker row rather than assuming every axis is always present.
+// each — the same destination a plain `SubmitRequest` (no override, so never a 4K
+// one) would use. An axis this integration doesn't have (a single-server setup
+// with no root-folder concept, say) comes back with an empty `choices` list; the
+// host omits that picker row rather than assuming every axis is always present.
 message DestinationChoices {
-  repeated Choice servers = 1;
+  repeated ServerChoice servers = 1;
   string selected_server_id = 2;
   repeated Choice profiles = 3;
   string selected_profile_id = 4;
@@ -294,8 +311,6 @@ message DestinationChoices {
 
 message GetAdvancedRequestOptionsRequest {
   binge.companion.v1.MediaId media = 1;
-  // Requires CAPABILITY_REQUEST_4K to set true; as `SubmitRequestRequest.is_4k`.
-  bool is_4k = 2;
 }
 
 message GetAdvancedRequestOptionsResponse {
@@ -306,11 +321,11 @@ message GetAdvancedRequestOptionsResponse {
 // picker moves off the preselected one. `destination.servers` and
 // `destination.selected_server_id` are unset on the response —
 // `GetAdvancedRequestOptions` owns the server axis, this rpc only the two that
-// depend on it.
+// depend on it. `server_id` alone decides whether this is a 4K destination; there
+// is no separate `is_4k` field to keep in sync with it.
 message GetDestinationOptionsRequest {
   binge.companion.v1.MediaId media = 1;
-  bool is_4k = 2;
-  string server_id = 3;
+  string server_id = 2;
 }
 
 message GetDestinationOptionsResponse {
@@ -321,13 +336,13 @@ message SubmitAdvancedRequestRequest {
   binge.companion.v1.MediaId media = 1;
   // TV only: as `SubmitRequestRequest.season_numbers`.
   repeated int32 season_numbers = 2;
-  bool is_4k = 3;
   // Empty means "the integration's own default for this axis" — the same default
   // `GetAdvancedRequestOptions` preselected, so a host that never touched a
-  // picker submits identically to a plain `SubmitRequest`.
-  string server_id = 4;
-  string profile_id = 5;
-  string root_folder_id = 6;
+  // picker submits identically to a plain `SubmitRequest`. `server_id` alone
+  // decides 4K-ness, per `ServerChoice.is_4k` — there is no `is_4k` field here.
+  string server_id = 3;
+  string profile_id = 4;
+  string root_folder_id = 5;
 }
 
 message SubmitAdvancedRequestResponse {
