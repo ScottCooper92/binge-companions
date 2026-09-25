@@ -18,7 +18,7 @@ _Last updated: 2026-09-25._
 | Contract | Action | Stage | Notes |
 | --- | --- | --- | --- |
 | REQUEST | `com.binge.companion.REQUEST` | **Draft** | The v1 messages and `RequestService` are in `contracts/`. The transport spike held on a phone and a SHIELD-class TV (ScottCooper92/Binge#2306), and the reference companion serves every v1 operation against a real Seerr instance except `UnblockTitle`, `GetAdvancedRequestOptions`, `GetDestinationOptions` and `SubmitAdvancedRequest`, which it does not yet serve. The stage moves once that companion has served the contract on hardware with production traffic. |
-| LIBRARY | `com.binge.companion.LIBRARY` | In design | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. No `.proto` yet — the package is #19 and the SDK support #20. Jellyfin is the first companion. |
+| LIBRARY | `com.binge.companion.LIBRARY` | **Draft** | The user's own media server: availability, a play hand-off, watch state both ways, continue watching. The decisions are recorded in `Architecture.md`. The v1 messages are in `contracts/` (#19); the SDK support is #20. Jellyfin is the first companion. |
 | STREAM | `com.binge.companion.STREAM` | In design | Hand-off-first render surface. No `.proto` yet. |
 | TRACKING | `com.binge.companion.TRACKING` | Not started | |
 | PLAYER | `com.binge.companion.PLAYER` | Deferred | The Play sheet and the players people already have cover the case for now (#51). See `Architecture.md` > Where LIBRARY stops and `Ecosystem.md` > Players for what would bring it back. |
