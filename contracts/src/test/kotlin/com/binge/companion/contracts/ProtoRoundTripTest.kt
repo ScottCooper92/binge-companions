@@ -2,8 +2,10 @@ package com.binge.companion.contracts
 
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.RequestInfo
 import com.binge.companion.contracts.request.v1.RequestStatus
 import com.binge.companion.contracts.request.v1.mediaFileInfo
+import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.request.v1.requestStatus
 import com.binge.companion.contracts.v1.MediaId
 import com.binge.companion.contracts.v1.MediaType
@@ -55,5 +57,16 @@ class ProtoRoundTripTest {
         assertEquals(withFile.fileInfo, parsed.fileInfo)
         assertEquals(true, parsed.hasFileInfo())
         assertEquals(false, RequestStatus.parseFrom(requestStatus { }.toByteArray()).hasFileInfo())
+    }
+
+    @Test
+    fun `RequestInfo carries is_4k and reads false when the field is absent`() {
+        val fourK = requestInfo {
+            id = 7
+            is4K = true
+        }
+
+        assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
+        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = 7 }.toByteArray()).is4K)
     }
 }

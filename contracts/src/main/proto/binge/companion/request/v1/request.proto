@@ -284,6 +284,10 @@ message RequestInfo {
   // whatever authorization its real server actually enforces per request, rather
   // than the host guessing from state and requested_by alone.
   repeated Capability allowed_actions = 6;
+  // Whether this is the 4K request. A title can carry a standard and a 4K request at
+  // once, and without this a host listing them cannot tell which is which. False when
+  // the provider doesn't say, so an older companion reads as a standard request.
+  bool is_4k = 7;
 }
 
 message EditRequestRequest {
