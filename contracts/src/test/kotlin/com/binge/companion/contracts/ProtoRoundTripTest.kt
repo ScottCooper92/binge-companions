@@ -2,6 +2,9 @@ package com.binge.companion.contracts
 
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.RequestStatus
+import com.binge.companion.contracts.request.v1.mediaFileInfo
+import com.binge.companion.contracts.request.v1.requestStatus
 import com.binge.companion.contracts.v1.MediaId
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
@@ -35,5 +38,22 @@ class ProtoRoundTripTest {
 
         assertEquals(2, parsed.capabilitiesValueList.size)
         assertEquals(Capability.CAPABILITY_REQUEST_4K, parsed.capabilitiesList[1])
+    }
+
+    @Test
+    fun `RequestStatus carries a movie's file info and reads as absent when unset`() {
+        val withFile = requestStatus {
+            fileInfo = mediaFileInfo {
+                fileName = "Movie.Title.2026.2160p.WEB-DL.mkv"
+                sizeBytes = 42_000_000_000L
+                resolution = "2160p"
+                videoCodec = "HEVC"
+            }
+        }
+
+        val parsed = RequestStatus.parseFrom(withFile.toByteArray())
+        assertEquals(withFile.fileInfo, parsed.fileInfo)
+        assertEquals(true, parsed.hasFileInfo())
+        assertEquals(false, RequestStatus.parseFrom(requestStatus { }.toByteArray()).hasFileInfo())
     }
 }

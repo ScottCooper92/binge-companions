@@ -101,6 +101,11 @@ enum Capability {
   // See "Hand-offs" in docs/Architecture.md for how this capability relates to
   // CAPABILITY_ADVANCED_OPTIONS.
   CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
+  // Answers a movie's resulting file on an available title (`RequestStatus.file_info`).
+  // Its own capability because it costs an extra fetch: Seerr's media details never
+  // carry the file, so answering means asking the *arr directly, and an integration
+  // that would rather not pay that on every status check simply doesn't declare it.
+  CAPABILITY_MEDIA_FILE_INFO = 13;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -222,6 +227,27 @@ message RequestStatus {
   // not old. An integration that cannot reach its provider but holds an earlier
   // status may return it with the time it was observed, rather than an error.
   int64 observed_at_epoch_ms = 7;
+  // The movie's file, once available. Absent means not offered or not known, and a
+  // host must not tell those apart, as with `watch_url`. Requires
+  // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which
+  // this contract doesn't model.
+  MediaFileInfo file_info = 8;
+}
+
+// A movie's resulting file, only meaningfully populated when
+// `RequestStatus.availability` is AVAILABILITY_AVAILABLE. Requires
+// CAPABILITY_MEDIA_FILE_INFO.
+message MediaFileInfo {
+  // The file's own name, without a path, e.g. "Movie.Title.2026.2160p.WEB-DL.mkv".
+  // Empty when unknown.
+  string file_name = 1;
+  // Whole bytes; 0 when unknown.
+  int64 size_bytes = 2;
+  // A short resolution label the provider already formats, e.g. "2160p". Empty when
+  // unknown.
+  string resolution = 3;
+  // A short codec label, e.g. "HEVC" or "H.264". Empty when unknown.
+  string video_codec = 4;
 }
 
 message SeasonAvailability {
