@@ -2,6 +2,8 @@ package com.binge.companion.contracts
 
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.RequestInfo
+import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.v1.MediaId
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
@@ -35,5 +37,16 @@ class ProtoRoundTripTest {
 
         assertEquals(2, parsed.capabilitiesValueList.size)
         assertEquals(Capability.CAPABILITY_REQUEST_4K, parsed.capabilitiesList[1])
+    }
+
+    @Test
+    fun `RequestInfo carries is_4k and reads false when the field is absent`() {
+        val fourK = requestInfo {
+            id = 7
+            is4K = true
+        }
+
+        assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
+        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = 7 }.toByteArray()).is4K)
     }
 }
