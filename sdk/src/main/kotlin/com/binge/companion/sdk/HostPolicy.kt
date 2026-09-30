@@ -7,7 +7,6 @@ import android.os.Build
 import android.util.Log
 import io.grpc.Status
 import io.grpc.binder.SecurityPolicy
-import java.security.MessageDigest
 
 /**
  * The companion half of the platform's mutual check: who may bind to this companion's Service.
@@ -22,6 +21,8 @@ object HostPolicy {
      * Admits only [hosts]: the caller's uid must resolve to a listed package, and that package
      * must currently be signed by one of its listed certificates. This is the policy a release
      * companion ships with, normally `HostPolicy.pinned(context, listOf(BingeHosts.release))`.
+     * Only the Android lookups are wired here; the decision is [HostSecurityPolicy] and the signer
+     * rules are [signerDigests], both tested on the JVM.
      */
     fun pinned(context: Context, hosts: Collection<KnownHost>): SecurityPolicy =
         HostSecurityPolicy(
@@ -95,23 +96,15 @@ internal class PinnedHosts(
 }
 
 /**
- * The current signer's digest, or nothing. API 28 and up only: below it the lineage-less
- * `GET_SIGNATURES` is all there is, and the host refuses to discover companions there anyway, so
- * refusing here keeps the two ends' floors the same rather than checking weakly on one of them.
+ * The current signer's digest for [packageName], or nothing. Only the Android lookup lives here;
+ * every fail-closed decision is [signerDigests], which is tested on the JVM.
  */
-internal fun PackageManager.signerSha256s(packageName: String): Set<String> {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return emptySet()
-    val info = runCatching { getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES) }.getOrNull()
-    val signing = info?.signingInfo ?: return emptySet()
-    if (signing.hasMultipleSigners()) return emptySet()
-    return signing.apkContentsSigners
-        .orEmpty()
-        .map(Signature::sha256)
-        .toSet()
-}
-
-private fun Signature.sha256(): String =
-    MessageDigest
-        .getInstance("SHA-256")
-        .digest(toByteArray())
-        .joinToString(separator = "") { "%02x".format(it) }
+internal fun PackageManager.signerSha256s(packageName: String): Set<String> =
+    signerDigests(Build.VERSION.SDK_INT) {
+        getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.let { signing ->
+            SignerSnapshot(
+                hasMultipleSigners = signing.hasMultipleSigners(),
+                certificates = signing.apkContentsSigners.orEmpty().map(Signature::toByteArray),
+            )
+        }
+    }

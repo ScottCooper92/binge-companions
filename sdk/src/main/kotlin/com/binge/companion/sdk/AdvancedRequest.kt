@@ -11,7 +11,10 @@ import com.binge.companion.contracts.v1.MediaType
 data class AdvancedRequest(
     val mediaType: MediaType,
     val tmdbId: Int,
-    /** TV only: the seasons the user picked in the host; empty for the companion's own default. */
+    /**
+     * TV only: the seasons the user picked in the host; empty for the companion's own default.
+     * Never negative, never repeated, at most [MAX_SEASON_NUMBERS], and always empty for a movie.
+     */
     val seasonNumbers: List<Int>,
     val is4k: Boolean,
 )
@@ -28,7 +31,15 @@ fun Intent.toAdvancedRequest(): AdvancedRequest? =
         is4k = getBooleanExtra(CompanionManifest.EXTRA_IS_4K, false),
     )
 
-/** The Intent-free half of [toAdvancedRequest], so its validation runs on the JVM. */
+/** The most seasons a hand-off may carry; further picks are dropped rather than passed on. */
+const val MAX_SEASON_NUMBERS = 100
+
+/**
+ * The Intent-free half of [toAdvancedRequest], so its validation runs on the JVM. The extras are
+ * whatever the caller chose to send, so a season list is cleaned here rather than left for every
+ * companion to defend against: negative numbers and repeats are dropped, the list is capped, and a
+ * movie carries none. Season 0 is kept, since specials are a season.
+ */
 fun advancedRequestOf(
     mediaTypeNumber: Int,
     tmdbId: Int,
@@ -37,5 +48,14 @@ fun advancedRequestOf(
 ): AdvancedRequest? {
     val mediaType = MediaType.forNumber(mediaTypeNumber)?.takeIf { it != MediaType.MEDIA_TYPE_UNSPECIFIED } ?: return null
     if (tmdbId <= 0) return null
-    return AdvancedRequest(mediaType, tmdbId, seasonNumbers?.toList().orEmpty(), is4k)
+    val seasons = if (mediaType == MediaType.MEDIA_TYPE_TV) cleanSeasons(seasonNumbers) else emptyList()
+    return AdvancedRequest(mediaType, tmdbId, seasons, is4k)
 }
+
+private fun cleanSeasons(seasonNumbers: IntArray?): List<Int> =
+    seasonNumbers
+        ?.toList()
+        .orEmpty()
+        .filter { it >= 0 }
+        .distinct()
+        .take(MAX_SEASON_NUMBERS)

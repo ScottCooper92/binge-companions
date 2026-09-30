@@ -31,4 +31,33 @@ class AdvancedRequestTest {
     fun `a missing TMDB id names no title`() {
         assertNull(advancedRequestOf(MediaType.MEDIA_TYPE_MOVIE_VALUE, tmdbId = 0, seasonNumbers = null, is4k = false))
     }
+
+    @Test
+    fun `a movie carries no seasons even if the caller sent some`() {
+        val request = advancedRequestOf(MediaType.MEDIA_TYPE_MOVIE_VALUE, tmdbId = 603, seasonNumbers = intArrayOf(1, 2), is4k = false)
+
+        assertEquals(emptyList<Int>(), request?.seasonNumbers)
+    }
+
+    @Test
+    fun `negative and repeated season numbers are dropped and season zero is kept`() {
+        val request =
+            advancedRequestOf(
+                MediaType.MEDIA_TYPE_TV_VALUE,
+                tmdbId = 1399,
+                seasonNumbers = intArrayOf(2, -1, 0, 2, Int.MIN_VALUE, 1),
+                is4k = false,
+            )
+
+        assertEquals(listOf(2, 0, 1), request?.seasonNumbers)
+    }
+
+    @Test
+    fun `an oversized season list is capped`() {
+        val many = IntArray(MAX_SEASON_NUMBERS * 3) { it }
+
+        val request = advancedRequestOf(MediaType.MEDIA_TYPE_TV_VALUE, tmdbId = 1399, seasonNumbers = many, is4k = false)
+
+        assertEquals((0 until MAX_SEASON_NUMBERS).toList(), request?.seasonNumbers)
+    }
 }
