@@ -76,6 +76,7 @@ source of truth for stage, so it isn't restated here.
 contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC services)
 sdk/         Android library for companion apps: the exported Service base, the caller policy,
              the manifest keys and the handshake helper
+detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
 ```
 
 The conformance harness joins when it is built. The reference companion app lives in its own
@@ -89,7 +90,7 @@ Run:
 ./gradlew build
 ```
 
-That compiles both modules, runs the tests, checks formatting, runs detekt over the SDK and
+That compiles all three modules, runs the tests, checks formatting, runs detekt over the SDK and
 holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
 
 You need JDK 17 or later.

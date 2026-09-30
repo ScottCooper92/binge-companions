@@ -89,9 +89,11 @@ says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both
 `:contracts` has no gate at all — generated stubs, nothing to write a test for.
 
 The floor was set from a measurement (90.4% at the time) rather than inherited, so it
-ratchets. **A third module has to apply kover or say in its build file why not.** Binge
-enforces that with a root `checkCoverageGate` task; with two modules that is overkill, so
-here it is a convention — which means the next module is where it can silently go wrong.
+ratchets. **A new module has to apply kover or say in its build file why not.** Binge
+enforces that with a root `checkCoverageGate` task; with three modules that is still overkill,
+so here it is a convention — which means the next module is where it can silently go wrong.
+`:detekt-rules` is the one module without a floor: it holds the custom detekt rules, its own
+tests run in `build`, and it is not shipped.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a
