@@ -7,9 +7,9 @@ import android.content.Intent
  * without binding — a typo here is silent, since the Service still exists and is reported as
  * declaring no contract at all.
  *
- * See `docs/Architecture.md` > Hand-offs for the manifest XML shape, the hand-off Activities
- * on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS], and how a Service serving both REQUEST and
- * LIBRARY scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY].
+ * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving both REQUEST and LIBRARY
+ * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY], and > Hand-offs for the Activities
+ * on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
