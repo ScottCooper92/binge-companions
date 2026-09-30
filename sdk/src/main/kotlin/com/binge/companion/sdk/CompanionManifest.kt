@@ -3,61 +3,13 @@ package com.binge.companion.sdk
 import android.content.Intent
 
 /**
- * The strings a companion's `AndroidManifest.xml` must carry for the host to find it.
- *
- * The host reads these WITHOUT binding. It lists the companion and decides whether the two can
- * parse each other from manifest data alone, so a companion process never starts just to be
- * listed. A typo here is silent: the Service exists, the host sees it, and it is reported as
+ * The strings a companion's `AndroidManifest.xml` must carry for the host to find it, read
+ * without binding — a typo here is silent, since the Service still exists and is reported as
  * declaring no contract at all.
  *
- * ```xml
- * <service android:name=".RequestCompanionService" android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.binge.companion.REQUEST" />
- *     </intent-filter>
- *     <meta-data android:name="com.binge.companion.name" android:value="@string/companion_name" />
- *     <meta-data android:name="com.binge.companion.icon" android:resource="@drawable/ic_companion" />
- *     <meta-data android:name="com.binge.companion.majors" android:value="1" />
- * </service>
- * ```
- *
- * A companion that declares `CAPABILITY_ADVANCED_OPTIONS` also exports the Activity the host hands
- * the title to. The `DEFAULT` category is what lets the host resolve it by action and package —
- * and by any other app, which is why the Activity checks its caller with [HandOffPolicy] before
- * it acts on the extras, as the Service does with [HostPolicy]:
- *
- * ```xml
- * <activity android:name=".AdvancedRequestActivity" android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.binge.companion.ADVANCED_REQUEST" />
- *         <category android:name="android.intent.category.DEFAULT" />
- *     </intent-filter>
- * </activity>
- * ```
- *
- * A companion with a screen of its own to manage may also export it on [ACTION_SETTINGS], the
- * same way; the host shows a way into it on the companion's row only when the Activity resolves.
- *
- * A companion may serve REQUEST and LIBRARY from the same exported Service, or from two — which it
- * is stays the companion's business, since consent and the certificate pin are per package, not per
- * Service. A Service whose `<intent-filter>` names only one of [ACTION_REQUEST] / [ACTION_LIBRARY]
- * declares [META_MAJORS] as shown above; one that names both declares [META_MAJORS_REQUEST] and
- * [META_MAJORS_LIBRARY] instead, so each contract's majors stay unambiguous:
- *
- * ```xml
- * <service android:name=".CompanionService" android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.binge.companion.REQUEST" />
- *     </intent-filter>
- *     <intent-filter>
- *         <action android:name="com.binge.companion.LIBRARY" />
- *     </intent-filter>
- *     <meta-data android:name="com.binge.companion.name" android:value="@string/companion_name" />
- *     <meta-data android:name="com.binge.companion.icon" android:resource="@drawable/ic_companion" />
- *     <meta-data android:name="com.binge.companion.majors.request" android:value="1" />
- *     <meta-data android:name="com.binge.companion.majors.library" android:value="1" />
- * </service>
- * ```
+ * See `docs/Architecture.md` > Hand-offs for the manifest XML shape, the hand-off Activities
+ * on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS], and how a Service serving both REQUEST and
+ * LIBRARY scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -73,18 +25,13 @@ object CompanionManifest {
     const val META_ICON = "com.binge.companion.icon"
 
     /**
-     * Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix.
+     * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming
+     * only one of [ACTION_REQUEST] / [ACTION_LIBRARY]; one serving both uses
+     * [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] instead, since a bare key can't say which
+     * contract's majors it names.
      *
-     * Use this bare key when the Service's `<intent-filter>` names exactly one of [ACTION_REQUEST]
-     * / [ACTION_LIBRARY]. A Service that filters on **both** declares majors per contract instead,
-     * with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] — a bare, unsuffixed `majors` on a
-     * multi-action Service cannot say which contract's package it names, so the host must not
-     * guess from it. See the class doc for the two-action manifest shape.
-     *
-     * A host reads this as **either a String or an Int**, and must read both: aapt types a bare
-     * number as an Int, so `android:value="1"` never arrives as a String while `"1,2"` does. Read
-     * only the String form and every single-major companion reports as declaring nothing. The same
-     * applies to [META_MAJORS_REQUEST] and [META_MAJORS_LIBRARY].
+     * Read as either a String or an Int: aapt types a bare number as an Int, so `"1"` never
+     * arrives as a String while `"1,2"` does — same for the two scoped keys above.
      */
     const val META_MAJORS = "com.binge.companion.majors"
 
@@ -104,13 +51,13 @@ object CompanionManifest {
     const val ACTION_ADVANCED_REQUEST = "com.binge.companion.ADVANCED_REQUEST"
 
     /**
-     * The action of an Activity a companion may export for the host's "manage" affordance: its
-     * own settings or hub, taking no extras and answering nothing. The host resolves it by action
-     * and package, as it does the advanced hand-off, and starts it with `startActivityForResult`
-     * too, discarding the result — that is what gives the companion a `callingPackage` it can
-     * trust, so it admits the caller with [HandOffCallerPolicy.permits], the same as the advanced
-     * hand-off. Optional: a companion with nothing to manage declares nothing, and the host shows
-     * nothing.
+     * The action of an Activity a companion may export for the host's "manage" affordance:
+     * its own settings or hub, taking no extras and answering nothing. Optional — a companion
+     * with nothing to manage declares nothing.
+     *
+     * The host resolves it by action and package and starts it with `startActivityForResult`,
+     * discarding the result — that's what gives the companion a `callingPackage` to check with
+     * [HandOffCallerPolicy.permits], the same as the advanced hand-off.
      */
     const val ACTION_SETTINGS = "com.binge.companion.SETTINGS"
 
