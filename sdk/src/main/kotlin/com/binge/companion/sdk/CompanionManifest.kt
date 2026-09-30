@@ -3,15 +3,20 @@ package com.binge.companion.sdk
 import android.content.Intent
 
 /**
- * The strings a companion's `AndroidManifest.xml` must carry for the host to find it: the intent
- * actions, `<meta-data>` keys and hand-off Activity extras named below. The host reads the
- * Service's `<meta-data>` without binding, so a typo here is silent — the Service is found and
- * reported as declaring no contract at all. See `docs/Architecture.md` > Transport and >
- * Hand-offs for the manifest XML shape and the mutual-verification story behind [HandOffPolicy].
+ * The strings a companion's `AndroidManifest.xml` must carry for the host to find it, read
+ * without binding — a typo here is silent, since the Service still exists and is reported as
+ * declaring no contract at all.
+ *
+ * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving both REQUEST and LIBRARY
+ * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY], and > Hand-offs for the Activities
+ * on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
     const val ACTION_REQUEST = "com.binge.companion.REQUEST"
+
+    /** The intent action a LIBRARY companion's Service filters on. */
+    const val ACTION_LIBRARY = "com.binge.companion.LIBRARY"
 
     /** Display name: a literal, or a string resource in the companion's own package. */
     const val META_NAME = "com.binge.companion.name"
@@ -20,13 +25,21 @@ object CompanionManifest {
     const val META_ICON = "com.binge.companion.icon"
 
     /**
-     * Comma-separated contract majors served, e.g. `1` or `1,2`. The proto package suffix.
+     * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming
+     * only one of [ACTION_REQUEST] / [ACTION_LIBRARY]; one serving both uses
+     * [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] instead, since a bare key can't say which
+     * contract's majors it names.
      *
-     * A host reads this as **either a String or an Int**, and must read both: aapt types a bare
-     * number as an Int, so `android:value="1"` never arrives as a String while `"1,2"` does. Read
-     * only the String form and every single-major companion reports as declaring nothing.
+     * Read as either a String or an Int: aapt types a bare number as an Int, so `"1"` never
+     * arrives as a String while `"1,2"` does — same for the two scoped keys above.
      */
     const val META_MAJORS = "com.binge.companion.majors"
+
+    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on [ACTION_LIBRARY]. */
+    const val META_MAJORS_REQUEST = "com.binge.companion.majors.request"
+
+    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on [ACTION_REQUEST]. */
+    const val META_MAJORS_LIBRARY = "com.binge.companion.majors.library"
 
     /**
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a
@@ -38,11 +51,13 @@ object CompanionManifest {
     const val ACTION_ADVANCED_REQUEST = "com.binge.companion.ADVANCED_REQUEST"
 
     /**
-     * The action of an Activity a companion may export for the host's "manage" affordance: its
-     * own settings or hub, taking no extras and answering nothing. Started the same way as
-     * [ACTION_ADVANCED_REQUEST] — for a result, so `callingPackage` is populated for
-     * [HandOffCallerPolicy.permits] — but the result itself is discarded. Optional: a companion
-     * with nothing to manage declares nothing. See `docs/Architecture.md` > Hand-offs.
+     * The action of an Activity a companion may export for the host's "manage" affordance:
+     * its own settings or hub, taking no extras and answering nothing. Optional — a companion
+     * with nothing to manage declares nothing.
+     *
+     * The host resolves it by action and package and starts it with `startActivityForResult`,
+     * discarding the result — that's what gives the companion a `callingPackage` to check with
+     * [HandOffCallerPolicy.permits], the same as the advanced hand-off.
      */
     const val ACTION_SETTINGS = "com.binge.companion.SETTINGS"
 

@@ -34,6 +34,16 @@ intent action:
   reports every single-major companion as having declared nothing, and its author has no way to
   see why. The same applies to `name`, which is a String when written literally and a resource id
   when written as `@string/…`.
+- A companion may serve more than one contract from the same exported Service — REQUEST and
+  LIBRARY together, say, rather than one Service per action — since consent and the certificate pin
+  are per package, not per Service. A Service is free to declare more than one `<intent-filter>`
+  action; what it may not do is declare a single, bare `majors` for more than one of them, since
+  `majors` alone cannot say which contract's package a value names. The host first reads which
+  actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
+  multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
+  and so on, one key per action the Service filters on. A single-action Service keeps using the
+  bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
+  Service names more than one action. Both forms follow the same String-or-Int reading rule.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
 

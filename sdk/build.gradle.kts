@@ -108,6 +108,11 @@ kover {
                     // An android.app.Service standing up a Binder-transport gRPC server. There is
                     // no JVM unit test of this short of an instrumented one.
                     "com.binge.companion.sdk.IntegrationService",
+                    // Context + PackageManager + Intent construction for PlayTarget.toIntent. Its
+                    // decision (PlayTargetKt's resolveIntent) is split into its own file precisely so
+                    // it is NOT in this facade class and stays covered; PlayTargetIntentKt is the
+                    // thin Android wrapper around it, same split as HostPolicy/HandOffPolicy above.
+                    "com.binge.companion.sdk.PlayTargetIntentKt",
                 )
             }
         }
