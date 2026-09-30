@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "binge-integrations"
+rootProject.name = "binge-companions"
 
 include(":contracts")
 include(":sdk")
