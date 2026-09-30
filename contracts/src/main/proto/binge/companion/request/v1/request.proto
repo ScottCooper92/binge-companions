@@ -109,6 +109,8 @@ enum Capability {
 }
 
 // How far along the provider is for a title (or one season of it).
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum Availability {
   AVAILABILITY_UNSPECIFIED = 0;
   // Never requested on the provider.
@@ -126,6 +128,8 @@ enum Availability {
 }
 
 // Where one request sits in the provider's approval flow.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum ApprovalState {
   APPROVAL_STATE_UNSPECIFIED = 0;
   APPROVAL_STATE_PENDING = 1;
@@ -136,6 +140,8 @@ enum ApprovalState {
 }
 
 // Whether a grabbed download is transferring or still queued on the provider.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum DownloadState {
   DOWNLOAD_STATE_UNSPECIFIED = 0;
   DOWNLOAD_STATE_QUEUED = 1;
@@ -143,6 +149,8 @@ enum DownloadState {
 }
 
 // A provider-agnostic category for a reported media problem.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum IssueType {
   ISSUE_TYPE_UNSPECIFIED = 0;
   ISSUE_TYPE_VIDEO = 1;
