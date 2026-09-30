@@ -35,4 +35,7 @@ java {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // BingeRuleSetProviderTest reads the real detekt.yml, so a change to it must re-run the tests
+    // rather than be served from an up-to-date check or the build cache.
+    inputs.file(rootProject.file("detekt.yml")).withPropertyName("detektConfig")
 }
