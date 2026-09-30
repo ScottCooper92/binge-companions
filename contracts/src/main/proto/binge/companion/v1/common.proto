@@ -12,6 +12,8 @@ option java_package = "com.binge.companion.contracts.v1";
 option java_multiple_files = true;
 
 // The kind of title a `MediaId` addresses.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum MediaType {
   MEDIA_TYPE_UNSPECIFIED = 0;
   MEDIA_TYPE_MOVIE = 1;
