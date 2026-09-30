@@ -6,7 +6,7 @@ description: Whole-repo sweep of binge-companions (the contracts, the SDK and it
 # Contracts and SDK audit
 
 CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:sdk` with type
-resolution, `koverVerify` at 85% on `:sdk`) and, separately, `buf lint` (STANDARD) plus
+resolution, `koverVerify` at 85% on `:sdk`, Android lint on `:sdk`) and, separately, `buf lint` (STANDARD) plus
 `buf breaking --against main` (FILE). There is **no** screenshot suite here — do not look for one
 and do not report a finding as though one had caught it. Do not re-report what that set decides.
 The audit's value is what it can't: whether a *breaking* change hides where `buf` can't see it,
