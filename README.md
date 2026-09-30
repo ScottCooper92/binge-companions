@@ -1,4 +1,4 @@
-# binge-integrations
+# binge-companions
 
 This repository holds the companion-app integration platform for [Binge](https://github.com/ScottCooper92).
 Binge is an Android app for movie and TV tracking. It uses TMDB for its data.
