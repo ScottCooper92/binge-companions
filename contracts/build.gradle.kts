@@ -27,6 +27,7 @@ dependencies {
     api(libs.grpc.kotlin.stub)
     api(libs.kotlinx.coroutines.core)
 
+    testImplementation(libs.grpc.inprocess)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)
     testRuntimeOnly(libs.junit.jupiter.engine)
