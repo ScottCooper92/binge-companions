@@ -72,6 +72,8 @@ enum Capability {
 }
 
 // Whether the user's server holds a title.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
 enum AvailabilityState {
   AVAILABILITY_STATE_UNSPECIFIED = 0;
   AVAILABILITY_STATE_NOT_IN_LIBRARY = 1;
