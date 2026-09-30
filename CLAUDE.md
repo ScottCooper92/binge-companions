@@ -65,8 +65,9 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt` and
-`koverVerify` — all three wire themselves into `check`, and `build` depends on it. There
+`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt`, `koverVerify` and
+Android lint on `:sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
+themselves into `check`, and `build` depends on it. There
 is no screenshot suite in this repository, so do not look for one and do not report a
 finding as though one had caught it.
 
@@ -98,7 +99,9 @@ tests run in `build`, and it is not shipped.
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a
 `# buf:lint:ignore` comment, and do not add a ktlint baseline or a
-`ktlint-disable` comment — `./gradlew ktlintFormat` is the fix. A `buf breaking` failure is the gate working: the
+`ktlint-disable` comment — `./gradlew ktlintFormat` is the fix. Nor a `lint-baseline.xml`, nor
+`abortOnError = false`: a lint `NewApi` finding is fixed by making the API guard visible to lint
+(see the `ci-triage.md` row). A `buf breaking` failure is the gate working: the
 correct response is to make the change additive, or to stop and ask whether this
 needs a `v2`.
 

@@ -8,7 +8,7 @@ importantly, how hard to press.
 ## 1. What CI has already decided
 
 CI is green on the head under review before a review starts. That means
-`./gradlew build` compiled, tested, passed `ktlintCheck` and `detekt` (on `:sdk`) and held
+`./gradlew build` compiled, tested, passed `ktlintCheck`, `detekt` and Android lint (on `:sdk`) and held
 `koverVerify` at 85% of `:sdk` lines, `buf lint` passed the `STANDARD` category,
 and `buf breaking` passed `FILE` against `main`.
 

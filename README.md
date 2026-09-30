@@ -90,8 +90,8 @@ Run:
 ./gradlew build
 ```
 
-That compiles all three modules, runs the tests, checks formatting, runs detekt over the SDK and
-holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
+That compiles all three modules, runs the tests, checks formatting, runs detekt and Android lint
+over the SDK and holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
 
 You need JDK 17 or later.
 
