@@ -9,6 +9,8 @@ import android.util.Log
  * The Activity is exported and resolvable by action, so any app on
  * the device can start it with extras of its own choosing; this is what says whether the one that
  * did is a host the companion serves, before the Activity acts on what it was handed.
+ *
+ * This object only wires Android lookups; the decision is [HandOffCallerPolicy], tested on the JVM.
  */
 object HandOffPolicy {
     /**
