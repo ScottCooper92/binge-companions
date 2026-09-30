@@ -1,0 +1,513 @@
+syntax = "proto3";
+
+// The REQUEST contract: submitting titles to a media-request server (Seerr-like
+// providers) and tracking what happens to them.
+//
+// Mandatory core: `Handshake`, `SubmitRequest`, `GetStatus`. A service that cannot
+// serve the core must not export the `com.binge.companion.REQUEST` action.
+// Everything else is optional and gated by the `Capability` set returned from
+// `Handshake` — the host never calls an rpc whose capability was not declared, and
+// never renders UI for one.
+//
+// Error model: failures travel as gRPC status codes, not response fields.
+//
+// Codes the INTEGRATION returns deliberately:
+//   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
+//   UNAUTHENTICATED                 — the integration's own provider session is
+//                                     broken; the host directs the user to the
+//                                     integration app to reconnect.
+//   PERMISSION_DENIED               — the provider user may not perform this action.
+//   RESOURCE_EXHAUSTED              — the user's request quota on the provider is spent.
+//   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
+//
+// Codes the TRANSPORT produces, which no integration chooses and every host must
+// handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
+// ScottCooper92/Binge#2306; the first of these is the one that surprises:
+//   UNIMPLEMENTED    — the integration is NOT INSTALLED. grpc-binder reports a
+//                      `bindService()` that returned false this way, with
+//                      "bindService(...) returned false" as the description,
+//                      rather than as UNAVAILABLE. A host that reads the list
+//                      above and treats UNAVAILABLE as "integration gone" will
+//                      meet an uninstalled one as an undocumented code. It must
+//                      NOT be retried: nothing is there to answer.
+//   UNAVAILABLE      — the integration was installed but its process is gone
+//                      (force-stopped, or reaped). Retryable, and normally the
+//                      next bind restarts it.
+//
+// Whether a killed integration surfaces as UNAVAILABLE or simply succeeds is
+// PLATFORM-DEPENDENT: the same force-stop answered UNAVAILABLE on the phone and
+// OK on the SHIELD, which had restarted the service by the time the call landed.
+// So a host cannot detect "the integration died" from a status code alone — it
+// needs the package-removed broadcast for the permanent case, and to treat the
+// transient case as ordinary retry.
+package binge.companion.request.v1;
+
+import "binge/companion/v1/common.proto";
+
+option java_package = "com.binge.companion.contracts.request.v1";
+option java_multiple_files = true;
+
+// What a REQUEST integration can do beyond the mandatory core. Declared once per
+// connection in `HandshakeResponse.capabilities`; the per-title, per-user subset that
+// applies right now travels on `RequestStatus.allowed_actions`.
+//
+// Append-only: new capabilities get new numbers; hosts ignore values they don't know.
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  // May request the 4K version of a title (`SubmitRequestRequest.is_4k`).
+  CAPABILITY_REQUEST_4K = 1;
+  // Offers an advanced-options flow (destination/profile/folder) in the
+  // integration app; the host offers a hand-off instead of a plain request.
+  // The hand-off is an exported Activity on the
+  // `com.binge.companion.ADVANCED_REQUEST` action, started for a result with
+  // the title as extras (media type number, TMDB id, season numbers, 4K). The
+  // integration owns the picker and the submit and answers RESULT_OK once it
+  // has submitted; the host re-reads status whatever the result. The SDK's
+  // `CompanionManifest` names the keys. No option schema crosses the boundary.
+  //
+  // Superseded for a destination expressible as a handful of named choices per
+  // axis by CAPABILITY_ADVANCED_REQUEST_OPTIONS below, which renders the same
+  // picker host-side instead of handing off. Kept for an integration whose
+  // advanced flow genuinely is not a choice list (a wizard, dependent form
+  // fields) and still wants a screen of its own.
+  CAPABILITY_ADVANCED_OPTIONS = 2;
+  // Server-streamed status updates (`ObserveStatus`).
+  CAPABILITY_OBSERVE_STATUS = 3;
+  // Moderation: approve pending requests (`ApproveRequest`).
+  CAPABILITY_APPROVE = 4;
+  // Moderation: decline pending requests (`DeclineRequest`).
+  CAPABILITY_DECLINE = 5;
+  // Re-attempt failed requests (`RetryRequest`).
+  CAPABILITY_RETRY = 6;
+  // Cancel submitted requests (`CancelRequest`).
+  CAPABILITY_CANCEL = 7;
+  // Report a media problem against an available title (`ReportIssue`).
+  CAPABILITY_REPORT_ISSUE = 8;
+  // Blocklist a title so it can no longer be requested (`BlockTitle`), and take
+  // it off again (`UnblockTitle`).
+  CAPABILITY_BLOCK = 9;
+  // Answers `GetAttention` and `ObserveAttention`: a count the host may badge the
+  // integration with, and a flag that its own session needs the user.
+  CAPABILITY_ATTENTION = 10;
+  // Change which seasons a TV request covers, in place (`EditRequest`).
+  CAPABILITY_EDIT_SEASONS = 11;
+  // The advanced-request destination — server, quality profile, root folder —
+  // as data instead of a hand-off screen: `GetAdvancedRequestOptions`,
+  // `GetDestinationOptions` and `SubmitAdvancedRequest`. Each axis comes back
+  // as a choice list the host renders itself (a picker bottom sheet, say), with
+  // the integration's own default preselected. 4K has no toggle of its own
+  // here: a 4K instance is just another `ServerChoice` with `is_4k` set, so
+  // picking one is how an advanced request asks for 4K — see `ServerChoice`.
+  // See "Hand-offs" in docs/Architecture.md for how this capability relates to
+  // CAPABILITY_ADVANCED_OPTIONS.
+  CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
+  // Answers a movie's resulting file on an available title (`RequestStatus.file_info`).
+  // Its own capability because it costs an extra fetch: Seerr's media details never
+  // carry the file, so answering means asking the *arr directly, and an integration
+  // that would rather not pay that on every status check simply doesn't declare it.
+  CAPABILITY_MEDIA_FILE_INFO = 13;
+}
+
+// How far along the provider is for a title (or one season of it).
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum Availability {
+  AVAILABILITY_UNSPECIFIED = 0;
+  // Never requested on the provider.
+  AVAILABILITY_NOT_REQUESTED = 1;
+  // Requested, awaiting approval.
+  AVAILABILITY_PENDING = 2;
+  // Approved and downloading.
+  AVAILABILITY_PROCESSING = 3;
+  // Some seasons available, others not (TV only).
+  AVAILABILITY_PARTIALLY_AVAILABLE = 4;
+  // Fully downloaded and available to watch.
+  AVAILABILITY_AVAILABLE = 5;
+  // Blocklisted on the provider — requests are rejected.
+  AVAILABILITY_BLOCKLISTED = 6;
+}
+
+// Where one request sits in the provider's approval flow.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum ApprovalState {
+  APPROVAL_STATE_UNSPECIFIED = 0;
+  APPROVAL_STATE_PENDING = 1;
+  APPROVAL_STATE_APPROVED = 2;
+  APPROVAL_STATE_DECLINED = 3;
+  // Approved but fulfilment errored — terminal, distinct from a deliberate decline.
+  APPROVAL_STATE_FAILED = 4;
+}
+
+// Whether a grabbed download is transferring or still queued on the provider.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum DownloadState {
+  DOWNLOAD_STATE_UNSPECIFIED = 0;
+  DOWNLOAD_STATE_QUEUED = 1;
+  DOWNLOAD_STATE_DOWNLOADING = 2;
+}
+
+// A provider-agnostic category for a reported media problem.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum IssueType {
+  ISSUE_TYPE_UNSPECIFIED = 0;
+  ISSUE_TYPE_VIDEO = 1;
+  ISSUE_TYPE_AUDIO = 2;
+  ISSUE_TYPE_SUBTITLE = 3;
+  ISSUE_TYPE_OTHER = 4;
+}
+
+message HandshakeRequest {
+  binge.companion.v1.HostInfo host = 1;
+}
+
+message HandshakeResponse {
+  // Everything this connection can ever do, for this provider and this signed-in
+  // user. The host hides UI for undeclared capabilities.
+  repeated Capability capabilities = 1;
+  // Display name of the connected provider (a proper noun, never translated).
+  string provider_name = 2;
+  // Version of the companion app, for the host's companion apps screen.
+  string companion_version_name = 3;
+}
+
+message SubmitRequestRequest {
+  binge.companion.v1.MediaId media = 1;
+  // TV only: the seasons to request. Empty means the provider's default scope.
+  repeated int32 season_numbers = 2;
+  // Requires CAPABILITY_REQUEST_4K.
+  bool is_4k = 3;
+}
+
+message SubmitRequestResponse {
+  // Set when the provider created (or already had) a request the host can act on.
+  int32 request_id = 1;
+  // True when the provider already had a request for this title and created nothing new.
+  bool already_requested = 2;
+  // The title's state after the submit, so the host can update without a second call.
+  RequestStatus status = 3;
+}
+
+message GetStatusRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message GetStatusResponse {
+  RequestStatus status = 1;
+}
+
+message ObserveStatusRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message ObserveStatusResponse {
+  RequestStatus status = 1;
+}
+
+// The request/availability state of one title on the provider.
+message RequestStatus {
+  Availability availability = 1;
+  // Per-season state, populated for TV so the host can offer per-season requests.
+  repeated SeasonAvailability seasons = 2;
+  // Aggregate progress while the title is downloading; absent otherwise.
+  DownloadProgress download = 3;
+  // Every request the provider knows for the title.
+  repeated RequestInfo requests = 4;
+  // Deep link to the title in the media server's web client, when the provider has one.
+  // The host validates every URL before opening it.
+  string watch_url = 5;
+  // The title-level capabilities that apply to THIS title for THIS user right now —
+  // the ones that aren't about any one existing request, such as whether a new
+  // request may still be submitted at all. A capability that is about one specific
+  // request (CAPABILITY_APPROVE, CAPABILITY_DECLINE, CAPABILITY_RETRY,
+  // CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that request's own
+  // RequestInfo.allowed_actions instead — see #63 for why one flat list here
+  // cannot express "approve applies to request #7, not #8".
+  repeated Capability allowed_actions = 6;
+  // When the integration last confirmed this status with its provider, epoch
+  // milliseconds; 0 when the integration doesn't say.
+  //
+  // An integration answering from a cache carries the time it fetched, not the
+  // time it replied — that is the whole point of the field. A host may show how
+  // fresh a status is, and must not branch on whether it is set: 0 means unknown,
+  // not old. An integration that cannot reach its provider but holds an earlier
+  // status may return it with the time it was observed, rather than an error.
+  int64 observed_at_epoch_ms = 7;
+  // The movie's file, once available. Absent means not offered or not known, and a
+  // host must not tell those apart, as with `watch_url`. Requires
+  // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which
+  // this contract doesn't model.
+  MediaFileInfo file_info = 8;
+}
+
+// A movie's resulting file, only meaningfully populated when
+// `RequestStatus.availability` is AVAILABILITY_AVAILABLE. Requires
+// CAPABILITY_MEDIA_FILE_INFO.
+message MediaFileInfo {
+  // The file's own name, without a path, e.g. "Movie.Title.2026.2160p.WEB-DL.mkv".
+  // Empty when unknown.
+  string file_name = 1;
+  // Whole bytes; 0 when unknown.
+  int64 size_bytes = 2;
+  // A short resolution label the provider already formats, e.g. "2160p". Empty when
+  // unknown.
+  string resolution = 3;
+  // A short codec label, e.g. "HEVC" or "H.264". Empty when unknown.
+  string video_codec = 4;
+}
+
+message SeasonAvailability {
+  int32 season_number = 1;
+  Availability availability = 2;
+}
+
+message DownloadProgress {
+  // Completed fraction across all active downloads, 0.0..1.0.
+  float fraction = 1;
+  // The first in-flight download's release title, when the provider names one.
+  string label = 2;
+  // Whole minutes until the slowest download finishes; 0 when unknown.
+  int32 eta_minutes = 3;
+  // Total bytes across all active downloads; 0 when the provider doesn't report sizes.
+  int64 total_bytes = 4;
+  DownloadState state = 5;
+}
+
+// One request for a title, as listed on the host's request sheet.
+message RequestInfo {
+  int32 id = 1;
+  ApprovalState state = 2;
+  // Display name of the requesting user, when the provider says.
+  string requested_by = 3;
+  // When the request was made, epoch milliseconds; 0 when the provider doesn't say.
+  int64 requested_at_epoch_ms = 4;
+  // The seasons this request covers; empty for movies.
+  repeated int32 season_numbers = 5;
+  // The capabilities that apply to THIS request right now — e.g. CAPABILITY_APPROVE
+  // only when this specific request is pending and the connected user may moderate
+  // it, CAPABILITY_CANCEL only when this one is theirs (or they may manage
+  // requests) and it hasn't already resolved. A companion populates this from
+  // whatever authorization its real server actually enforces per request, rather
+  // than the host guessing from state and requested_by alone.
+  repeated Capability allowed_actions = 6;
+  // Whether this is the 4K request. A title can carry a standard and a 4K request at
+  // once, and without this a host listing them cannot tell which is which. False when
+  // the provider doesn't say, so an older companion reads as a standard request.
+  bool is_4k = 7;
+}
+
+message EditRequestRequest {
+  int32 request_id = 1;
+  // The full replacement set, as `SubmitRequestRequest.season_numbers` is; not a delta.
+  //
+  // Empty is INVALID_ARGUMENT here, where on a submit it means the provider's default
+  // scope: a request covers at least one season, and removing every season is what
+  // `CancelRequest` is for. Said out loud because the two fields share a name, so the
+  // submit rule reads as though it carries over.
+  repeated int32 season_numbers = 2;
+}
+
+message EditRequestResponse {}
+
+// One entry in a profile or root-folder picker: the integration's own id for it,
+// echoed back verbatim on `SubmitAdvancedRequestRequest`, and the label the host
+// shows as-is.
+message Choice {
+  string id = 1;
+  string label = 2;
+}
+
+// One entry in the server/destination picker. Its own message, not `Choice`,
+// because the server axis is where 4K lives: an integration that offers both a
+// regular and a 4K instance for a title lists both here, and `is_4k` is how the
+// host tells them apart — there is no separate 4K toggle in the advanced flow.
+// Picking a 4K entry is how an advanced request asks for 4K; a plain request's
+// `SubmitRequestRequest.is_4k` (gated by CAPABILITY_REQUEST_4K) is the unrelated,
+// simpler path for a host that never opens the destination picker at all.
+message ServerChoice {
+  string id = 1;
+  string label = 2;
+  bool is_4k = 3;
+}
+
+// The advanced-request destination for one title: the server / quality-profile /
+// root-folder axes this integration offers, and which choice is preselected on
+// each — the same destination a plain `SubmitRequest` (no override, so never a 4K
+// one) would use. An axis this integration doesn't have (a single-server setup
+// with no root-folder concept, say) comes back with an empty `choices` list; the
+// host omits that picker row rather than assuming every axis is always present.
+message DestinationChoices {
+  repeated ServerChoice servers = 1;
+  string selected_server_id = 2;
+  repeated Choice profiles = 3;
+  string selected_profile_id = 4;
+  repeated Choice root_folders = 5;
+  string selected_root_folder_id = 6;
+}
+
+message GetAdvancedRequestOptionsRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message GetAdvancedRequestOptionsResponse {
+  DestinationChoices destination = 1;
+}
+
+// Re-resolves the profile / root-folder axes for one server, once the host's
+// picker moves off the preselected one. `destination.servers` and
+// `destination.selected_server_id` are unset on the response —
+// `GetAdvancedRequestOptions` owns the server axis, this rpc only the two that
+// depend on it. `server_id` alone decides whether this is a 4K destination; there
+// is no separate `is_4k` field to keep in sync with it.
+message GetDestinationOptionsRequest {
+  binge.companion.v1.MediaId media = 1;
+  string server_id = 2;
+}
+
+message GetDestinationOptionsResponse {
+  DestinationChoices destination = 1;
+}
+
+message SubmitAdvancedRequestRequest {
+  binge.companion.v1.MediaId media = 1;
+  // TV only: as `SubmitRequestRequest.season_numbers`.
+  repeated int32 season_numbers = 2;
+  // Empty means "the integration's own default for this axis" — the same default
+  // `GetAdvancedRequestOptions` preselected, so a host that never touched a
+  // picker submits identically to a plain `SubmitRequest`. `server_id` alone
+  // decides 4K-ness, per `ServerChoice.is_4k` — there is no `is_4k` field here.
+  string server_id = 3;
+  string profile_id = 4;
+  string root_folder_id = 5;
+}
+
+message SubmitAdvancedRequestResponse {
+  SubmitRequestResponse result = 1;
+}
+
+message CancelRequestRequest {
+  int32 request_id = 1;
+}
+
+message CancelRequestResponse {}
+
+message ApproveRequestRequest {
+  int32 request_id = 1;
+}
+
+message ApproveRequestResponse {}
+
+message DeclineRequestRequest {
+  int32 request_id = 1;
+}
+
+message DeclineRequestResponse {}
+
+message RetryRequestRequest {
+  int32 request_id = 1;
+}
+
+message RetryRequestResponse {}
+
+message ReportIssueRequest {
+  binge.companion.v1.MediaId media = 1;
+  IssueType type = 2;
+  string message = 3;
+}
+
+message ReportIssueResponse {}
+
+message BlockTitleRequest {
+  binge.companion.v1.MediaId media = 1;
+  // The display label the provider stores against the blocklist entry.
+  string title = 2;
+}
+
+message BlockTitleResponse {}
+
+message UnblockTitleRequest {
+  binge.companion.v1.MediaId media = 1;
+}
+
+message UnblockTitleResponse {}
+
+// What the host may badge the integration with. The count is the host's to show on the
+// integration's row and tab; the flag is a warning state on the row whose tap hands
+// off to the integration app, where the user can sign in again.
+message Attention {
+  // Items waiting on the signed-in user on the provider, as the integration counts
+  // them: requests they moderate, issues they handle. 0 when nothing waits.
+  uint32 pending_count = 1;
+  // The integration's provider session is broken and only the integration app can
+  // repair it. The same condition every rpc answers UNAUTHENTICATED for, reported
+  // here so the host can show it before it calls anything.
+  bool needs_reconnect = 2;
+}
+
+message GetAttentionRequest {}
+
+message GetAttentionResponse {
+  Attention attention = 1;
+}
+
+message ObserveAttentionRequest {}
+
+message ObserveAttentionResponse {
+  Attention attention = 1;
+}
+
+// Served by an integration app from a bound Service exported with the
+// `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
+// transport. `Handshake` is the host's first call on every new connection.
+service RequestService {
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+  rpc SubmitRequest(SubmitRequestRequest) returns (SubmitRequestResponse);
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  // Requires CAPABILITY_OBSERVE_STATUS. The integration pushes a fresh status
+  // whenever its provider reports change; it owns the polling cadence against its
+  // own server, which is why the contract has no poll-interval negotiation. It
+  // need not push when only `observed_at_epoch_ms` would change: while the stream
+  // is open the host knows the status is at least as fresh as the last push.
+  rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
+  // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
+  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
+  // set, a season the show does not have, or a request for a movie.
+  rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. The destination choices for a
+  // fresh advanced-request picker, every axis preselected exactly as a plain
+  // `SubmitRequest` would resolve them.
+  rpc GetAdvancedRequestOptions(GetAdvancedRequestOptionsRequest) returns (GetAdvancedRequestOptionsResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Re-resolves the profile and
+  // root-folder axes after the host's picker moves off the preselected server.
+  rpc GetDestinationOptions(GetDestinationOptionsRequest) returns (GetDestinationOptionsResponse);
+  // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Submits with the picker's
+  // choices; an empty field falls back to that axis's preselected default, so
+  // submitting with every field untouched is a plain request.
+  rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
+  // Requires CAPABILITY_CANCEL.
+  rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
+  // Requires CAPABILITY_APPROVE.
+  rpc ApproveRequest(ApproveRequestRequest) returns (ApproveRequestResponse);
+  // Requires CAPABILITY_DECLINE.
+  rpc DeclineRequest(DeclineRequestRequest) returns (DeclineRequestResponse);
+  // Requires CAPABILITY_RETRY.
+  rpc RetryRequest(RetryRequestRequest) returns (RetryRequestResponse);
+  // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
+  // report against (available or partially available).
+  rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
+  // that is not AVAILABILITY_BLOCKLISTED offers this rpc.
+  rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
+  // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on an
+  // AVAILABILITY_BLOCKLISTED title offers this rpc. NOT_FOUND when the title is
+  // not on the blocklist.
+  rpc UnblockTitle(UnblockTitleRequest) returns (UnblockTitleResponse);
+  // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
+  // everywhere; a broken session on a connected provider is `needs_reconnect`.
+  rpc GetAttention(GetAttentionRequest) returns (GetAttentionResponse);
+  // Requires CAPABILITY_ATTENTION. The integration pushes a fresh value whenever its
+  // count or its session changes, on its own cadence, as `ObserveStatus` does.
+  rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
+}

@@ -9,7 +9,7 @@ group = "io.github.scottcooper92"
 version = "0.1.0-SNAPSHOT"
 
 android {
-    namespace = "com.binge.integration.sdk"
+    namespace = "com.binge.companion.sdk"
     compileSdk = 37
 
     defaultConfig {
@@ -46,6 +46,9 @@ dependencies {
     testImplementation(libs.grpc.inprocess)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // Binge's custom `binge:` comment-quality rules (#39), loaded onto this module's detekt run.
+    detektPlugins(project(":detekt-rules"))
 }
 
 // detekt analyses `:sdk` and not `:contracts`: the only Kotlin under contracts/src/main is protoc's
@@ -98,18 +101,18 @@ kover {
             excludes {
                 classes(
                     // Context + PackageManager + Log factories, and the PackageManager extension.
-                    "com.binge.integration.sdk.HostPolicy",
-                    "com.binge.integration.sdk.HostPolicy\$*",
-                    "com.binge.integration.sdk.HostPolicyKt",
-                    "com.binge.integration.sdk.HandOffPolicy",
+                    "com.binge.companion.sdk.HostPolicy",
+                    "com.binge.companion.sdk.HostPolicy\$*",
+                    "com.binge.companion.sdk.HostPolicyKt",
+                    "com.binge.companion.sdk.HandOffPolicy",
                     // An android.app.Service standing up a Binder-transport gRPC server. There is
                     // no JVM unit test of this short of an instrumented one.
-                    "com.binge.integration.sdk.IntegrationService",
+                    "com.binge.companion.sdk.IntegrationService",
                     // Context + PackageManager + Intent construction for PlayTarget.toIntent. Its
                     // decision (PlayTargetKt's resolveIntent) is split into its own file precisely so
                     // it is NOT in this facade class and stays covered; PlayTargetIntentKt is the
                     // thin Android wrapper around it, same split as HostPolicy/HandOffPolicy above.
-                    "com.binge.integration.sdk.PlayTargetIntentKt",
+                    "com.binge.companion.sdk.PlayTargetIntentKt",
                 )
             }
         }

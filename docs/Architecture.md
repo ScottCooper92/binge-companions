@@ -10,22 +10,22 @@ intent action:
 
 | Action | Capability |
 | --- | --- |
-| `com.binge.integration.REQUEST` | Media-request servers (request, track, manage) |
-| `com.binge.integration.STREAM` | Resolve a title to playable sources |
-| `com.binge.integration.TRACKING` | Sync watch state with an external tracker |
-| `com.binge.integration.PLAYER` | External playback with a progress callback |
-| `com.binge.integration.LIBRARY` | The user's own media server (availability, play, watch state) |
+| `com.binge.companion.REQUEST` | Media-request servers (request, track, manage) |
+| `com.binge.companion.STREAM` | Resolve a title to playable sources |
+| `com.binge.companion.TRACKING` | Sync watch state with an external tracker |
+| `com.binge.companion.PLAYER` | External playback with a progress callback |
+| `com.binge.companion.LIBRARY` | The user's own media server (availability, play, watch state) |
 
 - Binge declares matching `<queries>` entries. Android 11+ needs them for package visibility.
 - The Service's manifest `<meta-data>` carries the display name, the icon, and the supported
   contract majors. From this data alone, Binge renders its integrations list and detects a version
   mismatch. Binge does not need to start the companion process for either. The three keys are
-  `com.binge.integration.name`, `com.binge.integration.icon` and `com.binge.integration.majors`:
+  `com.binge.companion.name`, `com.binge.companion.icon` and `com.binge.companion.majors`:
 
   ```xml
-  <meta-data android:name="com.binge.integration.name" android:value="@string/companion_name" />
-  <meta-data android:name="com.binge.integration.icon" android:resource="@drawable/ic_companion" />
-  <meta-data android:name="com.binge.integration.majors" android:value="1" />
+  <meta-data android:name="com.binge.companion.name" android:value="@string/companion_name" />
+  <meta-data android:name="com.binge.companion.icon" android:resource="@drawable/ic_companion" />
+  <meta-data android:name="com.binge.companion.majors" android:value="1" />
   ```
 
   A host reads `majors` as **either a String or an Int**, and must read both. aapt types a bare
@@ -40,9 +40,9 @@ intent action:
   action; what it may not do is declare a single, bare `majors` for more than one of them, since
   `majors` alone cannot say which contract's package a value names. The host first reads which
   actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
-  multi-action Service: `com.binge.integration.majors.request`, `com.binge.integration.majors.library`,
+  multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
   and so on, one key per action the Service filters on. A single-action Service keeps using the
-  bare `com.binge.integration.majors` key exactly as above; the per-contract keys only apply once a
+  bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
   Service names more than one action. Both forms follow the same String-or-Int reading rule.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
@@ -98,8 +98,11 @@ status. A declared capability gates every other rpc.
 - **Static capabilities.** The handshake response declares them once. They cover everything this
   connection can ever do, for this provider and this user. The host hides UI for undeclared
   capabilities. The host never calls a gated rpc without its capability.
-- **Dynamic per-item actions.** Each status response lists the subset that applies to that title
-  now. For example, approve appears only on a pending request that the user may moderate.
+- **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
+  subset — capabilities that aren't about any one existing request. A capability that is about one
+  specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
+  `allowed_actions` instead, so it can say "approve applies to request #7, not #8" — one flat
+  title-level list cannot (REQUEST#63).
 
 The boundary rule: a behavior variation over the same data model is a capability. A new data model
 with its own lifecycle is a new contract. Capability enums grow by appending. Peers ignore values
@@ -108,13 +111,23 @@ they do not know. Feature detection never uses version numbers.
 ### Hand-offs
 
 Some capabilities are not an rpc but a screen. Provider-specific UI lives in the companion app, so
-where the host cannot render a choice — REQUEST's advanced options are the first case: destination
-server, quality profile, root folder — the companion exports an Activity and the host starts it for
+where the host cannot render a choice, the companion exports an Activity and the host starts it for
 a result with the title as extras. The companion owns the whole flow and the submit. It answers
 `RESULT_OK` once it has submitted; the host re-reads status either way. No option schema crosses
 the boundary. The action and the extras are named in the SDK's `CompanionManifest`, and the
 host resolves the Activity by action and package, on the companion the user consented to, before
 it starts anything.
+
+REQUEST's advanced options — destination server, quality profile, root folder — were this pattern's
+first case (`CAPABILITY_ADVANCED_OPTIONS`), and still are for a companion whose advanced flow
+genuinely isn't reducible to a choice list. But "the host cannot render a choice" turned out to be
+true only while the choices had no shared shape to cross the boundary in. Once a destination is
+modelled as a handful of named axes, each a list of `{id, label}` choices with one preselected
+(`CAPABILITY_ADVANCED_REQUEST_OPTIONS`, `GetAdvancedRequestOptions` / `GetDestinationOptions` /
+`SubmitAdvancedRequest`), the host renders its own picker from data instead of handing off —
+same boundary rule as everywhere else in the contract (a behavior variation over one data model is
+a capability), not an exception to it. The two capabilities coexist: a companion declares whichever
+fits its flow, and a host that only understands the older one keeps getting the hand-off.
 
 A second hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
 companion may export for the host's "manage" affordance on its row — its own settings or hub. It
@@ -147,6 +160,8 @@ Service.
 - No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision.
+- Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` hands a short-lived source to a
+  player the user chose, and that player renders it. See `Ecosystem.md` > Playback.
 
 ## LIBRARY: the user's own media server
 
@@ -185,6 +200,13 @@ data and never bytes, which is the same rule the Play stance above states for ST
 A companion with nothing installed to hand to answers with the web URL rather than an error. That is
 a worse experience, not a failure, and the host should not have to tell the two apart.
 
+**One opt-in exception: `PLAYBACK_SOURCE`.** A companion may also hand the host a playback source for
+an installed player the user chose: a URL minted for the signed-in viewer, short-lived and for one
+title, with any headers it needs and an expiry. The host starts the player and renders nothing, so
+the bytes still never cross Binder and the transcoding problem stays the server's and the player's.
+It is a capability, so a companion that does not want it declares nothing and its titles play through
+the server's own app only. The flow, the players and their limits are in `Ecosystem.md` > Playback.
+
 ### Watch state flows both ways, on consent
 
 Reading is the default: once the user allows the integration, `GetWatchState` and
@@ -206,7 +228,7 @@ update for thirty seconds" means nothing in common between two companions.
 
 ### Capabilities
 
-`AVAILABILITY`, `PLAY`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. A companion
+`AVAILABILITY`, `PLAY`, `PLAYBACK_SOURCE`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. A companion
 declares the set from what its server supports **and** what the signed-in user may do, and the host
 hides UI for what is undeclared.
 
@@ -219,7 +241,7 @@ As everywhere: feature detection never uses version numbers.
 
 ### Discovery
 
-The Service action is `com.binge.integration.LIBRARY`. A companion may serve REQUEST and LIBRARY
+The Service action is `com.binge.companion.LIBRARY`. A companion may serve REQUEST and LIBRARY
 from one exported Service or from two; the host binds per action, so which it is stays the
 companion's business. Consent is per package, as Security above describes, so a companion serving
 both is consented once and its certificate pinned once.
@@ -232,18 +254,23 @@ new contract — is what keeps them apart:
 
 - **STREAM** resolves a title to playable sources that are not the user's library.
 - **TRACKING** syncs watch state with a tracker that is not a media server.
-- **PLAYER** hands playback to an external player and receives a progress callback.
+- **PLAYER** would hand playback to an external player and receive a progress callback. It is
+  deferred.
 
 LIBRARY's play hand-off overlaps PLAYER's territory, and its watch state overlaps TRACKING's. The
-overlap is deliberate for now: a media server plays its own media and knows what you watched, and
-splitting that across three contracts would make one companion serve three actions to do one job.
-Whether the other two survive LIBRARY is a decision for when one of them is actually built.
+overlap is deliberate: a media server plays its own media and knows what you watched, and splitting
+that across three contracts would make one companion serve three actions to do one job.
+
+PLAYER is deferred rather than built. The host's Play sheet offers the players already installed,
+through Android's standard video intents, and `PLAYBACK_SOURCE` feeds them. What would bring PLAYER
+back — live progress, decoding negotiation, track selection — is listed in `Ecosystem.md` > Players.
+Whether TRACKING survives LIBRARY is still a decision for when it is actually built.
 
 ## Versioning
 
 Capabilities answer "what can you do?". Versions answer "can we parse each other?".
 
-- The proto package version (`binge.integration.request.v1`) is the contract **major**. Inside a
+- The proto package version (`binge.companion.request.v1`) is the contract **major**. Inside a
   package, every change must be additive: new fields, new enum values, new rpcs. CI fails any
   other change with `buf breaking`. Additive changes need no negotiation. Protobuf field numbers
   and unknown-field preservation keep old and new peers compatible in both directions.

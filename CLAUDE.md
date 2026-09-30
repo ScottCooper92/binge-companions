@@ -26,7 +26,7 @@ New fields, new enum values, new rpcs. Never a renumbering, never a removal, nev
 a change of meaning. `buf breaking` enforces the mechanical part in CI; the part it
 cannot enforce is designing a message you will not later want to renumber.
 
-A genuinely breaking change is a new package — `binge.integration.request.v2` — with
+A genuinely breaking change is a new package — `binge.companion.request.v2` — with
 its own service, served side by side with `v1` from the same exported Service. That
 is an escape hatch and a deliberate human decision, not a refactor. See
 `docs/Architecture.md` > Versioning.
@@ -37,7 +37,7 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 
 ## Proto conventions
 
-- Package is `binge.integration.<contract>.v<major>`, and the directory mirrors it.
+- Package is `binge.companion.<contract>.v<major>`, and the directory mirrors it.
 - `buf lint` runs the `STANDARD` category; `buf breaking` runs `FILE` against `main`.
   Both gate CI. Neither is negotiable in a PR — see Gates below.
 - Field numbers are allocated in order and never reused. Removing a field means a
@@ -65,8 +65,9 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt` and
-`koverVerify` — all three wire themselves into `check`, and `build` depends on it. There
+`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt`, `koverVerify` and
+Android lint on `:sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
+themselves into `check`, and `build` depends on it. There
 is no screenshot suite in this repository, so do not look for one and do not report a
 finding as though one had caught it.
 
@@ -89,14 +90,18 @@ says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both
 `:contracts` has no gate at all — generated stubs, nothing to write a test for.
 
 The floor was set from a measurement (90.4% at the time) rather than inherited, so it
-ratchets. **A third module has to apply kover or say in its build file why not.** Binge
-enforces that with a root `checkCoverageGate` task; with two modules that is overkill, so
-here it is a convention — which means the next module is where it can silently go wrong.
+ratchets. **A new module has to apply kover or say in its build file why not.** Binge
+enforces that with a root `checkCoverageGate` task; with three modules that is still overkill,
+so here it is a convention — which means the next module is where it can silently go wrong.
+`:detekt-rules` is the one module without a floor: it holds the custom detekt rules, its own
+tests run in `build`, and it is not shipped.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a
 `# buf:lint:ignore` comment, and do not add a ktlint baseline or a
-`ktlint-disable` comment — `./gradlew ktlintFormat` is the fix. A `buf breaking` failure is the gate working: the
+`ktlint-disable` comment — `./gradlew ktlintFormat` is the fix. Nor a `lint-baseline.xml`, nor
+`abortOnError = false`: a lint `NewApi` finding is fixed by making the API guard visible to lint
+(see the `ci-triage.md` row). A `buf breaking` failure is the gate working: the
 correct response is to make the change additive, or to stop and ask whether this
 needs a `v2`.
 

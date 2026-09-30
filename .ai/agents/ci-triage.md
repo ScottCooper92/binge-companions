@@ -8,10 +8,10 @@ CI is two independent jobs:
 
 | Job | Runs |
 | --- | --- |
-| `build` | `./gradlew build` — compile, generate protos, run tests |
+| `build` | `./gradlew build` — compile, generate protos, run tests, `ktlintCheck`, `detekt` on `:sdk`, `koverVerify` (85% of `:sdk` lines), Android lint on `:sdk` (`lintDebug`) |
 | `proto` | `buf lint`, then `buf breaking --against main` on PRs |
 
-There is no linter, no coverage floor and no screenshot suite in this repository.
+There is no screenshot suite in this repository.
 If the log shows a failure that is not in the table below, that is a **stop**, not
 an invitation to improvise.
 
@@ -26,6 +26,10 @@ an invitation to improvise.
 | `buf lint` — `ENUM_ZERO_VALUE_SUFFIX` / first value not `_UNSPECIFIED` | Every enum needs an unspecified zero value | Add it as value `0` and renumber the rest **only if the enum is new in this diff**. Otherwise stop |
 | `buf lint` — `PACKAGE_DIRECTORY_MATCH` | Directory does not mirror the proto package | Move the file to match the package. Safe when the file is new; a **stop** if it is published |
 | `buf lint` — `RPC_REQUEST_RESPONSE_UNIQUE` / `RPC_REQUEST_STANDARD_NAME` | Each rpc needs its own `FooRequest`/`FooResponse` | Add the dedicated message types. Safe and additive |
+| `ktlintCheck` fails | Formatting | Run `./gradlew ktlintFormat` and commit the result. Never add a ktlint baseline or a `ktlint-disable` comment |
+| `detekt` fails on `:sdk` | Static analysis, with type resolution | Fix the finding in the code. Never add a `detekt-baseline.xml` (there is none, on purpose) or a `@Suppress`. If `UnsafeCallOnNullableType` is the rule, remove the `!!` |
+| `:sdk:lintDebug` fails | Android lint, AGP's defaults with no baseline; `NewApi` is an error at `minSdk` 26 | Read `sdk/build/reports/lint-results-debug.txt` for every finding, not just the first. For `NewApi`, keep the call in a function marked `@TargetApi(n)` and call it only behind a visible `Build.VERSION.SDK_INT >= n` check: lint does not follow a guard that lives in another function which takes the call as a lambda. Never add a `lint-baseline.xml`, `abortOnError = false` or a broad `@SuppressLint` |
+| `koverVerify` fails | `:sdk` line coverage fell below 85% | Add a test for the logic the diff added. Never lower the floor or widen the kover exclusions to make it pass: an exclusion is only for a class that holds an Android type and has its decision split into a tested class |
 | Kotlin compile error in `contracts` | Ordinary | Fix it. Note that generated stubs are not checked in — a symbol that "does not exist" after a proto edit usually means the proto and the Kotlin disagree, so fix the side that is wrong rather than deleting the reference |
 | `ProtoRoundTripTest` fails | A message no longer serialises and deserialises to itself | Read the assertion. This is usually a real contract bug — a field number collision, or a `oneof` that lost a case. Fix the proto, not the test |
 | Any other test failure | Ordinary | Fix the code the test is describing. Changing an assertion to match new behaviour is only correct when the PR deliberately changed that behaviour and says so |

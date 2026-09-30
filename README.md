@@ -15,13 +15,14 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
 
 > **Status: pre-alpha.** The contracts are in active design. Nothing is stable. No artifacts are
 > published. See [docs/Architecture.md](docs/Architecture.md) for the platform decisions,
+> [docs/Ecosystem.md](docs/Ecosystem.md) for how Binge, the contracts and the apps work together,
 > [docs/Roadmap.md](docs/Roadmap.md) for the build order, and [docs/Status.md](docs/Status.md)
 > for progress.
 
 ## How it works
 
 - **Discovery.** A companion app exports one bound Service for each capability. Binge matches the
-  Service by its intent action (`com.binge.integration.REQUEST`, `.LIBRARY`, `.STREAM`,
+  Service by its intent action (`com.binge.companion.REQUEST`, `.LIBRARY`, `.STREAM`,
   `.TRACKING`, `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the
   contract version. Binge can list installed companion apps without a start of their processes. A
   companion may serve more than one contract — REQUEST and LIBRARY, say — from the same exported
@@ -45,7 +46,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   `playTarget { webUrl(...) }`, and the host turns it into a startable `Intent` with
   `PlayTarget.toIntent(context)`, which checks the target package actually resolves before handing
   back an Intent addressed to it.
-- **Versioning.** The proto package version (for example `v1` in `binge.integration.request.v1`)
+- **Versioning.** The proto package version (for example `v1` in `binge.companion.request.v1`)
   is the contract major version. Changes inside a package must be additive. CI enforces this with
   `buf breaking`. A handshake rpc opens every connection. The handshake declares the companion
   app's capabilities.
@@ -63,21 +64,24 @@ Verification is mutual. It is part of the contract:
 
 ## Capabilities
 
-| Action | Purpose | Status |
-| --- | --- | --- |
-| `com.binge.integration.REQUEST` | Request movies and shows on a media-request server; track and manage request status | Draft |
-| `com.binge.integration.LIBRARY` | The user's own media server: availability, a play hand-off, watch state | Draft |
-| `com.binge.integration.STREAM` | Resolve a title to playable sources (hand-off first) | Planned |
-| `com.binge.integration.TRACKING` | Sync watch state with an external tracker | Planned |
-| `com.binge.integration.PLAYER` | Hand off playback to an external player, with a progress callback | Planned |
+| Action | Purpose |
+| --- | --- |
+| `com.binge.companion.REQUEST` | Request movies and shows on a media-request server; track and manage request status |
+| `com.binge.companion.LIBRARY` | The user's own media server: availability, a play hand-off, watch state both ways, continue watching |
+| `com.binge.companion.STREAM` | Resolve a title to playable sources (hand-off first) |
+| `com.binge.companion.TRACKING` | Sync watch state with an external tracker |
+| `com.binge.companion.PLAYER` | Hand off playback to an external player, with a progress callback |
+
+See [docs/Status.md](docs/Status.md) for where each contract stands — that page is the single
+source of truth for stage, so it isn't restated here.
 
 ## Planned artifacts
 
 | Coordinates | Contents |
 | --- | --- |
-| `io.github.scottcooper92:binge-integration-contracts` | Protobuf messages and gRPC service stubs (protobuf-javalite, grpc-kotlin; Kotlin/JVM) |
-| `io.github.scottcooper92:binge-integration-sdk` | Android library for companion apps: binder server bootstrap, `SecurityPolicy` caller verification, handshake scaffold |
-| `io.github.scottcooper92:binge-integration-conformance` | Test harness that validates a companion app against the contract |
+| `io.github.scottcooper92:binge-companion-contracts` | Protobuf messages and gRPC service stubs (protobuf-javalite, grpc-kotlin; Kotlin/JVM) |
+| `io.github.scottcooper92:binge-companion-sdk` | Android library for companion apps: binder server bootstrap, `SecurityPolicy` caller verification, handshake scaffold |
+| `io.github.scottcooper92:binge-companion-conformance` | Test harness that validates a companion app against the contract |
 
 ## Repository layout
 
@@ -86,6 +90,7 @@ contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC s
 sdk/         Android library for companion apps: the exported Service base, the caller policy,
              the manifest keys, the handshake helper and the LIBRARY play-target hand-off (built
              by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`)
+detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
 ```
 
 The conformance harness joins when it is built. The reference companion app lives in its own
@@ -99,8 +104,8 @@ Run:
 ./gradlew build
 ```
 
-That compiles both modules, runs the tests, checks formatting, runs detekt over the SDK and
-holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
+That compiles all three modules, runs the tests, checks formatting, runs detekt and Android lint
+over the SDK and holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
 
 You need JDK 17 or later.
 
