@@ -1,5 +1,6 @@
 package com.binge.companion.sdk
 
+import android.annotation.TargetApi
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.Signature
@@ -97,14 +98,19 @@ internal class PinnedHosts(
 
 /**
  * The current signer's digest for [packageName], or nothing. Only the Android lookup lives here;
- * every fail-closed decision is [signerDigests], which is tested on the JVM.
+ * every fail-closed decision, the API floor included, is [signerDigests], which is tested on the
+ * JVM. The version check at the call site is what lets lint see [signingSnapshot] is only called on API 28+.
  */
 internal fun PackageManager.signerSha256s(packageName: String): Set<String> =
     signerDigests(Build.VERSION.SDK_INT) {
-        getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.let { signing ->
-            SignerSnapshot(
-                hasMultipleSigners = signing.hasMultipleSigners(),
-                certificates = signing.apkContentsSigners.orEmpty().map(Signature::toByteArray),
-            )
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) signingSnapshot(packageName) else null
+    }
+
+@TargetApi(Build.VERSION_CODES.P)
+private fun PackageManager.signingSnapshot(packageName: String): SignerSnapshot? =
+    getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.let { signing ->
+        SignerSnapshot(
+            hasMultipleSigners = signing.hasMultipleSigners(),
+            certificates = signing.apkContentsSigners.orEmpty().map(Signature::toByteArray),
+        )
     }
