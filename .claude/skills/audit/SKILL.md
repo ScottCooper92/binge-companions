@@ -80,7 +80,8 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - Manifest metadata parsing (`majors` read as **either String or Int**, `name` as String or resource id):
   both forms handled, malformed values do not throw or fail open.
 - Capability handling: unknown enum values ignored; no behaviour keyed on a version number
-  (`Capabilities.kt`, `CompanionManifest.kt`); a gated rpc reachable when its capability is undeclared.
+  (the `Capability` enum in `request.proto` is the list; `Capabilities.kt` holds only `handshakeResponse()` and
+  `requireDeclared()`; also `CompanionManifest.kt`); a gated rpc reachable when its capability is undeclared.
 - Coverage honesty: the four excluded classes' KDocs must still say where the decision was split out,
   and `AdvancedRequestKt` must stay **included** (it holds both halves). Check the exclusion list in
   `sdk/build.gradle.kts` has not grown to hide untested logic.
@@ -101,8 +102,8 @@ Extract every checkable claim from `docs/Architecture.md`, `docs/Status.md`, `do
 `docs/Ecosystem.md`, `README.md`, `CLAUDE.md` and `.ai/agents/*.md` and verify each against the protos,
 the SDK, `build.gradle.kts` and the workflows: the action-string table (`com.binge.companion.REQUEST`,
 `STREAM`, `TRACKING`, `PLAYER`, `LIBRARY`) vs what exists; the three manifest meta-data keys; capability
-lists vs `Capabilities.kt`; **Status.md contract stages** (Draft / Spike-validated / Stable) vs reality and
-its "last updated" date; the 85% floor and the "third module must apply kover" rule; JDK/`jvmTarget`
+lists vs the `Capability` enum in `request.proto` (`Capabilities.kt` has no list); **Status.md contract stages** (Draft / Spike-validated / Stable) vs reality and
+its "last updated" date; the 85% floor and the "a new module must apply kover" rule (`:detekt-rules` is the documented exception); JDK/`jvmTarget`
 figures; Maven Central / published-artifact claims. Also check whether the docs mention consumers
 (`ScottCooper92/binge-seerr`, `ScottCooper92/Binge`) accurately. Report claim → reality → which side
 should change. Contract *definitions* must appear only here (nothing in the consumers may redefine one —
