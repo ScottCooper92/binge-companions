@@ -46,20 +46,57 @@ class BingeRuleSetProviderTest {
     }
 
     @Test
-    fun `a configured threshold changes what a rule reports, so a mistyped key would show`() {
-        val threeLines = "// one\n// two\n// three\nval x = 1\n"
+    fun `detekt yml sets exactly the sub-keys each rule reads, so a mistyped key fails here`() {
+        val configured = bingeBlock(File(repositoryRoot(), "detekt.yml").readLines())
 
-        assertEquals(0, ConsecutiveInlineComments(TestConfig("threshold" to 3)).compileAndLint(threeLines).size)
-        assertEquals(1, ConsecutiveInlineComments(TestConfig("threshold" to 2)).compileAndLint(threeLines).size)
+        assertEquals(setOf("threshold"), subKeys(configured.getValue("ConsecutiveInlineComments")).keys)
+        assertEquals(
+            setOf("classThreshold", "functionThreshold", "propertyThreshold"),
+            subKeys(configured.getValue("KDocLength")).keys,
+        )
     }
 
     @Test
-    fun `the KDoc length keys are read from config`() {
-        val twoLines = "/**\n * one\n * two\n */\nclass Foo\n"
+    fun `ConsecutiveInlineComments configured from detekt yml allows three lines and flags four`() {
+        val rule = ConsecutiveInlineComments(fileConfig("ConsecutiveInlineComments"))
 
-        assertEquals(0, KDocLength().compileAndLint(twoLines).size)
-        assertEquals(1, KDocLength(TestConfig("classThreshold" to 1)).compileAndLint(twoLines).size)
+        assertEquals(0, rule.compileAndLint(commentRun(3) + "val x = 1\n").size)
+        assertEquals(
+            1,
+            ConsecutiveInlineComments(fileConfig("ConsecutiveInlineComments")).compileAndLint(commentRun(4) + "val x = 1\n").size,
+        )
     }
+
+    @Test
+    fun `KDocLength configured from detekt yml allows six prose lines and flags seven, for class, function and property`() {
+        listOf("class Foo", "fun foo() = Unit", "val foo = 1").forEach { declaration ->
+            assertEquals(
+                0,
+                KDocLength(fileConfig("KDocLength")).compileAndLint(kdoc(6) + declaration + "\n").size,
+                "6 lines above `$declaration`",
+            )
+            assertEquals(
+                1,
+                KDocLength(fileConfig("KDocLength")).compileAndLint(kdoc(7) + declaration + "\n").size,
+                "7 lines above `$declaration`",
+            )
+        }
+    }
+
+    /** The real `detekt.yml` values for [ruleId], as the config detekt itself would hand the rule. */
+    private fun fileConfig(ruleId: String): TestConfig {
+        val configured = bingeBlock(File(repositoryRoot(), "detekt.yml").readLines())
+        return TestConfig(*subKeys(configured.getValue(ruleId)).map { (key, value) -> key to value }.toTypedArray())
+    }
+
+    private fun subKeys(lines: List<String>): Map<String, Int> =
+        lines
+            .mapNotNull { Regex("^ {4}(\\w+):\\s*(\\d+)\\s*(#.*)?$").matchEntire(it) }
+            .associate { it.groupValues[1] to it.groupValues[2].toInt() }
+
+    private fun commentRun(lines: Int): String = (1..lines).joinToString("") { "// line $it\n" }
+
+    private fun kdoc(lines: Int): String = "/**\n" + (1..lines).joinToString("") { " * prose line $it\n" } + " */\n"
 
     /** The rule ids under the top-level `binge:` key, each with its own indented lines. */
     private fun bingeBlock(lines: List<String>): Map<String, List<String>> {
