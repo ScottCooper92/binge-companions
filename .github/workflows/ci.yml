@@ -22,10 +22,18 @@ on:
     # fires on a run of this workflow completing, never sees it either. That is the
     # same stranding author-retarget.yml exists to fix, arriving through another door.
     types: [opened, synchronize, reopened, ready_for_review]
+  # A canary for what can turn the build red with no commit here: a runner image, JDK 21,
+  # Android SDK or `buf` update. Without it the next PR to run takes the blame. It builds
+  # main, and the three bots skip it (see their `if:`) because there is no PR for them to
+  # act on. Scheduled workflows only run on the default branch.
+  schedule:
+    - cron: '0 4 * * *'
 
-# Per-ref group: a new commit on the same branch/PR cancels its superseded run.
+# Per-ref group: a new commit on the same branch/PR cancels its superseded run. The event
+# name keeps the nightly run, which shares main's ref, from cancelling or being cancelled
+# by a push.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
@@ -71,7 +79,7 @@ jobs:
           name: test-reports
           path: '**/build/reports/tests/**'
           if-no-files-found: ignore
-          retention-days: 1
+          retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
   proto:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
@@ -87,6 +95,65 @@ jobs:
       - name: Lint protos
         run: buf lint
 
+      # PR-only: on main (push or nightly) this would compare main with itself and
+      # prove nothing. The nightly still runs `buf lint` above.
       - name: Check wire compatibility against main
         if: github.event_name == 'pull_request'
         run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main"
+
+  # A red nightly has no PR or push to carry it, so without this it is a red mark in the
+  # Actions tab that nothing points at. One issue stays open while the canary is red and
+  # closes itself on the next green run, so an open one means "still broken", not "old".
+  # Anything but success reports: a job that hits its timeout is `cancelled`, not `failure`,
+  # and the nightly has its own concurrency group, so nothing else supersedes it.
+  nightly-report:
+    if: ${{ always() && github.event_name == 'schedule' }}
+    needs: [build, proto]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          PROTO_RESULT: ${{ needs.proto.result }}
+        with:
+          script: |
+            const title = 'Nightly CI is failing on main';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { owner, repo } = context.repo;
+            const green = process.env.BUILD_RESULT === 'success' && process.env.PROTO_RESULT === 'success';
+            const open = (await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100,
+            })).find((i) => !i.pull_request && i.title === title);
+
+            if (green) {
+              if (!open) return;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: open.number,
+                body: `The nightly run is green again: ${runUrl}`,
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: open.number, state: 'closed', state_reason: 'completed',
+              });
+            } else {
+              const summary = `build: ${process.env.BUILD_RESULT}, proto: ${process.env.PROTO_RESULT}`;
+              if (open) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: open.number,
+                  body: `Still failing (${summary}): ${runUrl}`,
+                });
+                return;
+              }
+              await github.rest.issues.create({
+                owner, repo, title,
+                body: [
+                  `The scheduled run of CI failed (${summary}): ${runUrl}`,
+                  '',
+                  'Nothing was pushed to cause this, so suspect the environment before the commit history: the runner image, JDK 21, the Android SDK, or `buf`. The build-reports artifact is kept for seven days.',
+                  '',
+                  'This issue closes itself on the next green nightly run.',
+                ].join('\n'),
+              });
+            }

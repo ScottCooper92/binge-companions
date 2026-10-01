@@ -49,6 +49,8 @@ permissions:
 
 jobs:
   review:
+    # Skip the scheduled canary run of CI: it has no PR to review, fix or rebase.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.event != 'schedule'
     uses: ScottCooper92/binge-ci/.github/workflows/bot-review.yml@v1
     with:
       dispatch_pr: ${{ inputs.pr }}
