@@ -13,12 +13,31 @@ syntax = "proto3";
 //
 // Codes the INTEGRATION returns deliberately:
 //   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
-//   UNAUTHENTICATED                 — the integration's own provider session is
-//                                     broken; the host directs the user to the
-//                                     integration app to reconnect.
+//   UNAUTHENTICATED                 — the integration has no working provider session:
+//                                     nothing is connected, or the session is broken.
+//                                     The host directs the user to the integration app
+//                                     to connect or reconnect. `GetAttention` is the one
+//                                     exception for a broken session; see `Attention`.
 //   PERMISSION_DENIED               — the provider user may not perform this action.
 //   RESOURCE_EXHAUSTED              — the user's request quota on the provider is spent.
+//   NOT_FOUND                       — an id, title or entry the call names does not
+//                                     exist on the provider (a request deleted
+//                                     server-side, say). The host refreshes its view
+//                                     rather than treating its own input as wrong.
+//   FAILED_PRECONDITION             — the target exists but is in the wrong state for
+//                                     this action (approving a request that is already
+//                                     approved). The host refreshes and re-offers.
 //   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
+//
+// The per-rpc mapping is on each rpc below; where an rpc names no code for a case, the
+// codes above apply as written. Every rpc may also answer the retryable and
+// UNAUTHENTICATED codes above, so they are listed only where they add something.
+//
+// Unknown and unspecified enum values: a receiver ignores an unknown value or treats it
+// as `*_UNSPECIFIED`, and never fails on one. On a request a host sends, an
+// `*_UNSPECIFIED` or unknown value in a field the rpc needs (a `MediaId` with
+// MEDIA_TYPE_UNSPECIFIED or `tmdb_id` <= 0, an IssueType the integration cannot map) is
+// INVALID_ARGUMENT, not a silent default.
 //
 // Codes the TRANSPORT produces, which no integration chooses and every host must
 // handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
@@ -110,7 +129,8 @@ enum Capability {
 
 // How far along the provider is for a title (or one season of it).
 //
-// Append-only: new values get new numbers; a receiver ignores values it does not know.
+// Append-only: new values get new numbers; a receiver ignores values it does not know,
+// and treats one it cannot place as AVAILABILITY_UNSPECIFIED (offer nothing it implies).
 enum Availability {
   AVAILABILITY_UNSPECIFIED = 0;
   // Never requested on the provider.
@@ -123,13 +143,15 @@ enum Availability {
   AVAILABILITY_PARTIALLY_AVAILABLE = 4;
   // Fully downloaded and available to watch.
   AVAILABILITY_AVAILABLE = 5;
-  // Blocklisted on the provider — requests are rejected.
+  // Blocklisted on the provider — `SubmitRequest` and `SubmitAdvancedRequest` answer
+  // FAILED_PRECONDITION for it.
   AVAILABILITY_BLOCKLISTED = 6;
 }
 
 // Where one request sits in the provider's approval flow.
 //
-// Append-only: new values get new numbers; a receiver ignores values it does not know.
+// Append-only: new values get new numbers; a receiver ignores values it does not know,
+// and shows a request in one it cannot place without offering moderation on it.
 enum ApprovalState {
   APPROVAL_STATE_UNSPECIFIED = 0;
   APPROVAL_STATE_PENDING = 1;
@@ -141,7 +163,8 @@ enum ApprovalState {
 
 // Whether a grabbed download is transferring or still queued on the provider.
 //
-// Append-only: new values get new numbers; a receiver ignores values it does not know.
+// Append-only: new values get new numbers; a receiver ignores values it does not know,
+// and shows progress without a state label for one it cannot place.
 enum DownloadState {
   DOWNLOAD_STATE_UNSPECIFIED = 0;
   DOWNLOAD_STATE_QUEUED = 1;
@@ -151,6 +174,9 @@ enum DownloadState {
 // A provider-agnostic category for a reported media problem.
 //
 // Append-only: new values get new numbers; a receiver ignores values it does not know.
+// Host to integration, so the integration is the receiver: an unknown or UNSPECIFIED
+// value on `ReportIssue` is INVALID_ARGUMENT unless the integration can map it to
+// ISSUE_TYPE_OTHER on its provider, which it may.
 enum IssueType {
   ISSUE_TYPE_UNSPECIFIED = 0;
   ISSUE_TYPE_VIDEO = 1;
@@ -177,12 +203,16 @@ message SubmitRequestRequest {
   binge.companion.v1.MediaId media = 1;
   // TV only: the seasons to request. Empty means the provider's default scope.
   repeated int32 season_numbers = 2;
-  // Requires CAPABILITY_REQUEST_4K.
+  // Requires CAPABILITY_REQUEST_4K; INVALID_ARGUMENT when set without it.
   bool is_4k = 3;
 }
 
 message SubmitRequestResponse {
-  // Set when the provider created (or already had) a request the host can act on.
+  // The request this call created or, when `already_requested` is true, the one
+  // request the integration can name. 0 means unset (proto3 has no presence): it is 0
+  // whenever `already_requested` is true and the integration cannot name one request.
+  // A title can hold a standard and a 4K request, so the host reads `status.requests`
+  // for the full list rather than relying on this id.
   int32 request_id = 1;
   // True when the provider already had a request for this title and created nothing new.
   bool already_requested = 2;
@@ -219,11 +249,12 @@ message RequestStatus {
   // The host validates every URL before opening it.
   string watch_url = 5;
   // The title-level capabilities that apply to THIS title for THIS user right now —
-  // the ones that aren't about any one existing request, such as whether a new
-  // request may still be submitted at all. A capability that is about one specific
-  // request (CAPABILITY_APPROVE, CAPABILITY_DECLINE, CAPABILITY_RETRY,
-  // CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that request's own
-  // RequestInfo.allowed_actions instead — see #63 for why one flat list here
+  // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
+  // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
+  // (`SubmitRequest` is core): the host infers it from `availability`. A capability
+  // that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
+  // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
+  // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
   // cannot express "approve applies to request #7, not #8".
   repeated Capability allowed_actions = 6;
   // When the integration last confirmed this status with its provider, epoch
@@ -441,8 +472,8 @@ message Attention {
   // them: requests they moderate, issues they handle. 0 when nothing waits.
   uint32 pending_count = 1;
   // The integration's provider session is broken and only the integration app can
-  // repair it. The same condition every rpc answers UNAUTHENTICATED for, reported
-  // here so the host can show it before it calls anything.
+  // repair it. The condition every other rpc answers UNAUTHENTICATED for, reported
+  // here as data instead, so the host can show it before it calls anything.
   bool needs_reconnect = 2;
 }
 
@@ -462,14 +493,22 @@ message ObserveAttentionResponse {
 // `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
 // transport. `Handshake` is the host's first call on every new connection.
 service RequestService {
+  // Core. The host's first call on every connection.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+  // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
+  // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
+  // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is
+  // not an error: it answers OK with `already_requested` set.
   rpc SubmitRequest(SubmitRequestRequest) returns (SubmitRequestResponse);
+  // Core. INVALID_ARGUMENT for an unspecified `media`. A title nobody has requested is
+  // data, not an error: OK with AVAILABILITY_NOT_REQUESTED.
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
   // Requires CAPABILITY_OBSERVE_STATUS. The integration pushes a fresh status
   // whenever its provider reports change; it owns the polling cadence against its
   // own server, which is why the contract has no poll-interval negotiation. It
   // need not push when only `observed_at_epoch_ms` would change: while the stream
-  // is open the host knows the status is at least as fresh as the last push.
+  // is open the host knows the status is at least as fresh as the last push. Codes as
+  // `GetStatus`, answered by failing the stream.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
   // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
   // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
@@ -477,37 +516,56 @@ service RequestService {
   rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
   // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. The destination choices for a
   // fresh advanced-request picker, every axis preselected exactly as a plain
-  // `SubmitRequest` would resolve them.
+  // `SubmitRequest` would resolve them. Codes as `GetStatus`.
   rpc GetAdvancedRequestOptions(GetAdvancedRequestOptionsRequest) returns (GetAdvancedRequestOptionsResponse);
   // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Re-resolves the profile and
   // root-folder axes after the host's picker moves off the preselected server.
+  // INVALID_ARGUMENT for a `server_id` this integration did not offer for the title.
   rpc GetDestinationOptions(GetDestinationOptionsRequest) returns (GetDestinationOptionsResponse);
   // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. Submits with the picker's
   // choices; an empty field falls back to that axis's preselected default, so
-  // submitting with every field untouched is a plain request.
+  // submitting with every field untouched is a plain request. INVALID_ARGUMENT for a
+  // `server_id`, `profile_id` or `root_folder_id` it did not offer for the title (an
+  // empty one is never an error); otherwise as `SubmitRequest`.
   rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
-  // Requires CAPABILITY_CANCEL.
+  // Requires CAPABILITY_CANCEL. NOT_FOUND for an unknown `request_id`;
+  // FAILED_PRECONDITION when the request is not in a state that allows it;
+  // PERMISSION_DENIED when the user may not cancel this one.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
-  // Requires CAPABILITY_APPROVE.
+  // Requires CAPABILITY_APPROVE. NOT_FOUND for an unknown `request_id`;
+  // FAILED_PRECONDITION when the request is not in a state that allows it;
+  // PERMISSION_DENIED when the user may not approve this one.
   rpc ApproveRequest(ApproveRequestRequest) returns (ApproveRequestResponse);
-  // Requires CAPABILITY_DECLINE.
+  // Requires CAPABILITY_DECLINE. NOT_FOUND for an unknown `request_id`;
+  // FAILED_PRECONDITION when the request is not in a state that allows it;
+  // PERMISSION_DENIED when the user may not decline this one.
   rpc DeclineRequest(DeclineRequestRequest) returns (DeclineRequestResponse);
-  // Requires CAPABILITY_RETRY.
+  // Requires CAPABILITY_RETRY. NOT_FOUND for an unknown `request_id`;
+  // FAILED_PRECONDITION when the request is not in a state that allows it;
+  // PERMISSION_DENIED when the user may not retry this one.
   rpc RetryRequest(RetryRequestRequest) returns (RetryRequestResponse);
   // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
-  // report against (available or partially available).
+  // report against (available or partially available): FAILED_PRECONDITION for any
+  // other availability, including AVAILABILITY_NOT_REQUESTED, which is also how a
+  // title the provider has no record of reads. INVALID_ARGUMENT for an unspecified
+  // `media` or issue type.
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
   // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
-  // that is not AVAILABILITY_BLOCKLISTED offers this rpc.
+  // that is not AVAILABILITY_BLOCKLISTED offers this rpc. Blocking a title that is
+  // already blocklisted is OK and changes nothing; INVALID_ARGUMENT for an unspecified
+  // `media`.
   rpc BlockTitle(BlockTitleRequest) returns (BlockTitleResponse);
   // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on an
   // AVAILABILITY_BLOCKLISTED title offers this rpc. NOT_FOUND when the title is
   // not on the blocklist.
   rpc UnblockTitle(UnblockTitleRequest) returns (UnblockTitleResponse);
   // Requires CAPABILITY_ATTENTION. UNAUTHENTICATED when nothing is connected, as
-  // everywhere; a broken session on a connected provider is `needs_reconnect`.
+  // everywhere; a broken session on a connected provider is OK with `needs_reconnect`,
+  // so the host can badge it without an error.
   rpc GetAttention(GetAttentionRequest) returns (GetAttentionResponse);
   // Requires CAPABILITY_ATTENTION. The integration pushes a fresh value whenever its
-  // count or its session changes, on its own cadence, as `ObserveStatus` does.
+  // count or its session changes, on its own cadence, as `ObserveStatus` does. Codes as
+  // `GetAttention`: the stream fails UNAUTHENTICATED when nothing is connected, and
+  // carries a broken session as `needs_reconnect`.
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
 }
