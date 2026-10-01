@@ -8,7 +8,6 @@ import io.grpc.Server
 import io.grpc.binder.AndroidComponentAddress
 import io.grpc.binder.BinderServerBuilder
 import io.grpc.binder.IBinderReceiver
-import io.grpc.binder.InboundParcelablePolicy
 import io.grpc.binder.SecurityPolicy
 import io.grpc.binder.ServerSecurityPolicy
 
@@ -16,10 +15,9 @@ import io.grpc.binder.ServerSecurityPolicy
  * The exported Service a companion app declares: it hosts a gRPC server on the Binder transport
  * and hands the host that transport's own IBinder from [onBind].
  *
- * A subclass supplies the generated service implementations and the caller policy; everything
- * about standing the server up is here so a companion author does not re-derive it. The server
- * is built once in [onCreate] — Android calls that once and [onBind] once per client, and a server
- * per bind would leak the first when a second host connected.
+ * A subclass supplies the service implementations and the caller policy. The server is built once in [onCreate]
+ * — Android calls that once and [onBind] once per client, and a server per bind would leak the
+ * first. The Parcelable refusal is [inboundParcelablePolicy], tested on the JVM.
  */
 abstract class IntegrationService : Service() {
     private val receiver = IBinderReceiver()
@@ -42,11 +40,8 @@ abstract class IntegrationService : Service() {
         server = BinderServerBuilder
             .forAddress(AndroidComponentAddress.forContext(this), receiver)
             .securityPolicy(serverPolicy.build())
-            // Every payload is protobuf; a Parcelable from the host is a deserialisation surface
-            // the contract never uses, so it is refused rather than left to the transport default.
-            .inboundParcelablePolicy(
-                InboundParcelablePolicy.newBuilder().setAcceptParcelableMetadataValues(false).build(),
-            ).apply { services.forEach(::addService) }
+            .inboundParcelablePolicy(inboundParcelablePolicy())
+            .apply { services.forEach(::addService) }
             .build()
             .start()
     }
