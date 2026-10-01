@@ -8,7 +8,6 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests",
     ":dependencyDashboard", // one tracking issue instead of a wall of PRs
-    ":semanticCommitsDisabled", // repo uses plain commit subjects
   ],
 
   rebaseWhen: "conflicted",
