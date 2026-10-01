@@ -208,10 +208,11 @@ message SubmitRequestRequest {
 }
 
 message SubmitRequestResponse {
-  // Set when the provider created a request. 0 means unset (proto3 has no presence), and
-  // it is 0 whenever `already_requested` is true and the integration cannot name one
-  // request: a title can hold a standard and a 4K request, so the host reads
-  // `status.requests` for the full list rather than relying on this id.
+  // The request this call created or, when `already_requested` is true, the one
+  // request the integration can name. 0 means unset (proto3 has no presence): it is 0
+  // whenever `already_requested` is true and the integration cannot name one request.
+  // A title can hold a standard and a 4K request, so the host reads `status.requests`
+  // for the full list rather than relying on this id.
   int32 request_id = 1;
   // True when the provider already had a request for this title and created nothing new.
   bool already_requested = 2;
@@ -250,10 +251,10 @@ message RequestStatus {
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
   // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
-  // (`SubmitRequest` is core): the host infers it from `availability`. A capability that is about one specific
-  // request (CAPABILITY_APPROVE, CAPABILITY_DECLINE, CAPABILITY_RETRY,
-  // CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that request's own
-  // RequestInfo.allowed_actions instead — see #63 for why one flat list here
+  // (`SubmitRequest` is core): the host infers it from `availability`. A capability
+  // that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
+  // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
+  // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
   // cannot express "approve applies to request #7, not #8".
   repeated Capability allowed_actions = 6;
   // When the integration last confirmed this status with its provider, epoch
@@ -496,8 +497,8 @@ service RequestService {
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
   // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
-  // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is not an error: it answers OK with
-  // `already_requested` set.
+  // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is
+  // not an error: it answers OK with `already_requested` set.
   rpc SubmitRequest(SubmitRequestRequest) returns (SubmitRequestResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media`. A title nobody has requested is
   // data, not an error: OK with AVAILABILITY_NOT_REQUESTED.
@@ -545,8 +546,9 @@ service RequestService {
   rpc RetryRequest(RetryRequestRequest) returns (RetryRequestResponse);
   // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
   // report against (available or partially available): FAILED_PRECONDITION for any
-  // other availability, INVALID_ARGUMENT for an unspecified `media` or issue type,
-  // NOT_FOUND when the provider has no record of the title.
+  // other availability, including AVAILABILITY_NOT_REQUESTED, which is also how a
+  // title the provider has no record of reads. INVALID_ARGUMENT for an unspecified
+  // `media` or issue type.
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
   // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
   // that is not AVAILABILITY_BLOCKLISTED offers this rpc. Blocking a title that is
