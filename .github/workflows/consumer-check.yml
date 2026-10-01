@@ -53,8 +53,9 @@ jobs:
         with:
           path: companions
 
-      # Submodules are fetched one by one: binge-seerr's pin of binge-integrations is exactly what
-      # this job replaces with the PR, so cloning it would be wasted work.
+      # Submodules are fetched one by one: binge-seerr's pin of this repository is exactly what
+      # this job replaces with the PR, so cloning it would be wasted work. The submodule path in
+      # binge-seerr is still `binge-integrations/`, the name it had before the rename.
       - name: Check out binge-seerr at main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
