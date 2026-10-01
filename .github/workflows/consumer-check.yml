@@ -1,0 +1,67 @@
+name: Consumer check (binge-seerr)
+
+# Builds binge-seerr, the reference companion, against this PR's contracts and SDK. `buf breaking`
+# guards the wire format; it cannot see a Kotlin-level break in the SDK that binge-seerr compiles
+# as a composite build.
+#
+# Informational, and deliberately a separate workflow with its own name. bot-review, author-ci-fix
+# and author-conflicts match the workflow named `CI` by name, so a red result here cannot start an
+# automated repair of this repository's code. Red means the consumer needs a change, which is
+# sometimes the intended outcome of an SDK API change. Do not make it a required check without a
+# decision. Binge is private, so it is not covered; a token-backed variant is a separate decision.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'contracts/**'
+      - 'sdk/**'
+      - 'gradle/libs.versions.toml'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - '.github/workflows/consumer-check.yml'
+
+concurrency:
+  group: consumer-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seerr:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out this PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: companions
+
+      # Submodules are fetched one by one: binge-seerr's pin of binge-integrations is exactly what
+      # this job replaces with the PR, so cloning it would be wasted work.
+      - name: Check out binge-seerr at main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ScottCooper92/binge-seerr
+          ref: main
+          path: seerr
+
+      - name: Fetch the design system and swap in this PR
+        run: |
+          git -C seerr submodule update --init --depth 1 design-system
+          rm -rf seerr/binge-integrations
+          mv companions seerr/binge-integrations
+
+      # JDK 17, binge-seerr's own toolchain (jvmTarget 17). binge-companions builds on 21, and
+      # running the consumer on it would test a combination nobody ships.
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+
+      - name: Build binge-seerr
+        working-directory: seerr
+        run: ./gradlew build --continue
