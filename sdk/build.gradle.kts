@@ -92,7 +92,9 @@ kotlin.target.compilations.configureEach {
 // figure with code no test should be written for. The exclusions below are the same idea one level
 // down - each is a class that exists only to hold an Android type, and each already has its
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
-// HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy. AdvancedRequestKt
+// HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy and signerDigests,
+// IntegrationService to inboundParcelablePolicy (its per-service registration needs grpc-binder's
+// Android statics, so it has no JVM test). AdvancedRequestKt
 // is deliberately NOT excluded - it holds both halves, so excluding it would drop a tested function
 // from the measurement.
 kover {
