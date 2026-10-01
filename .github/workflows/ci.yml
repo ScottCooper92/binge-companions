@@ -73,6 +73,8 @@ jobs:
       # Gradle invents silently reappears in the artifact. That blew the free Actions
       # storage quota three separate times in Binge. `build` also runs ktlint, detekt,
       # kover and Android lint, so a red run is as likely to be one of those as a test.
+      # Paths checked against a deliberately failing run (#98): detekt writes only detekt.html,
+      # koverVerify only kover/verify.err, lint lint-results-debug.html.
       # Failure-only, kept one day (seven for the nightly).
       - name: Upload reports
         if: ${{ failure() }}
@@ -84,7 +86,7 @@ jobs:
             **/build/reports/detekt/**
             **/build/reports/kover/**
             **/build/reports/ktlint/**
-            sdk/build/reports/lint-results-*.html
+            sdk/build/reports/lint-results-debug.html
           if-no-files-found: ignore
           retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
