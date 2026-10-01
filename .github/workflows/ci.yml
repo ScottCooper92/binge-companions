@@ -22,10 +22,18 @@ on:
     # fires on a run of this workflow completing, never sees it either. That is the
     # same stranding author-retarget.yml exists to fix, arriving through another door.
     types: [opened, synchronize, reopened, ready_for_review]
+  # A canary for what can turn the build red with no commit here: a runner image, JDK 21,
+  # Android SDK or `buf` update. Without it the next PR to run takes the blame. It builds
+  # main, and the three bots skip it (see their `if:`) because there is no PR for them to
+  # act on. Scheduled workflows only run on the default branch.
+  schedule:
+    - cron: '0 4 * * *'
 
-# Per-ref group: a new commit on the same branch/PR cancels its superseded run.
+# Per-ref group: a new commit on the same branch/PR cancels its superseded run. The event
+# name keeps the nightly run, which shares main's ref, from cancelling or being cancelled
+# by a push.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
@@ -60,18 +68,25 @@ jobs:
       - name: Build and test
         run: ./gradlew build --continue
 
-      # Test reports for triaging a red run. Listed explicitly rather than globbing
+      # Reports for triaging a red run. Listed explicitly rather than globbing
       # **/build/reports/ — the greedy glob is fail-OPEN, so every new report type
       # Gradle invents silently reappears in the artifact. That blew the free Actions
-      # storage quota three separate times in Binge. Failure-only, kept one day.
-      - name: Upload test reports
+      # storage quota three separate times in Binge. `build` also runs ktlint, detekt,
+      # kover and Android lint, so a red run is as likely to be one of those as a test.
+      # Failure-only, kept one day (seven for the nightly).
+      - name: Upload reports
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: test-reports
-          path: '**/build/reports/tests/**'
+          name: build-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/reports/detekt/**
+            **/build/reports/kover/**
+            **/build/reports/ktlint/**
+            sdk/build/reports/lint-results-*.html
           if-no-files-found: ignore
-          retention-days: 1
+          retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
   proto:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
@@ -87,6 +102,95 @@ jobs:
       - name: Lint protos
         run: buf lint
 
+      # PR-only: on main (push or nightly) this would compare main with itself and
+      # prove nothing. The nightly still runs `buf lint` above.
       - name: Check wire compatibility against main
         if: github.event_name == 'pull_request'
         run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main"
+
+  # The callers in this directory are thin shims, and a mistake in one becomes a silent
+  # `startup_failure` with no log. Part of this workflow rather than a second one, so the bots'
+  # match on `CI` and branch protection need no extra check. actionlint cannot see across a
+  # `uses:` reference to a reusable workflow, so the callers' permissions are still proved by
+  # running them.
+  actionlint:
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+
+      # Same invocation as binge-ci's own CI: a pinned release verified against its published
+      # checksum. --severity=warning, not the default, because info fires SC2016 on single-quoted
+      # scripts where the quotes are correct.
+      - name: actionlint
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -euo pipefail
+          curl -sSLo actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "${SHA256}  actionlint.tar.gz" | sha256sum -c -
+          tar xzf actionlint.tar.gz actionlint
+          ./actionlint -shellcheck 'shellcheck --severity=warning'
+
+  # A red nightly has no PR or push to carry it, so without this it is a red mark in the
+  # Actions tab that nothing points at. One issue stays open while the canary is red and
+  # closes itself on the next green run, so an open one means "still broken", not "old".
+  # Anything but success reports: a job that hits its timeout is `cancelled`, not `failure`,
+  # and the nightly has its own concurrency group, so nothing else supersedes it.
+  nightly-report:
+    if: ${{ always() && github.event_name == 'schedule' }}
+    needs: [build, proto]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          PROTO_RESULT: ${{ needs.proto.result }}
+        with:
+          script: |
+            const title = 'Nightly CI is failing on main';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { owner, repo } = context.repo;
+            const green = process.env.BUILD_RESULT === 'success' && process.env.PROTO_RESULT === 'success';
+            const open = (await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100,
+            })).find((i) => !i.pull_request && i.title === title);
+
+            if (green) {
+              if (!open) return;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: open.number,
+                body: `The nightly run is green again: ${runUrl}`,
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: open.number, state: 'closed', state_reason: 'completed',
+              });
+            } else {
+              const summary = `build: ${process.env.BUILD_RESULT}, proto: ${process.env.PROTO_RESULT}`;
+              if (open) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: open.number,
+                  body: `Still failing (${summary}): ${runUrl}`,
+                });
+                return;
+              }
+              await github.rest.issues.create({
+                owner, repo, title,
+                body: [
+                  `The scheduled run of CI failed (${summary}): ${runUrl}`,
+                  '',
+                  'Nothing was pushed to cause this, so suspect the environment before the commit history: the runner image, JDK 21, the Android SDK, or `buf`. The build-reports artifact is kept for seven days.',
+                  '',
+                  'This issue closes itself on the next green nightly run.',
+                ].join('\n'),
+              });
+            }

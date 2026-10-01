@@ -1,0 +1,53 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  // Adapted from Binge's config. Renovate reads the version catalog at gradle/libs.versions.toml and
+  // the SHA-pinned actions in .github/workflows/. The JDK stays at 21 here on purpose (the other
+  // repos build on 17); Renovate does not manage setup-java's java-version input, so nothing to ignore.
+  extends: [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard", // one tracking issue instead of a wall of PRs
+  ],
+
+  rebaseWhen: "conflicted",
+  prConcurrentLimit: 4,
+  schedule: ["before 6am on monday"],
+
+  // Don't chase a release the day it drops: a few days lets a yanked or broken version wash out.
+  minimumReleaseAge: "3 days",
+
+  packageRules: [
+    {
+      // Patch bumps of actions merge themselves once CI is green. Nothing else does, so every
+      // library, plugin and toolchain bump below reaches a human.
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["patch"],
+      automerge: true,
+    },
+    {
+      // A generator or runtime bump can change the stubs that binge-seerr and Binge compile, and the
+      // host and companion must stay able to parse each other. One PR, never merged by a bot. The buf
+      // action is here too: it runs `buf lint` and `buf breaking`, so a bump changes what the gate
+      // accepts. Listed after the actions rule so its automerge: false wins.
+      matchPackageNames: [
+        "/^com\\.google\\.protobuf[.:]/",
+        "/^io\\.grpc[.:]/",
+        "bufbuild/buf-action",
+      ],
+      groupName: "protobuf, grpc and buf",
+      automerge: false,
+    },
+    {
+      // binge-seerr takes its Kotlin version from this build, so a bump here moves the consumer.
+      // Kotlin and AGP are coordinated upgrades; detekt is pinned to the Kotlin it analyses.
+      matchPackageNames: [
+        "/^org\\.jetbrains\\.kotlin[.:]/",
+        "/^com\\.android\\.(tools\\.build|library|application)/",
+        "/^io\\.gitlab\\.arturbosch\\.detekt/",
+      ],
+      groupName: "kotlin, android and detekt toolchain",
+      automerge: false,
+    },
+  ],
+}

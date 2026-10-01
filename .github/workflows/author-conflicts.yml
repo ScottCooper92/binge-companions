@@ -20,6 +20,8 @@ on:
 
 jobs:
   resolve:
+    # Skip the scheduled canary run of CI: it has no PR to review, fix or rebase.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.event != 'schedule'
     uses: ScottCooper92/binge-ci/.github/workflows/author-conflicts.yml@v1
     with:
       dispatched: ${{ github.event_name == 'workflow_dispatch' }}
