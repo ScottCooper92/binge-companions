@@ -68,16 +68,23 @@ jobs:
       - name: Build and test
         run: ./gradlew build --continue
 
-      # Test reports for triaging a red run. Listed explicitly rather than globbing
+      # Reports for triaging a red run. Listed explicitly rather than globbing
       # **/build/reports/ — the greedy glob is fail-OPEN, so every new report type
       # Gradle invents silently reappears in the artifact. That blew the free Actions
-      # storage quota three separate times in Binge. Failure-only, kept one day.
-      - name: Upload test reports
+      # storage quota three separate times in Binge. `build` also runs ktlint, detekt,
+      # kover and Android lint, so a red run is as likely to be one of those as a test.
+      # Failure-only, kept one day (seven for the nightly).
+      - name: Upload reports
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: test-reports
-          path: '**/build/reports/tests/**'
+          name: build-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/reports/detekt/**
+            **/build/reports/kover/**
+            **/build/reports/ktlint/**
+            sdk/build/reports/lint-results-*.html
           if-no-files-found: ignore
           retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
