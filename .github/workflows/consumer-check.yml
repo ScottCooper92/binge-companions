@@ -9,9 +9,24 @@ name: Consumer check (binge-seerr)
 # automated repair of this repository's code. Red means the consumer needs a change, which is
 # sometimes the intended outcome of an SDK API change. Do not make it a required check without a
 # decision. Binge is private, so it is not covered; a token-backed variant is a separate decision.
+#
+# It compiles the consumer's main and unit-test sources and nothing else: that is what catches an
+# API break. Lint, unit tests and screenshot validation say nothing about this repository's
+# change, and made the job take over twenty minutes. It also runs on pushes to main, which is
+# what writes the Gradle cache: setup-gradle only saves on the default branch, so a job that ran
+# on pull requests alone would start cold every time.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'contracts/**'
+      - 'sdk/**'
+      - 'gradle/libs.versions.toml'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - '.github/workflows/consumer-check.yml'
+  push:
+    branches: [main]
     paths:
       - 'contracts/**'
       - 'sdk/**'
@@ -29,7 +44,7 @@ permissions:
 
 jobs:
   seerr:
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -62,6 +77,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
-      - name: Build binge-seerr
+      - name: Compile binge-seerr against this change
         working-directory: seerr
-        run: ./gradlew build --continue
+        run: ./gradlew :app:compileDebugKotlin :app:compileDebugUnitTestKotlin --continue
