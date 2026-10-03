@@ -121,8 +121,8 @@ class HostPackagePolicy(
 }
 
 /**
- * The allowlist half of a pinned check: is this package a known host, and is its current signer
- * one the host's entry names. A package that cannot be read, or is signed by several keys, has no
+ * The allowlist half of a pinned check: is this package a known host, and does its signing lineage
+ * include a certificate the host's entry names. A package that cannot be read, or is signed by several keys, has no
  * signer here and is not trusted — one hash cannot identify an app signed by two.
  */
 internal class PinnedHosts(
@@ -141,7 +141,7 @@ internal class PinnedHosts(
 }
 
 /**
- * The current signer's digest for [packageName], or nothing. Only the Android lookup lives here;
+ * The digests of [packageName]'s signing lineage, or nothing. Only the Android lookup lives here;
  * every fail-closed decision, the API floor included, is [signerDigests], which is tested on the
  * JVM. The version check at the call site is what lets lint see [signingSnapshot] is only called on API 28+.
  */

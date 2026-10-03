@@ -14,8 +14,8 @@ import android.util.Log
  */
 object HandOffPolicy {
     /**
-     * Admits only [hosts]: the caller must be a listed package, currently signed by one of its
-     * listed certificates. This is the policy a release companion ships with, normally
+     * Admits only [hosts]: the caller must be a listed package whose signing lineage
+     * includes one of its listed certificates. This is the policy a release companion ships with, normally
      * `HandOffPolicy.pinned(this, listOf(BingeHosts.release))`, the same list its Service pins.
      */
     fun pinned(context: Context, hosts: Collection<KnownHost>): HandOffCallerPolicy =
