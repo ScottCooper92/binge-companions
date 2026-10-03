@@ -153,8 +153,8 @@ read from `Activity.callingPackage`, which only a caller that asked for a result
 the system, not the caller, sets. `Activity.referrer` is not used for this: it is populated from
 ordinary Intent extras before it falls back to the system-tracked caller, so any app could set it
 to impersonate a host. Every hand-off is therefore started for a result, so every hand-off has a
-`callingPackage` to check. A release companion pins; a debug one may admit any caller, as with the
-Service.
+`callingPackage` to check. A release companion pins; a debug one admits Binge's package names under any certificate
+(`HandOffPolicy.anyCertificateOf`), as with the Service.
 
 ## Security: mutual verification
 

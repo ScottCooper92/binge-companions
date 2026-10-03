@@ -23,8 +23,8 @@ data class KnownHost(
 /**
  * Binge itself, as the host every companion serves. Release Binge is listed by the certificates
  * it may carry; any other signer under its package name is refused. Debug Binge is signed with
- * each developer's local debug key and cannot be listed; a debug companion admits any caller
- * instead (see [HostPolicy.anyCaller]).
+ * each developer's local debug key and cannot be listed; a debug companion admits
+ * [PACKAGE_NAMES] under any certificate instead (see [HostPolicy.anyCertificateOf]).
  */
 object BingeHosts {
     const val RELEASE_PACKAGE_NAME = "com.cooper.binge.app"
