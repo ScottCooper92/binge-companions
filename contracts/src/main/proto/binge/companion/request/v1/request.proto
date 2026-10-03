@@ -149,6 +149,13 @@ enum Capability {
   // carry the file, so answering means asking the *arr directly, and an integration
   // that would rather not pay that on every status check simply doesn't declare it.
   CAPABILITY_MEDIA_FILE_INFO = 13;
+  // Answers `ListRequests`: the requests the provider holds, paged and filtered, which is
+  // what a host's "now available" row and notifications are built from. Per title the host
+  // cannot build either: it would have to remember and poll every title it ever requested.
+  CAPABILITY_LIST_REQUESTS = 14;
+  // Answers `GetStatuses`: the statuses of a page of titles in one call, for a requested badge
+  // on a grid. Live updates for what is on screen still come from `ObserveStatus`.
+  CAPABILITY_BATCH_STATUS = 15;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -253,6 +260,58 @@ message GetStatusRequest {
 
 message GetStatusResponse {
   RequestStatus status = 1;
+}
+
+// Which requests `ListRequests` answers with.
+enum RequestFilter {
+  REQUEST_FILTER_UNSPECIFIED = 0;
+  // The signed-in user's own requests.
+  REQUEST_FILTER_MINE = 1;
+  // Every request the signed-in user may see.
+  REQUEST_FILTER_ALL = 2;
+  // Requests waiting on a moderator. Empty, not an error, for a user who may not moderate.
+  REQUEST_FILTER_AWAITING_MODERATION = 3;
+  // Requests whose title became available recently, most recent first. How recent is the
+  // integration's to choose; the host shows what it is given.
+  REQUEST_FILTER_RECENTLY_AVAILABLE = 4;
+}
+
+message ListRequestsRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  string page_token = 1;
+  // At most this many entries; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked.
+  int32 page_size = 2;
+  RequestFilter filter = 3;
+}
+
+message ListRequestsResponse {
+  repeated RequestEntry entries = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+// One request in a `ListRequests` page: the title, its status, and the request that put it
+// in the list.
+message RequestEntry {
+  binge.companion.v1.MediaId media = 1;
+  RequestStatus status = 2;
+  RequestInfo request = 3;
+}
+
+message GetStatusesRequest {
+  // At most 50 titles per call; more is INVALID_ARGUMENT.
+  repeated binge.companion.v1.MediaId media = 1;
+}
+
+message GetStatusesResponse {
+  // One per requested title. Each echoes its `MediaId`, so the host never relies on order.
+  repeated TitleStatus statuses = 1;
+}
+
+message TitleStatus {
+  binge.companion.v1.MediaId media = 1;
+  RequestStatus status = 2;
 }
 
 message ObserveStatusRequest {
@@ -550,6 +609,14 @@ service RequestService {
   // is open the host knows the status is at least as fresh as the last push. Codes as
   // `GetStatus`, answered by failing the stream.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
+  // Requires CAPABILITY_LIST_REQUESTS. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for an unspecified or unknown `filter`, or a `page_token` this
+  // integration did not issue.
+  rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
+  // Requires CAPABILITY_BATCH_STATUS. INVALID_ARGUMENT for more than 50 titles or for any
+  // unusable `MediaId`, naming none of the others. A title nobody has requested is data, not
+  // an error: AVAILABILITY_NOT_REQUESTED, as `GetStatus` answers.
+  rpc GetStatuses(GetStatusesRequest) returns (GetStatusesResponse);
   // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
   // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
   // set, a season the show does not have, or a request for a movie.
