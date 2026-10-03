@@ -34,6 +34,17 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+// The vendored google.rpc protos sit beside the contracts rather than in them: buf lints
+// contracts/src/main/proto with STANDARD rules, which a third-party package without a version
+// suffix fails by design, and they are Google's to define, not ours.
+sourceSets {
+    main {
+        proto {
+            srcDir("src/main/rpc-proto")
+        }
+    }
+}
+
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"

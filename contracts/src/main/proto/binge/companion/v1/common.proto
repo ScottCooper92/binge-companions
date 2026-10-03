@@ -35,4 +35,7 @@ message HostInfo {
   string package_name = 1;
   string version_name = 2;
   int64 version_code = 3;
+  // The host's locale, BCP 47 (e.g. "en-GB", "es"), so an integration can localise a
+  // user-facing error detail. Informational, like the rest of HostInfo; empty when unset.
+  string locale = 4;
 }
