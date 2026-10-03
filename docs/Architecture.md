@@ -95,9 +95,17 @@ The intent action is the discovery unit. The capability set is the feature-detec
 it. Each contract keeps a small mandatory core. For REQUEST, the core is handshake, submit, and
 status. A declared capability gates every other rpc.
 
-- **Static capabilities.** The handshake response declares them once. They cover everything this
-  connection can ever do, for this provider and this user. The host hides UI for undeclared
-  capabilities. The host never calls a gated rpc without its capability.
+- **Static capabilities.** The handshake response declares them. They cover everything the
+  connection can do for this provider and this user, with the session the integration holds when
+  it answers. The host hides UI for undeclared capabilities. The host never calls a gated rpc
+  without its capability.
+  - With no working session (nothing connected, or a broken one), the handshake still answers OK,
+    declaring only what needs no session plus `CAPABILITY_ATTENTION`, so the host can learn about
+    the session at all (#106).
+  - That set is not final for the connection. The host handshakes again when the session may have
+    come back: when `needs_reconnect` turns false, and when the user returns from the integration
+    app after the host sent them there for an `UNAUTHENTICATED`. The integration answers each
+    handshake from its current session (#111).
 - **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
   subset — capabilities that aren't about any one existing request. A capability that is about one
   specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
