@@ -28,8 +28,10 @@ the journey these stages add up to.
    title pages, and the Play sheet: the server's own app, or an installed player with progress
    written back. TV first. See `Ecosystem.md` > Playback.
 9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
-   Hand-off first, through the same Play sheet. LIBRARY does not overlap this one: it answers for
-   the server the user already runs, STREAM for everything else.
+   Hand-off only, through the same Play sheet, on the shared `PlaybackSource`. LIBRARY does not
+   overlap this one: it answers for the server the user already runs, STREAM for everything else.
+   The `.proto` is drafted; what moves it is a first-party companion that resolves licit sources,
+   and no host ships STREAM UI before one exists. See `Architecture.md` > STREAM.
 
 **Deferred: PLAYER.** Handing playback to an external player with a live progress callback. The
 Play sheet and the players already installed cover the case for now. It comes back if users hit

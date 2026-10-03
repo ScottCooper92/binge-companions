@@ -18,6 +18,9 @@ object CompanionManifest {
     /** The intent action a LIBRARY companion's Service filters on. */
     const val ACTION_LIBRARY = "com.binge.companion.LIBRARY"
 
+    /** The intent action a STREAM companion's Service filters on. */
+    const val ACTION_STREAM = "com.binge.companion.STREAM"
+
     /** Display name: a literal, or a string resource in the companion's own package. */
     const val META_NAME = "com.binge.companion.name"
 
@@ -26,12 +29,12 @@ object CompanionManifest {
 
     /**
      * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming
-     * only one of [ACTION_REQUEST] / [ACTION_LIBRARY]; one serving both uses
-     * [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] instead, since a bare key can't say which
-     * contract's majors it names.
+     * only one of [ACTION_REQUEST] / [ACTION_LIBRARY] / [ACTION_STREAM]; one serving several uses
+     * [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM] instead, since a bare
+     * key can't say which contract's majors it names.
      *
      * Read as either a String or an Int: aapt types a bare number as an Int, so `"1"` never
-     * arrives as a String while `"1,2"` does — same for the two scoped keys above.
+     * arrives as a String while `"1,2"` does — same for the three scoped keys above.
      */
     const val META_MAJORS = "com.binge.companion.majors"
 
@@ -40,6 +43,9 @@ object CompanionManifest {
 
     /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on [ACTION_REQUEST]. */
     const val META_MAJORS_LIBRARY = "com.binge.companion.majors.library"
+
+    /** [META_MAJORS], scoped to [ACTION_STREAM], for a Service that also filters on another action. */
+    const val META_MAJORS_STREAM = "com.binge.companion.majors.stream"
 
     /**
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a

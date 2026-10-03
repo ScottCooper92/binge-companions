@@ -8,6 +8,8 @@ syntax = "proto3";
 // side-by-side, never an edit here.
 package binge.companion.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option java_package = "com.binge.companion.contracts.v1";
 option java_multiple_files = true;
 
@@ -35,4 +37,49 @@ message HostInfo {
   string package_name = 1;
   string version_name = 2;
   int64 version_code = 3;
+}
+
+// One episode of the series a `MediaId` addresses. Carried beside the `MediaId` by the rpcs
+// that need it, never inside it: a `MediaId` names a title, and most rpcs are about the title.
+// LIBRARY v1 predates this message and keeps its own identical `EpisodeRef`; new contracts
+// use this one.
+message EpisodeRef {
+  int32 season_number = 1;
+  int32 episode_number = 2;
+}
+
+// One HTTP request header a player must send to fetch a `PlaybackSource`.
+message HttpHeader {
+  string name = 1;
+  string value = 2;
+}
+
+// A URL a player can fetch and play, minted for one title and one sitting. Shared by every
+// contract that hands the host something playable (STREAM's `StreamSource`, LIBRARY's planned
+// `PLAYBACK_SOURCE`), so the host's Play sheet and its per-player Intent handling are written
+// once.
+//
+// The host is a courier for this message and never a consumer: it starts a player the user
+// chose with the URL and the headers, renders nothing itself, and keeps nothing once the
+// player has it. The rules it applies before handing one on, so an integration knows what will
+// be refused:
+//   - `url` and every subtitle or artwork URL beside it is https. Anything else is dropped.
+//     The player is a third app the host does not control, and cleartext credentials in
+//     `headers` or in the URL would travel in the clear on its behalf.
+//   - `expires_at` is REQUIRED. A source with none is dropped: players keep history, so a URL
+//     a player was given is a URL that gets stored, and the expiry is what bounds that. The
+//     host never caches a source past it and never past the Play sheet that showed it.
+//   - `headers` carry only `Authorization`, `Cookie`, `Referer` and `User-Agent`, each value
+//     at most 4 KiB. Others are dropped. A header the chosen player cannot be given (VLC and mpv
+//     take none) makes the whole source unusable for that player, and the host hides it there
+//     rather than sending the request without it.
+//   - The host never follows, fetches or inspects the URL itself: no thumbnails, no HEAD
+//     requests, no metadata scraping. What it knows about the source is what this message says.
+message PlaybackSource {
+  string url = 1;
+  repeated HttpHeader headers = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  // The container or stream type when the integration knows it ("video/mp4",
+  // "application/x-mpegURL"), so the host can pick a player that declares it. Empty when unknown.
+  string mime_type = 4;
 }
