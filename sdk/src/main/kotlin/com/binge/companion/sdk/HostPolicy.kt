@@ -78,8 +78,8 @@ object HostPolicy {
 
 /**
  * The pinned check with its two Android lookups as functions, so the decision is testable on
- * the JVM: whether a uid's packages include a known host, and whether that host's current
- * signer is one the allowlist names. The second half is [PinnedHosts], shared with the hand-off
+ * the JVM: whether a uid's packages include a known host, and whether that host's signing
+ * lineage includes a certificate the allowlist names. The second half is [PinnedHosts], shared with the hand-off
  * Activity's [HandOffCallerPolicy], which knows its caller by package rather than by uid.
  */
 class HostSecurityPolicy(
