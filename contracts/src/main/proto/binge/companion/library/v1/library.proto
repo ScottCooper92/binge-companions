@@ -46,9 +46,10 @@ import "google/protobuf/timestamp.proto";
 option java_package = "com.binge.companion.contracts.library.v1";
 option java_multiple_files = true;
 
-// What a LIBRARY integration can do beyond the handshake. Declared once per connection
-// in `HandshakeResponse.capabilities`, from what the server supports AND what the
-// signed-in user may do. The host hides UI for what is undeclared and never calls a
+// What a LIBRARY integration can do beyond the handshake. Declared in
+// `HandshakeResponse.capabilities`, from what the server supports AND what the
+// signed-in user may do, for the session the integration holds when the host
+// handshakes; see `Handshake` for when the host asks again. The host hides UI for what is undeclared and never calls a
 // gated rpc.
 //
 // Append-only: new capabilities get new numbers; hosts ignore values they don't know.
@@ -85,7 +86,8 @@ message HandshakeRequest {
 }
 
 message HandshakeResponse {
-  // Everything this connection can ever do, for this server and this signed-in user.
+  // What the connection can do for this server and this signed-in user, with the session
+  // the integration holds when it answers. Not final for the connection; see `Handshake`.
   repeated Capability capabilities = 1;
   // Display name of the connected server (a proper noun, never translated).
   string provider_name = 2;
@@ -276,6 +278,14 @@ message ListNextUpResponse {
 // package, so a companion serving both is consented once and its certificate pinned
 // once.
 service LibraryService {
+  // The host's first call on every connection. With nothing connected, or a broken
+  // server session, it answers UNAUTHENTICATED, and the host directs the user to the
+  // integration app. Unlike REQUEST's, this handshake is not exempt: LIBRARY has no
+  // attention read for a reduced capability set to keep reachable, so the error itself
+  // is the signal. The host handshakes again on the same connection when the user
+  // returns from the integration app after it sent them there for an UNAUTHENTICATED,
+  // from this rpc or any other. An integration answers every Handshake from the
+  // session it holds now.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Requires CAPABILITY_AVAILABILITY. "Not in the library" is a successful answer
   // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND.
