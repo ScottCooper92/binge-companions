@@ -34,6 +34,13 @@ syntax = "proto3";
 //                                     a failure, and travels in the response.
 //   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
 //
+// User-facing error detail travels as REQUEST's header describes: a google.rpc.Status
+// trailer with an ErrorInfo and a LocalizedMessage, never in the status description.
+//
+// Conformance rules, as REQUEST states them: every URL a response carries (`artwork_url`,
+// `WebUrl.url`) is http or https, and the host refuses any other scheme; an rpc whose
+// capability the handshake did not declare is answered PERMISSION_DENIED.
+//
 // The transport codes are the same ones REQUEST documents at length, and for the same
 // reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
 // `bindService()` that returned false this way, not as UNAVAILABLE), and UNAVAILABLE
@@ -158,6 +165,7 @@ message AndroidIntent {
 // failure: an integration answers with this rather than an error, and the host should
 // not have to tell the two apart.
 message WebUrl {
+  // http or https only; the host refuses any other scheme.
   string url = 1;
 }
 
@@ -235,8 +243,8 @@ message LibraryEntry {
   binge.companion.v1.MediaId media = 1;
   WatchState state = 2;
   // Artwork as a URL, never bytes: the Binder transaction limit is about 1 MB and it is
-  // a hard ceiling. A row of posters inlined is exactly the shape that hits it. The host
-  // validates every URL before loading it.
+  // a hard ceiling. A row of posters inlined is exactly the shape that hits it. http or
+  // https only; the host refuses any other scheme.
   string artwork_url = 3;
   // What the server calls the title, for a host that has nothing else to show yet.
   string title = 4;

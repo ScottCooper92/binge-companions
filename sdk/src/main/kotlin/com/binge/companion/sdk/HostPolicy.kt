@@ -19,8 +19,8 @@ import io.grpc.binder.SecurityPolicy
  */
 object HostPolicy {
     /**
-     * Admits only [hosts]: the caller's uid must resolve to a listed package, and that package
-     * must currently be signed by one of its listed certificates. This is the policy a release
+     * Admits only [hosts]: the caller's uid must resolve to a listed package, and that package's
+     * signing lineage must include one of its listed certificates. This is the policy a release
      * companion ships with, normally `HostPolicy.pinned(context, listOf(BingeHosts.release))`.
      * Only the Android lookups are wired here; the decision is [HostSecurityPolicy] and the signer
      * rules are [signerDigests], both tested on the JVM.
@@ -38,10 +38,34 @@ object HostPolicy {
         )
 
     /**
-     * Admits every caller, and says so in the log each time. For debug builds only — Binge's
-     * debug build is signed with each developer's own key, which no allowlist can name — and
-     * never for a release build, where it hands the user's provider session to any app on the
-     * device. A companion should select it with `BuildConfig.DEBUG`, not a flag a user can flip.
+     * Admits a caller whose uid resolves to one of [packageNames], under any certificate, and says so in
+     * the log each time. This is the debug companion's policy (#122): debug Binge is signed with each
+     * developer's own key, which no allowlist can name, but its package name is known, so a debug build
+     * hands its provider session only to an app calling itself Binge rather than to every app on the
+     * device. Select it with `BuildConfig.DEBUG`, never a flag a user can flip. The decision is
+     * [HostPackagePolicy], tested on the JVM.
+     */
+    fun anyCertificateOf(
+        context: Context,
+        packageNames: Collection<String> = BingeHosts.PACKAGE_NAMES,
+        tag: String = "BingeCompanion",
+    ): SecurityPolicy =
+        HostPackagePolicy(
+            packageNames = packageNames,
+            packagesForUid = { uid ->
+                context.packageManager
+                    .getPackagesForUid(uid)
+                    .orEmpty()
+                    .toList()
+            },
+            warn = { message -> Log.w(tag, message) },
+        )
+
+    /**
+     * Admits every caller, and says so in the log each time. Not for a companion's own debug build, which
+     * should use [anyCertificateOf]: this is for a conformance harness, or a companion author's own test
+     * host whose package is neither of Binge's. Never for a release build, where it hands the user's
+     * provider session to any app on the device.
      */
     fun anyCaller(tag: String = "BingeCompanion"): SecurityPolicy =
         object : SecurityPolicy() {
@@ -54,8 +78,8 @@ object HostPolicy {
 
 /**
  * The pinned check with its two Android lookups as functions, so the decision is testable on
- * the JVM: whether a uid's packages include a known host, and whether that host's current
- * signer is one the allowlist names. The second half is [PinnedHosts], shared with the hand-off
+ * the JVM: whether a uid's packages include a known host, and whether that host's signing
+ * lineage includes a certificate the allowlist names. The second half is [PinnedHosts], shared with the hand-off
  * Activity's [HandOffCallerPolicy], which knows its caller by package rather than by uid.
  */
 class HostSecurityPolicy(
@@ -77,8 +101,28 @@ class HostSecurityPolicy(
 }
 
 /**
- * The allowlist half of a pinned check: is this package a known host, and is its current signer
- * one the host's entry names. A package that cannot be read, or is signed by several keys, has no
+ * The debug check, with its Android lookup as a function so it is testable on the JVM: the caller's uid
+ * must resolve to one of [packageNames]. Any certificate is accepted, which is the point of the debug
+ * policy, and each admission is logged through [warn].
+ */
+class HostPackagePolicy(
+    packageNames: Collection<String>,
+    private val packagesForUid: (uid: Int) -> List<String>,
+    private val warn: (message: String) -> Unit = {},
+) : SecurityPolicy() {
+    private val allowed = packageNames.toSet()
+
+    override fun checkAuthorization(uid: Int): Status {
+        val host = packagesForUid(uid).firstOrNull { it in allowed }
+            ?: return Status.PERMISSION_DENIED.withDescription("uid $uid is not one of the allowed host packages")
+        warn("Admitting $host (uid=$uid) without verifying its certificate (debug-only policy)")
+        return Status.OK
+    }
+}
+
+/**
+ * The allowlist half of a pinned check: is this package a known host, and does its signing lineage
+ * include a certificate the host's entry names. A package that cannot be read, or is signed by several keys, has no
  * signer here and is not trusted — one hash cannot identify an app signed by two.
  */
 internal class PinnedHosts(
@@ -97,7 +141,7 @@ internal class PinnedHosts(
 }
 
 /**
- * The current signer's digest for [packageName], or nothing. Only the Android lookup lives here;
+ * The digests of [packageName]'s signing lineage, or nothing. Only the Android lookup lives here;
  * every fail-closed decision, the API floor included, is [signerDigests], which is tested on the
  * JVM. The version check at the call site is what lets lint see [signingSnapshot] is only called on API 28+.
  */
@@ -106,11 +150,22 @@ internal fun PackageManager.signerSha256s(packageName: String): Set<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) signingSnapshot(packageName) else null
     }
 
+/**
+ * A single-signer package's whole signing lineage, `signingCertificateHistory`, not only its current
+ * certificate: a host that rotates its key through APK Signature Scheme v3, as Play App Signing does, keeps
+ * its old certificate in the history, so a digest pinned before the rotation still matches after it (#115).
+ * Lineage is safe to trust because each rotation is signed by the previous key. This mirrors grpc-binder's
+ * own `SecurityPolicies.oneOfSignatureSha256Hash`, and Binge's host-side check on companions. A package with
+ * several current signers reports those, which [signerDigests] then refuses.
+ */
 @TargetApi(Build.VERSION_CODES.P)
 private fun PackageManager.signingSnapshot(packageName: String): SignerSnapshot? =
     getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.let { signing ->
+        val multiple = signing.hasMultipleSigners()
         SignerSnapshot(
-            hasMultipleSigners = signing.hasMultipleSigners(),
-            certificates = signing.apkContentsSigners.orEmpty().map(Signature::toByteArray),
+            hasMultipleSigners = multiple,
+            certificates = (if (multiple) signing.apkContentsSigners else signing.signingCertificateHistory).orEmpty().map(
+                Signature::toByteArray,
+            ),
         )
     }

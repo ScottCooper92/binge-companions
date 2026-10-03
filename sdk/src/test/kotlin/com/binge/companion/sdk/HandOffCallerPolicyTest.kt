@@ -41,4 +41,22 @@ class HandOffCallerPolicyTest {
     fun `the debug policy admits any caller that asked for a result`() {
         assertTrue(HandOffCallerPolicy(pinned = null).permits(OTHER))
     }
+
+    @Test
+    fun `the debug policy admits Binge's packages under any certificate and refuses every other app`() {
+        val debug = HandOffCallerPolicy(pinned = null, packageNames = BingeHosts.PACKAGE_NAMES.toSet())
+
+        assertTrue(debug.permits(BingeHosts.DEBUG_PACKAGE_NAME))
+        assertTrue(debug.permits(BingeHosts.RELEASE_PACKAGE_NAME))
+        assertFalse(debug.permits(OTHER))
+        assertFalse(debug.permits(null))
+    }
+
+    @Test
+    fun `a host that rotated its key is admitted through the certificate pinned before the rotation`() {
+        // The lineage the signer lookup reports: the pinned (old) certificate, then the new one.
+        signers[HOST] = setOf(CERT, "ffff")
+
+        assertTrue(pinned(KnownHost(HOST, setOf(CERT))).permits(HOST))
+    }
 }

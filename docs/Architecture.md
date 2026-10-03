@@ -153,18 +153,23 @@ read from `Activity.callingPackage`, which only a caller that asked for a result
 the system, not the caller, sets. `Activity.referrer` is not used for this: it is populated from
 ordinary Intent extras before it falls back to the system-tracked caller, so any app could set it
 to impersonate a host. Every hand-off is therefore started for a result, so every hand-off has a
-`callingPackage` to check. A release companion pins; a debug one may admit any caller, as with the
-Service.
+`callingPackage` to check. A release companion pins; a debug one admits Binge's package names under any certificate
+(`HandOffPolicy.anyCertificateOf`), as with the Service.
 
 ## Security: mutual verification
 
 - **Host side.** Binge asks the user for consent for each companion app. The consent record holds
   the package name and the signing-cert hash. Binge validates every URL or Intent from a companion
-  app before use. Binge's TMDB session never crosses the boundary.
+  app before use: a URL is http or https, or it is refused. Binge's TMDB session never crosses the boundary.
 - **Companion side.** The companion app verifies the caller's signing certificate before it serves
   a request. Its exported Service fronts the user's provider session. Without the check, any app
   on the device could drive that session.
 - Both checks use `grpc-binder` `SecurityPolicy` instances. The SDK wires them on each side.
+- Both match a certificate anywhere in the peer's signing lineage, so a key rotated through APK
+  Signature Scheme v3 (as Play App Signing rotates one) keeps matching a digest pinned before it (#115).
+- A debug companion cannot pin debug Binge's certificate, since each developer signs with their own key,
+  so it uses `HostPolicy.anyCertificateOf`: Binge's package names, any signer. `anyCaller` admits every
+  app and is only for a conformance harness or an author's own test host (#122).
 
 ## Play stance
 

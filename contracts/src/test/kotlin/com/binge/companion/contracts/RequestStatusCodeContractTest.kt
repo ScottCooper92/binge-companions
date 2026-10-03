@@ -7,16 +7,22 @@ import com.binge.companion.contracts.request.v1.GetAttentionResponse
 import com.binge.companion.contracts.request.v1.ObserveAttentionRequest
 import com.binge.companion.contracts.request.v1.ObserveAttentionResponse
 import com.binge.companion.contracts.request.v1.RequestServiceGrpcKt
+import com.binge.companion.contracts.request.v1.SubmitRequestRequest
+import com.binge.companion.contracts.request.v1.SubmitRequestResponse
 import com.binge.companion.contracts.request.v1.UnblockTitleRequest
 import com.binge.companion.contracts.request.v1.UnblockTitleResponse
 import com.binge.companion.contracts.request.v1.attention
 import com.binge.companion.contracts.request.v1.editRequestRequest
 import com.binge.companion.contracts.request.v1.getAttentionResponse
 import com.binge.companion.contracts.request.v1.observeAttentionResponse
+import com.binge.companion.contracts.request.v1.submitRequestRequest
 import com.binge.companion.contracts.request.v1.unblockTitleRequest
+import com.binge.companion.contracts.rpc.LocalizedMessage
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
+import com.google.protobuf.Any
 import io.grpc.ManagedChannel
+import io.grpc.Metadata
 import io.grpc.Server
 import io.grpc.Status
 import io.grpc.StatusException
@@ -29,6 +35,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import com.binge.companion.contracts.rpc.Status as RpcStatus
 
 /**
  * The status codes `request.proto` documents, driven through the generated client against a stub that
@@ -93,6 +100,27 @@ class RequestStatusCodeContractTest {
             assertEquals(EditRequestResponse.getDefaultInstance(), stub().editRequest(edit(KNOWN_ID, listOf(1, 2))))
         }
 
+    /** The header's user-facing detail channel: a google.rpc.Status in the trailers survives the channel intact (#120). */
+    @Test
+    fun `a rich error detail survives the channel, and the description stays developer text`() {
+        val stub = stub()
+        val request =
+            submitRequestRequest {
+                media = mediaId {
+                    mediaType = MediaType.MEDIA_TYPE_MOVIE
+                    tmdbId = 1
+                }
+            }
+
+        val failure = assertThrows(StatusException::class.java) { runBlocking { stub.submitRequest(request) } }
+        val details = RpcStatus.parseFrom(failure.trailers!!.get(STATUS_DETAILS_KEY))
+        val localized = LocalizedMessage.parseFrom(details.detailsList.single().value)
+
+        assertEquals(Status.Code.RESOURCE_EXHAUSTED, failure.status.code)
+        assertEquals(QUOTA_SENTENCE, localized.message)
+        assertEquals("quota spent", failure.status.description)
+    }
+
     @Test
     fun `UnblockTitle for a title not on the blocklist is NOT_FOUND`() {
         val stub = stub()
@@ -145,6 +173,29 @@ class RequestStatusCodeContractTest {
 
         override suspend fun unblockTitle(request: UnblockTitleRequest): UnblockTitleResponse = throw Status.NOT_FOUND.asException()
 
+        /** A spent quota with the sentence the user needs, sent as the header's rich error detail. */
+        override suspend fun submitRequest(request: SubmitRequestRequest): SubmitRequestResponse {
+            val details =
+                RpcStatus
+                    .newBuilder()
+                    .setCode(Status.Code.RESOURCE_EXHAUSTED.value())
+                    .addDetails(
+                        Any
+                            .newBuilder()
+                            .setTypeUrl("type.googleapis.com/google.rpc.LocalizedMessage")
+                            .setValue(
+                                LocalizedMessage
+                                    .newBuilder()
+                                    .setLocale("en")
+                                    .setMessage(QUOTA_SENTENCE)
+                                    .build()
+                                    .toByteString(),
+                            ),
+                    ).build()
+            val trailers = Metadata().apply { put(STATUS_DETAILS_KEY, details.toByteArray()) }
+            throw StatusException(Status.RESOURCE_EXHAUSTED.withDescription("quota spent"), trailers)
+        }
+
         override suspend fun getAttention(request: GetAttentionRequest): GetAttentionResponse =
             if (connected) {
                 getAttentionResponse { attention = attention { needsReconnect = true } }
@@ -165,3 +216,6 @@ class RequestStatusCodeContractTest {
         const val FOREIGN_ID = 403
     }
 }
+
+private const val QUOTA_SENTENCE = "Your request quota resets on Monday."
+private val STATUS_DETAILS_KEY: Metadata.Key<ByteArray> = Metadata.Key.of("grpc-status-details-bin", Metadata.BINARY_BYTE_MARSHALLER)

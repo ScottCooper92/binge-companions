@@ -5,7 +5,8 @@ import java.security.MessageDigest
 
 /**
  * What the platform reports about a package's signing, as plain values: whether it has several
- * current signers, and the current signers' encoded certificates. The [android.content.pm.PackageManager]
+ * current signers, and the encoded certificates to match: a single signer's whole lineage, oldest
+ * first, so a rotated key still matches a digest pinned before the rotation (#115). The [android.content.pm.PackageManager]
  * lookup that fills it is the only Android-typed part; every refusal below runs on the JVM.
  */
 internal class SignerSnapshot(
@@ -14,7 +15,7 @@ internal class SignerSnapshot(
 )
 
 /**
- * The current signer's digest, or nothing. Every branch that returns nothing fails closed:
+ * The signer's lineage digests, or nothing. Every branch that returns nothing fails closed:
  *
  * - below API 28 only the lineage-less `GET_SIGNATURES` exists, and the host refuses to discover
  *   companions there anyway, so refusing here keeps the two ends' floors the same;

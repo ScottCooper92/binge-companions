@@ -1,10 +1,13 @@
 package com.binge.companion.contracts
 
+import com.binge.companion.contracts.request.v1.Availability
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.RequestEntry
 import com.binge.companion.contracts.request.v1.RequestInfo
 import com.binge.companion.contracts.request.v1.RequestStatus
 import com.binge.companion.contracts.request.v1.mediaFileInfo
+import com.binge.companion.contracts.request.v1.requestEntry
 import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.request.v1.requestStatus
 import com.binge.companion.contracts.v1.MediaId
@@ -68,5 +71,23 @@ class ProtoRoundTripTest {
 
         assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
         assertEquals(false, RequestInfo.parseFrom(requestInfo { id = 7 }.toByteArray()).is4K)
+    }
+
+    @Test
+    fun `a RequestEntry round-trips its title, status and request`() {
+        val entry =
+            requestEntry {
+                media = mediaId {
+                    mediaType = MediaType.MEDIA_TYPE_TV
+                    tmdbId = 1399
+                }
+                status = requestStatus { availability = Availability.AVAILABILITY_AVAILABLE }
+                request = requestInfo {
+                    id = 12
+                    seasonNumbers += listOf(1, 2)
+                }
+            }
+
+        assertEquals(entry, RequestEntry.parseFrom(entry.toByteArray()))
     }
 }

@@ -26,7 +26,7 @@ abstract class IntegrationService : Service() {
     /** The contract implementations this Service serves, e.g. a `RequestServiceCoroutineImplBase`. */
     protected abstract fun services(): List<BindableService>
 
-    /** Who may bind. [HostPolicy.pinned] in release; [HostPolicy.anyCaller] only in a debug build. */
+    /** Who may bind. [HostPolicy.pinned] in release; [HostPolicy.anyCertificateOf] in a debug build. */
     protected abstract fun hostPolicy(): SecurityPolicy
 
     override fun onCreate() {

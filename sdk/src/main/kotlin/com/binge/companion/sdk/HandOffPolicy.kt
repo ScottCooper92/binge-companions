@@ -14,17 +14,27 @@ import android.util.Log
  */
 object HandOffPolicy {
     /**
-     * Admits only [hosts]: the caller must be a listed package, currently signed by one of its
-     * listed certificates. This is the policy a release companion ships with, normally
+     * Admits only [hosts]: the caller must be a listed package whose signing lineage
+     * includes one of its listed certificates. This is the policy a release companion ships with, normally
      * `HandOffPolicy.pinned(this, listOf(BingeHosts.release))`, the same list its Service pins.
      */
     fun pinned(context: Context, hosts: Collection<KnownHost>): HandOffCallerPolicy =
         HandOffCallerPolicy(PinnedHosts(hosts) { packageName -> context.packageManager.signerSha256s(packageName) })
 
     /**
-     * Admits every caller that started the Activity for a result, and says so in the log each
-     * time. For debug builds only, for the reason [HostPolicy.anyCaller] gives: debug Binge is
-     * signed with a key no allowlist can name. Select it with `BuildConfig.DEBUG`, never a flag.
+     * Admits a caller that is one of [packageNames], under any certificate, and says so in the log each
+     * time: the hand-off twin of [HostPolicy.anyCertificateOf], and a debug companion's policy for the
+     * same reason (#122). Select it with `BuildConfig.DEBUG`, never a flag.
+     */
+    fun anyCertificateOf(
+        packageNames: Collection<String> = BingeHosts.PACKAGE_NAMES,
+        tag: String = "BingeCompanion",
+    ): HandOffCallerPolicy = HandOffCallerPolicy(pinned = null, packageNames = packageNames.toSet()) { message -> Log.w(tag, message) }
+
+    /**
+     * Admits every caller that started the Activity for a result, and says so in the log each time. For a
+     * conformance harness or a companion author's own test host, as [HostPolicy.anyCaller] is; a
+     * companion's own debug build uses [anyCertificateOf].
      */
     fun anyCaller(tag: String = "BingeCompanion"): HandOffCallerPolicy =
         HandOffCallerPolicy(pinned = null) { message -> Log.w(tag, message) }
@@ -40,15 +50,15 @@ object HandOffPolicy {
  */
 class HandOffCallerPolicy internal constructor(
     private val pinned: PinnedHosts?,
+    private val packageNames: Set<String>? = null,
     private val warn: (message: String) -> Unit = {},
 ) {
     /** Whether the Activity may act on its extras, given `Activity.callingPackage`. */
     fun permits(callingPackage: String?): Boolean {
         if (callingPackage == null) return false
-        if (pinned == null) {
-            warn("Admitting hand-off from $callingPackage without verification (debug-only policy)")
-            return true
-        }
-        return pinned.isTrusted(callingPackage)
+        if (pinned != null) return pinned.isTrusted(callingPackage)
+        if (packageNames != null && callingPackage !in packageNames) return false
+        warn("Admitting hand-off from $callingPackage without verifying its certificate (debug-only policy)")
+        return true
     }
 }
