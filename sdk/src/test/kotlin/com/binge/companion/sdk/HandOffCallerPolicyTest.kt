@@ -51,4 +51,12 @@ class HandOffCallerPolicyTest {
         assertFalse(debug.permits(OTHER))
         assertFalse(debug.permits(null))
     }
+
+    @Test
+    fun `a host that rotated its key is admitted through the certificate pinned before the rotation`() {
+        // The lineage the signer lookup reports: the pinned (old) certificate, then the new one.
+        signers[HOST] = setOf(CERT, "ffff")
+
+        assertTrue(pinned(KnownHost(HOST, setOf(CERT))).permits(HOST))
+    }
 }
