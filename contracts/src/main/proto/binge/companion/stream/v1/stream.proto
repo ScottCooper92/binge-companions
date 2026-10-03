@@ -1,0 +1,234 @@
+syntax = "proto3";
+
+// The STREAM contract: playable sources for a title that are NOT the user's own library.
+// LIBRARY answers for the server the user already runs; STREAM answers for everything else an
+// integration can legitimately resolve a title to.
+//
+// Status: DRAFT. The shape stays a draft until a real companion has served it with real traffic
+// (docs/Status.md), and a host ships no STREAM UI until a first-party companion exists that
+// resolves licit sources; see docs/Architecture.md > STREAM for why that gate is the first
+// decision rather than the last.
+//
+// Mandatory core: `Handshake` and `Resolve`. A service that cannot serve both must not export the
+// `com.binge.companion.STREAM` action. `Probe` and `ReportSource` are gated by the `Capability`
+// set returned from `Handshake`; the host never calls a gated rpc whose capability was not
+// declared, and an integration that receives one anyway answers PERMISSION_DENIED.
+//
+// Playback is a HAND-OFF. A source is a `binge.companion.v1.PlaybackSource`, the shared message
+// whose header lists what the host does and refuses before it hands one to a player. The host
+// renders no video and no web view of a source, fetches nothing from a source URL, and keeps
+// nothing once the Play sheet that showed it closes. There is no in-app player for a source
+// from this contract and there will not be one: an in-app surface that plays arbitrary
+// third-party links is the pattern that gets a media app removed from Play, and an app cannot be
+// un-removed.
+//
+// Resolution is slow and partial by nature, so `Resolve` is a SERVER-STREAMING rpc: one
+// `StreamSource` per message, in the order the integration finds them, and the stream ends when
+// the integration has nothing more. Partial results are the normal case, not an error. The time
+// bound is the host's gRPC deadline and abandonment is gRPC cancellation; an integration must
+// stop work when the call is cancelled. Nothing in a message ranks sources against another
+// integration's: the host orders what it receives by `SourceQuality` and then by arrival, and
+// attributes each source to the integration that produced it, which it already knows from the
+// connection. The host stops reading after MAX_SOURCES_PER_RESOLVE (50) and cancels; an
+// integration that has more than that is listing, not resolving.
+//
+// Multiple STREAM integrations may be installed and consented at once. The host resolves
+// against each under its own deadline and shows what arrives, grouped by integration. No
+// integration is preferred, promoted or ranked above another by the host.
+//
+// Error model: failures travel as gRPC status codes, not response fields.
+//
+// Codes the INTEGRATION returns deliberately:
+//   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
+//   UNAUTHENTICATED                 — the integration needs the user to sign in to its own
+//                                     backend before it can resolve anything. The host directs
+//                                     the user to the integration app. `Handshake` answers it
+//                                     too: STREAM has no attention read, so the error is the
+//                                     signal, exactly as LIBRARY's handshake works.
+//   NOT_FOUND                       — the integration cannot place the title at all (no
+//                                     mapping for this TMDB id). Distinct from a `Resolve`
+//                                     that completes with no sources, which is OK and empty.
+//   INVALID_ARGUMENT                — an unusable `MediaId` (MEDIA_TYPE_UNSPECIFIED, `tmdb_id`
+//                                     <= 0), an `episode` on a movie, an episode the series
+//                                     does not have, or a `source_id` this integration never
+//                                     issued.
+//   PERMISSION_DENIED               — a gated rpc the integration did not declare.
+//
+// The transport codes are REQUEST's, for the same reasons: UNIMPLEMENTED means the integration
+// is NOT INSTALLED (grpc-binder reports a `bindService()` that returned false this way), and
+// UNAVAILABLE means it was installed but its process is gone. See request.proto's header.
+//
+// Unknown and unspecified enum values: a receiver ignores an unknown value or treats it as
+// `*_UNSPECIFIED`, and never fails on one. A host renders a source whose `Resolution` it cannot
+// place without a quality label rather than dropping it.
+package binge.companion.stream.v1;
+
+import "binge/companion/v1/common.proto";
+
+option java_package = "com.binge.companion.contracts.stream.v1";
+option java_multiple_files = true;
+
+// What a STREAM integration can do beyond the mandatory core. Declared in
+// `HandshakeResponse.capabilities` for the session the integration holds when the host
+// handshakes; see `Handshake` for when the host asks again.
+//
+// Append-only: new capabilities get new numbers; hosts ignore values they don't know.
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  // Answers `Probe`: a cheap yes/no the host may ask on a title page instead of resolving.
+  CAPABILITY_PROBE = 1;
+  // Populates `StreamSource.subtitles`. Without it the host assumes the player finds its own.
+  CAPABILITY_SUBTITLES = 2;
+  // Answers `ReportSource`: the user told the host a source did not play, and the integration
+  // wants to know.
+  CAPABILITY_REPORT_SOURCE = 3;
+}
+
+// The vertical resolution class of a source, so a host can sort and a TV can pick without a
+// screen. The exact figure, when it matters, is display text on `SourceQuality.video_codec`
+// or `StreamSource.label`.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know and
+// shows the source without a quality label.
+enum Resolution {
+  RESOLUTION_UNSPECIFIED = 0;
+  RESOLUTION_SD = 1;
+  RESOLUTION_HD_720 = 2;
+  RESOLUTION_HD_1080 = 3;
+  RESOLUTION_UHD_2160 = 4;
+}
+
+// Whether the source is HDR of any flavour. Which flavour (HDR10, Dolby Vision) is display
+// text, since no host decision depends on it.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum DynamicRange {
+  DYNAMIC_RANGE_UNSPECIFIED = 0;
+  DYNAMIC_RANGE_SDR = 1;
+  DYNAMIC_RANGE_HDR = 2;
+}
+
+// Why a user reported a source, in the host's words rather than the integration's.
+//
+// Append-only: new values get new numbers. Host to integration, so the integration is the
+// receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT unless the integration can map
+// it to SOURCE_PROBLEM_OTHER, which it may.
+enum SourceProblem {
+  SOURCE_PROBLEM_UNSPECIFIED = 0;
+  // The player could not open or play it.
+  SOURCE_PROBLEM_UNPLAYABLE = 1;
+  // It played, and it was not this title or not this episode.
+  SOURCE_PROBLEM_WRONG_TITLE = 2;
+  // It was refused as expired before `expires_at`.
+  SOURCE_PROBLEM_EXPIRED = 3;
+  SOURCE_PROBLEM_OTHER = 4;
+}
+
+message HandshakeRequest {
+  binge.companion.v1.HostInfo host = 1;
+}
+
+message HandshakeResponse {
+  // What the connection can do for this signed-in user, with the session the integration holds
+  // when it answers. Not final for the connection; see `Handshake`.
+  repeated Capability capabilities = 1;
+  // Display name of the integration's backend (a proper noun, never translated). The host shows
+  // it beside every source the integration produces; that attribution is a rendering rule and a
+  // policy one at once, see docs/Architecture.md > STREAM.
+  string provider_name = 2;
+  // Version of the companion app, for the host's companion apps screen.
+  string companion_version_name = 3;
+}
+
+// The structured quality of one source. Structured rather than a label so the host can sort,
+// filter and let a TV pick with no UI; the labels are for the row the host renders.
+message SourceQuality {
+  Resolution resolution = 1;
+  DynamicRange dynamic_range = 2;
+  // A short codec label, e.g. "HEVC" or "H.264". Empty when unknown.
+  string video_codec = 3;
+  // A short audio label, e.g. "AAC 2.0" or "TrueHD Atmos". Empty when unknown.
+  string audio = 4;
+  // Whole bytes; 0 when unknown.
+  int64 size_bytes = 5;
+}
+
+// One subtitle file a player may load beside the source. Requires CAPABILITY_SUBTITLES. The
+// same URL rules as `PlaybackSource.url` apply, and the host hands it only to a player that
+// takes a subtitle URL.
+message SubtitleTrack {
+  string url = 1;
+  // BCP 47 language tag, e.g. "en" or "pt-BR".
+  string language = 2;
+  // What to call it when `language` is not enough ("English (SDH)"). Empty when the language is.
+  string label = 3;
+}
+
+// One playable source for the title `Resolve` asked about.
+message StreamSource {
+  // The integration's own id for this source, opaque to the host and never parsed by it. The
+  // host echoes it verbatim on `ReportSource`, and nowhere else.
+  string id = 1;
+  binge.companion.v1.PlaybackSource source = 2;
+  SourceQuality quality = 3;
+  // A short label the host shows as-is on the row, e.g. a release name. At most 120 characters;
+  // the host truncates longer ones. Never the URL.
+  string label = 4;
+  // Requires CAPABILITY_SUBTITLES; empty otherwise.
+  repeated SubtitleTrack subtitles = 5;
+}
+
+message ResolveRequest {
+  binge.companion.v1.MediaId media = 1;
+  // For a series, the episode to resolve. Required for a series: STREAM resolves one playable
+  // thing, and a season is not one. INVALID_ARGUMENT when absent for a series or present for a
+  // movie.
+  binge.companion.v1.EpisodeRef episode = 2;
+}
+
+message ResolveResponse {
+  StreamSource source = 1;
+}
+
+message ProbeRequest {
+  binge.companion.v1.MediaId media = 1;
+  binge.companion.v1.EpisodeRef episode = 2;
+}
+
+message ProbeResponse {
+  // Whether a `Resolve` is worth making. A best-effort answer from what the integration
+  // already knows (an index, a cache), never a full resolution. False is "probably nothing",
+  // not a promise, and the host offers the sources affordance accordingly.
+  bool may_have_sources = 1;
+}
+
+message ReportSourceRequest {
+  string source_id = 1;
+  SourceProblem problem = 2;
+}
+
+message ReportSourceResponse {}
+
+// Served by an integration app from a bound Service exported with the
+// `com.binge.companion.STREAM` intent action, over gRPC's Android Binder transport.
+// `Handshake` is the host's first call on every new connection.
+service StreamService {
+  // Core. The host's first call on every connection. With nothing signed in, or a broken
+  // backend session, it answers UNAUTHENTICATED, and the host directs the user to the
+  // integration app. The host handshakes again on the same connection when the user returns
+  // from the integration app after it sent them there for an UNAUTHENTICATED, from this rpc or
+  // any other. An integration answers every Handshake from the session it holds now.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+  // Core. Streams one `StreamSource` per message as the integration finds them and completes
+  // when it has no more. Completing with no messages is OK: the title has no sources here.
+  // The integration stops all work on cancellation. INVALID_ARGUMENT and NOT_FOUND as in the
+  // header; a failure after some sources were sent fails the stream, and the host keeps what it
+  // received.
+  rpc Resolve(ResolveRequest) returns (stream ResolveResponse);
+  // Requires CAPABILITY_PROBE. Cheap, from what the integration already knows; an integration
+  // that would have to resolve to answer should not declare the capability. Codes as `Resolve`.
+  rpc Probe(ProbeRequest) returns (ProbeResponse);
+  // Requires CAPABILITY_REPORT_SOURCE. INVALID_ARGUMENT for a `source_id` this integration did
+  // not issue, or one it no longer remembers; the host does not retry either.
+  rpc ReportSource(ReportSourceRequest) returns (ReportSourceResponse);
+}

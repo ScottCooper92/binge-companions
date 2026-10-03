@@ -170,7 +170,7 @@ Service.
 
 - No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
-  render-surface decision.
+  render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
 - Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` (planned; v1 ships without it) will
   hand a short-lived source to a player the user chose, and that player renders it. See
   `Ecosystem.md` > Playback.
@@ -280,6 +280,102 @@ through Android's standard video intents, and `PLAYBACK_SOURCE`, once it exists,
 bring PLAYER back — live progress, decoding negotiation, track selection — is listed in
 `Ecosystem.md` > Players.
 Whether TRACKING survives LIBRARY is still a decision for when it is actually built.
+
+## STREAM: sources outside the library
+
+LIBRARY answers for the server the user already runs. STREAM answers for everything else an
+integration can legitimately resolve a title to. It is the contract with the thinnest licit
+surface and the largest policy exposure, so its first decision is a gate, not a message shape.
+
+### The gate
+
+A host ships no STREAM UI until a first-party companion exists that resolves licit sources, and
+the proto stays `Draft` until that companion has served it. Two reasons, both about Play:
+
+- An app whose screens list third-party stream links is the pattern that gets a media app removed,
+  hand-off or not. The host cannot tell an infringing source from a licit one, so "no promotion of
+  infringing companions" protects nothing here on its own. What protects the host is what it does
+  and does not do with a source, which is the rest of this section.
+- The licit cases are mostly already covered. The user's own server is LIBRARY. Ad-supported and
+  subscription services are TMDB watch providers with deep links. STREAM has to earn its place with
+  a companion that is neither, and until one is named the contract is a draft the shape can be
+  argued over, not a feature.
+
+### What crosses, and what does not
+
+- **Identity is the platform's**: media type + TMDB id, with an `EpisodeRef` beside it for a
+  series. `Resolve` resolves one playable thing, so a series needs the episode.
+- **A source is a `binge.companion.v1.PlaybackSource`**, the shared message, plus structured
+  quality, a label and optional subtitles. Structured quality (resolution class, HDR, codec,
+  size) rather than labels, so the host can sort and a TV can pick without a screen.
+- **Resolution streams.** `Resolve` is server-streaming: one source per message, as found, and the
+  stream ends when the integration is done. Partial results are normal. The host's deadline bounds
+  it, cancellation abandons it, and an integration stops work when cancelled. The host reads at
+  most fifty sources and cancels.
+- **No rank crosses.** Nothing in a message ranks a source against another integration's. The host
+  orders by quality and then by arrival, and that is all the ordering there is.
+- **Every source expires.** `expires_at` is required and the host drops a source without one.
+  Players keep history, so a URL a player was given is a URL that is stored; the expiry bounds that.
+
+### Protecting the host
+
+The host is a courier for a source and never a consumer of it. In order of how much each buys:
+
+1. **Hand-off only, no in-app player, no web view.** A source goes to a player the user chose,
+   through Android's standard video intents, or it goes nowhere. This is the decision the whole
+   stance rests on, and it is not revisited casually: an app cannot be un-removed.
+2. **The host validates and drops; it never repairs.** Only https URLs. Only `Authorization`,
+   `Cookie`, `Referer` and `User-Agent` headers, each at most 4 KiB. A source whose headers the
+   chosen player cannot carry is hidden for that player, not sent without them. Labels are
+   truncated, never parsed. A source failing any rule is dropped silently; the integration learns
+   nothing from the host about why, which keeps the rules from being probed.
+3. **The host fetches nothing.** No thumbnails from a source host, no HEAD requests, no metadata
+   scraping, no following redirects. What the host knows about a source is what the message says.
+4. **Nothing persists.** Sources live in the Play sheet that showed them and are gone when it
+   closes, and never past `expires_at`. The host keeps no history of sources, no cache across
+   title pages, and nothing on disk.
+5. **Attribution, not ranking.** Every source row names the integration that produced it, with
+   the name from its manifest and its `provider_name`. Sources are grouped by integration. The host
+   never badges one as best, never merges two integrations' lists into one ranking, and never
+   autoplays. Attributing a source is how the host says "this came from an app you installed",
+   which is not the same as listing or recommending a provider.
+6. **Consent says what the integration is.** A STREAM companion's consent text is its own: this
+   app will give Binge links to video sources, and Binge does not check where they come from.
+   Consent is per package with the certificate pinned, as everywhere.
+7. **A remote kill switch, and a remote revocation list.** The host renders STREAM UI only while
+   a feature flag is on, so a policy problem is answered in minutes without a release. Separately,
+   the host carries a remote list of companion signing-certificate digests it refuses to bind to,
+   for any contract; a companion that turns out to be what the stance forbids is cut off on every
+   device the same day, and the user is told why on its row. Both are host configuration, not
+   contract.
+8. **Resolve on demand only.** The host resolves when the user opens the sources affordance, never
+   on a title page's appearance, never in a background sweep, never to build a row. `Probe` exists
+   so a title page can ask "is there anything here?" cheaply; an integration that would have to
+   resolve to answer it should not declare `CAPABILITY_PROBE`.
+
+The companion side is unchanged from every other contract: `HostPolicy` on the Service, and no
+privileged path for any host.
+
+### Capabilities
+
+`PROBE`, `SUBTITLES`, `REPORT_SOURCE`. The mandatory core is `Handshake` and `Resolve`. A STREAM
+companion with no backend session answers `Handshake` with `UNAUTHENTICATED`, as LIBRARY does, and
+the host handshakes again when the user returns from the companion app. As everywhere: feature
+detection never uses version numbers.
+
+### Discovery
+
+The Service action is `com.binge.companion.STREAM`, with `com.binge.companion.majors.stream` for a
+Service that also names another action. Several STREAM companions may be consented at once; the
+host resolves against each under its own deadline and shows what arrives, grouped, with none
+preferred.
+
+### Where STREAM stops
+
+- It never answers for the user's own server; that is LIBRARY, even when the same backend could.
+- It hands out playable sources and nothing else: no browsing, no search, no catalogue. A
+  companion with a catalogue of its own is a different product, and the host does not render it.
+- It does not record what was watched. A STREAM source has no viewer session to write back to.
 
 ## Versioning
 
