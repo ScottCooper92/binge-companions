@@ -58,7 +58,21 @@ class HostSecurityPolicyTest {
         uidOwners[UID] = listOf(HOST)
         signers[HOST] = setOf(CERT)
 
-        assertEquals(Status.Code.PERMISSION_DENIED, code(policy(BingeHosts.release.copy(packageName = HOST))))
+        assertEquals(Status.Code.PERMISSION_DENIED, code(policy(KnownHost(HOST, emptySet()))))
+    }
+
+    @Test
+    fun `release Binge is admitted under each published certificate and refused under any other`() {
+        uidOwners[UID] = listOf(BingeHosts.RELEASE_PACKAGE_NAME)
+        val release = policy(BingeHosts.release)
+
+        BingeHosts.RELEASE_CERTIFICATE_SHA256S.forEach { cert ->
+            signers[BingeHosts.RELEASE_PACKAGE_NAME] = setOf(cert)
+            assertEquals(Status.Code.OK, code(release), cert)
+        }
+
+        signers[BingeHosts.RELEASE_PACKAGE_NAME] = setOf(CERT)
+        assertEquals(Status.Code.PERMISSION_DENIED, code(release))
     }
 
     @Test

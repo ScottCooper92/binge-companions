@@ -21,18 +21,26 @@ data class KnownHost(
 }
 
 /**
- * Binge itself, as the host every companion serves. The release certificate digest is empty
- * until it is published — a companion built against this list refuses release Binge, which is
- * the fail-closed default rather than an oversight. Debug Binge is signed with each developer's
- * local debug key and cannot be listed; a debug companion admits any caller instead (see
- * [HostPolicy.anyCaller]).
+ * Binge itself, as the host every companion serves. Release Binge is listed by the certificates
+ * it may carry; any other signer under its package name is refused. Debug Binge is signed with
+ * each developer's local debug key and cannot be listed; a debug companion admits any caller
+ * instead (see [HostPolicy.anyCaller]).
  */
 object BingeHosts {
     const val RELEASE_PACKAGE_NAME = "com.cooper.binge.app"
     const val DEBUG_PACKAGE_NAME = "com.cooper.binge.app.debug"
 
-    /** Digests of the certificates release Binge is signed with. Empty until published. */
-    val RELEASE_CERTIFICATE_SHA256S: Set<String> = emptySet()
+    /**
+     * Digests of the certificates release Binge may be signed with. Binge is published through
+     * Play App Signing, so the two differ: Google's app-signing key re-signs every APK Play
+     * installs, and the upload key signs the bundle attached to each GitHub release.
+     */
+    val RELEASE_CERTIFICATE_SHA256S: Set<String> = setOf(
+        // Play App Signing: what a Play-installed Binge carries.
+        "65fa2c78c3be151ee11ea896d067d1284605690f78a9d6a4367a55e714301f97",
+        // Upload key: CN=Scott Cooper, what an APK built from the released bundle carries.
+        "07c8820e16abb116f68f66d2f9e1e73e43cf81145161b4e8e7f2b75ac5d9ec55",
+    )
 
     val release: KnownHost = KnownHost(RELEASE_PACKAGE_NAME, RELEASE_CERTIFICATE_SHA256S)
 }
