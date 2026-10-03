@@ -40,6 +40,14 @@ syntax = "proto3";
 // MEDIA_TYPE_UNSPECIFIED or `tmdb_id` <= 0, an IssueType the integration cannot map) is
 // INVALID_ARGUMENT, not a silent default.
 //
+// User-facing error detail: a status description is developer text the host never
+// shows. When the provider has a sentence the user needs (when a quota resets, who
+// blocklisted a title), the integration sends gRPC's rich error model: a `google.rpc.Status`
+// in the `grpc-status-details-bin` trailer whose details hold a `google.rpc.ErrorInfo`
+// (a machine `reason` and `domain`) and a `google.rpc.LocalizedMessage` in
+// `HostInfo.locale`. The host renders the LocalizedMessage when present and its own copy
+// for the code otherwise. The sentence never goes in the status description.
+//
 // Conformance rules both ends follow, so a third-party integration can learn them here:
 //   URLs           — every URL a response carries (`watch_url`) is http or https. The host
 //                    refuses any other scheme (content:, file:, intent:, a custom one)

@@ -34,6 +34,9 @@ syntax = "proto3";
 //                                     a failure, and travels in the response.
 //   INVALID_ARGUMENT / other codes  — a rejection on the merits; not retried as-is.
 //
+// User-facing error detail travels as REQUEST's header describes: a google.rpc.Status
+// trailer with an ErrorInfo and a LocalizedMessage, never in the status description.
+//
 // Conformance rules, as REQUEST states them: every URL a response carries (`artwork_url`,
 // `WebUrl.url`) is http or https, and the host refuses any other scheme; an rpc whose
 // capability the handshake did not declare is answered PERMISSION_DENIED.
