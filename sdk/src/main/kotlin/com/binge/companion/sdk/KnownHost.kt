@@ -31,16 +31,18 @@ object BingeHosts {
     const val DEBUG_PACKAGE_NAME = "com.cooper.binge.app.debug"
 
     /**
-     * Digests of the certificates release Binge may be signed with. Binge is published through
-     * Play App Signing, so the two differ: Google's app-signing key re-signs every APK Play
-     * installs, and the upload key signs the bundle attached to each GitHub release.
+     * Digests of the certificates release Binge is distributed under. A set, so a build signed by another key
+     * can be admitted the day one is actually distributed, with that distribution named beside its digest.
+     *
+     * Only Play App Signing's today. The upload key is deliberately absent: Play re-signs every APK it
+     * distributes, so no installed Binge carries it, and pinning it would turn a leaked upload keystore, the
+     * key Play App Signing makes recoverable, into host impersonation on any sideloading device (#116).
      */
-    val RELEASE_CERTIFICATE_SHA256S: Set<String> = setOf(
-        // Play App Signing: what a Play-installed Binge carries.
-        "65fa2c78c3be151ee11ea896d067d1284605690f78a9d6a4367a55e714301f97",
-        // Upload key: CN=Scott Cooper, what an APK built from the released bundle carries.
-        "07c8820e16abb116f68f66d2f9e1e73e43cf81145161b4e8e7f2b75ac5d9ec55",
-    )
+    val RELEASE_CERTIFICATE_SHA256S: Set<String> =
+        setOf(
+            // Play App Signing (CN=Android, O=Google Inc.): what every Play-installed Binge carries.
+            "65fa2c78c3be151ee11ea896d067d1284605690f78a9d6a4367a55e714301f97",
+        )
 
     val release: KnownHost = KnownHost(RELEASE_PACKAGE_NAME, RELEASE_CERTIFICATE_SHA256S)
 }

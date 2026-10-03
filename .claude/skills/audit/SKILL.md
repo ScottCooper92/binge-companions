@@ -75,8 +75,8 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - Hand-off Activity: every Intent extra validated (type, range, media type, id) before use; no Intent
   redirection; the caller-policy tests actually cover the deny paths (read `HostSecurityPolicyTest`,
   `HandOffCallerPolicyTest` for the deny cases, not just the allow ones).
-- `KnownHost` list: entries match what the docs say is published (Binge's release certificates, the Play
-  App Signing one and the upload one, are pinned — confirm the code and `docs/Status.md` agree on that state).
+- `KnownHost` list: entries match what the docs say is published (Binge's Play App Signing certificate is
+  pinned, and the upload key deliberately is not — confirm the code and `docs/Status.md` agree on that state).
 - Manifest metadata parsing (`majors` read as **either String or Int**, `name` as String or resource id):
   both forms handled, malformed values do not throw or fail open.
 - Capability handling: unknown enum values ignored; no behaviour keyed on a version number
