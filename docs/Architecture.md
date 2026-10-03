@@ -86,7 +86,7 @@ Practical rules:
 
 ## Media identity
 
-Every payload identifies media as **media type + TMDB id (+ season/episode)**. The companion app
+Every payload identifies media as **media type + TMDB id**, with seasons or an episode carried beside it where an rpc needs them (`season_numbers`, LIBRARY's `EpisodeRef`), never inside `MediaId`. The companion app
 owns translation into other id spaces: its server's ids, IMDb, TVDB, and so on.
 
 ## Capabilities
@@ -187,7 +187,7 @@ names a server's own concepts.
 
 ### What crosses, and what does not
 
-- **Identity is the platform's**: media type + TMDB id (+ season/episode), as everywhere. The
+- **Identity is the platform's**: media type + TMDB id, with an episode beside it as `EpisodeRef`, as everywhere. The
   companion translates into its server's item ids and keeps whatever index that needs. A server item
   with no TMDB id is not addressable through this contract; building that index is the companion's
   problem, and it is the same problem the reference companion already solves for REQUEST.

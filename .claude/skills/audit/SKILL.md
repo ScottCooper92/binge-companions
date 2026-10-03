@@ -50,7 +50,7 @@ Read every `.proto` (`contracts/src/main/proto/binge/companion/v1/common.proto`,
 - **List rpcs page** (cursor/limit), and **artwork is a URL, never bytes**: any `bytes` field that could
   carry image data, any unbounded `repeated` in a response, any request that lets the caller choose an
   unbounded page size — the Binder ceiling is ~1 MB and is hard.
-- **Media is identified as media type + TMDB id (+ season/episode)**: any message keyed on a provider's
+- **Media is identified as media type + TMDB id** (seasons and episodes travel beside `MediaId`, never in it): any message keyed on a provider's
   own id, IMDb or TVDB id space (translation is the companion's job, never the contract's).
 - **A behaviour variation over the same data model is a capability; a new data model with its own
   lifecycle is a new contract.** Flag a contract that smuggles a second lifecycle in, or a boolean that

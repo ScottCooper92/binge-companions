@@ -38,7 +38,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   With grpc-kotlin, the methods are suspend functions and `Flow`s. You can unit-test an
   implementation on the JVM without a device. Page all results. Send artwork as URLs, never as
   bytes. This respects the Binder transaction limit of about 1 MB.
-- **Media identity.** Every payload identifies media as media type + TMDB id (+ season/episode).
+- **Media identity.** Every payload identifies media as media type + TMDB id, with seasons or an episode carried beside it where an rpc needs them (`season_numbers`, `EpisodeRef`).
   The companion app translates to other id spaces.
 - **The play hand-off.** LIBRARY's `GetPlayTarget` answers with a `PlayTarget`: an Intent to start
   in the server's own app, or a web URL when nothing is installed. Both ends build and read it the

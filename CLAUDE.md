@@ -48,7 +48,7 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
   its own `.proto`.
 - **Page every list, and send artwork as a URL rather than bytes.** The Binder
   transaction limit is about 1 MB and it is a hard ceiling, not a guideline.
-- **Media is identified as media type + TMDB id (+ season/episode).** Translation
+- **Media is identified as media type + TMDB id**, with seasons or an episode carried beside it where an rpc needs them (`season_numbers`, `EpisodeRef`). Translation
   into a provider's own id space, IMDb or TVDB is the companion app's job, never
   the contract's.
 - A behaviour variation over the same data model is a capability. A new data model
