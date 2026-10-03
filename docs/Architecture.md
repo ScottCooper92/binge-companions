@@ -160,7 +160,7 @@ to impersonate a host. Every hand-off is therefore started for a result, so ever
 
 - **Host side.** Binge asks the user for consent for each companion app. The consent record holds
   the package name and the signing-cert hash. Binge validates every URL or Intent from a companion
-  app before use. Binge's TMDB session never crosses the boundary.
+  app before use: a URL is http or https, or it is refused. Binge's TMDB session never crosses the boundary.
 - **Companion side.** The companion app verifies the caller's signing certificate before it serves
   a request. Its exported Service fronts the user's provider session. Without the check, any app
   on the device could drive that session.

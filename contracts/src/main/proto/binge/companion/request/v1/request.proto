@@ -40,6 +40,28 @@ syntax = "proto3";
 // MEDIA_TYPE_UNSPECIFIED or `tmdb_id` <= 0, an IssueType the integration cannot map) is
 // INVALID_ARGUMENT, not a silent default.
 //
+// User-facing error detail: a status description is developer text the host never
+// shows. When the provider has a sentence the user needs (when a quota resets, who
+// blocklisted a title), the integration sends gRPC's rich error model: a `google.rpc.Status`
+// in the `grpc-status-details-bin` trailer whose details hold a `google.rpc.ErrorInfo`
+// (a machine `reason` and `domain`) and a `google.rpc.LocalizedMessage` in
+// `HostInfo.locale`. The host renders the LocalizedMessage when present and its own copy
+// for the code otherwise. The sentence never goes in the status description.
+//
+// Conformance rules both ends follow, so a third-party integration can learn them here:
+//   URLs           — every URL a response carries (`watch_url`) is http or https. The host
+//                    refuses any other scheme (content:, file:, intent:, a custom one)
+//                    rather than opening it.
+//   Undeclared     — an rpc whose capability the handshake did not declare is answered
+//   capabilities     PERMISSION_DENIED. The host never sends one; an integration that
+//                    receives one anyway refuses it rather than serving it.
+//   Privacy        — `RequestInfo.requested_by` is a display name or username, never an
+//                    email address or any part of one.
+//   Retries        — a host may retry `SubmitRequest` after DEADLINE_EXCEEDED, so a submit
+//                    must not double-request. For a provider with one request per title,
+//                    `already_requested` is the dedupe; a provider without that rule dedupes
+//                    on (media, is_4k, season_numbers) within a short window itself.
+//
 // Codes the TRANSPORT produces, which no integration chooses and every host must
 // handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
 // ScottCooper92/Binge#2306; the first of these is the one that surprises:
@@ -127,6 +149,13 @@ enum Capability {
   // carry the file, so answering means asking the *arr directly, and an integration
   // that would rather not pay that on every status check simply doesn't declare it.
   CAPABILITY_MEDIA_FILE_INFO = 13;
+  // Answers `ListRequests`: the requests the provider holds, paged and filtered, which is
+  // what a host's "now available" row and notifications are built from. Per title the host
+  // cannot build either: it would have to remember and poll every title it ever requested.
+  CAPABILITY_LIST_REQUESTS = 14;
+  // Answers `GetStatuses`: the statuses of a page of titles in one call, for a requested badge
+  // on a grid. Live updates for what is on screen still come from `ObserveStatus`.
+  CAPABILITY_BATCH_STATUS = 15;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -233,6 +262,61 @@ message GetStatusResponse {
   RequestStatus status = 1;
 }
 
+// Which requests `ListRequests` answers with. Only `RECENTLY_AVAILABLE` states an order; for
+// the others the order is the integration's to choose, and a host must not assume one.
+enum RequestFilter {
+  REQUEST_FILTER_UNSPECIFIED = 0;
+  // The signed-in user's own requests.
+  REQUEST_FILTER_MINE = 1;
+  // Every request the signed-in user may see.
+  REQUEST_FILTER_ALL = 2;
+  // Requests waiting on a moderator. Empty, not an error, for a user who may not moderate.
+  REQUEST_FILTER_AWAITING_MODERATION = 3;
+  // Requests whose title became available recently, most recent first. How recent is the
+  // integration's to choose; the host shows what it is given.
+  REQUEST_FILTER_RECENTLY_AVAILABLE = 4;
+}
+
+message ListRequestsRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `filter` and `page_size` it was issued under.
+  string page_token = 1;
+  // At most this many entries; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked.
+  int32 page_size = 2;
+  RequestFilter filter = 3;
+}
+
+message ListRequestsResponse {
+  repeated RequestEntry entries = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+// One request in a `ListRequests` page: the title, its status, and the request that put it
+// in the list.
+message RequestEntry {
+  binge.companion.v1.MediaId media = 1;
+  RequestStatus status = 2;
+  RequestInfo request = 3;
+}
+
+message GetStatusesRequest {
+  // At most 50 titles per call; more is INVALID_ARGUMENT. An empty list is OK and answers
+  // with an empty list. A title listed twice is answered once per occurrence.
+  repeated binge.companion.v1.MediaId media = 1;
+}
+
+message GetStatusesResponse {
+  // One per requested title, duplicates included. Each echoes its `MediaId`, so the host never relies on order.
+  repeated TitleStatus statuses = 1;
+}
+
+message TitleStatus {
+  binge.companion.v1.MediaId media = 1;
+  RequestStatus status = 2;
+}
+
 message ObserveStatusRequest {
   binge.companion.v1.MediaId media = 1;
 }
@@ -251,7 +335,7 @@ message RequestStatus {
   // Every request the provider knows for the title.
   repeated RequestInfo requests = 4;
   // Deep link to the title in the media server's web client, when the provider has one.
-  // The host validates every URL before opening it.
+  // http or https only; the host refuses any other scheme (see the header).
   string watch_url = 5;
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
@@ -315,7 +399,8 @@ message DownloadProgress {
 message RequestInfo {
   int32 id = 1;
   ApprovalState state = 2;
-  // Display name of the requesting user, when the provider says.
+  // Display name or username of the requesting user, when the provider says. Never an
+  // email address or any part of one (see the header).
   string requested_by = 3;
   // When the request was made, epoch milliseconds; 0 when the provider doesn't say.
   int64 requested_at_epoch_ms = 4;
@@ -514,7 +599,8 @@ service RequestService {
   // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
   // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
   // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is
-  // not an error: it answers OK with `already_requested` set.
+  // not an error: it answers OK with `already_requested` set. Safe to retry after
+  // DEADLINE_EXCEEDED: see the header's retry rule.
   rpc SubmitRequest(SubmitRequestRequest) returns (SubmitRequestResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media`. A title nobody has requested is
   // data, not an error: OK with AVAILABILITY_NOT_REQUESTED.
@@ -526,6 +612,15 @@ service RequestService {
   // is open the host knows the status is at least as fresh as the last push. Codes as
   // `GetStatus`, answered by failing the stream.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
+  // Requires CAPABILITY_LIST_REQUESTS. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for an unspecified or unknown `filter`, or a `page_token` this
+  // integration did not issue or that comes back with a different `filter` or `page_size`
+  // than it was issued under.
+  rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
+  // Requires CAPABILITY_BATCH_STATUS. INVALID_ARGUMENT for more than 50 titles or for any
+  // unusable `MediaId`, naming none of the others. A title nobody has requested is data, not
+  // an error: AVAILABILITY_NOT_REQUESTED, as `GetStatus` answers.
+  rpc GetStatuses(GetStatusesRequest) returns (GetStatusesResponse);
   // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
   // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
   // set, a season the show does not have, or a request for a movie.

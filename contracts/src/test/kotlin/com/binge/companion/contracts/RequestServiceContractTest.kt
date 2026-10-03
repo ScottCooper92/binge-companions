@@ -43,6 +43,8 @@ private val RPC_SHAPES =
         "SubmitRequest" to MethodType.UNARY,
         "GetStatus" to MethodType.UNARY,
         "ObserveStatus" to MethodType.SERVER_STREAMING,
+        "ListRequests" to MethodType.UNARY,
+        "GetStatuses" to MethodType.UNARY,
         "EditRequest" to MethodType.UNARY,
         "GetAdvancedRequestOptions" to MethodType.UNARY,
         "GetDestinationOptions" to MethodType.UNARY,
