@@ -16,8 +16,9 @@ syntax = "proto3";
 //   UNAUTHENTICATED                 — the integration has no working provider session:
 //                                     nothing is connected, or the session is broken.
 //                                     The host directs the user to the integration app
-//                                     to connect or reconnect. `GetAttention` is the one
-//                                     exception for a broken session; see `Attention`.
+//                                     to connect or reconnect. `Handshake` never answers
+//                                     it, and `GetAttention` reports a broken session as
+//                                     data; see each rpc.
 //   PERMISSION_DENIED               — the provider user may not perform this action.
 //   RESOURCE_EXHAUSTED              — the user's request quota on the provider is spent.
 //   NOT_FOUND                       — an id, title or entry the call names does not
@@ -191,7 +192,9 @@ message HandshakeRequest {
 
 message HandshakeResponse {
   // Everything this connection can ever do, for this provider and this signed-in
-  // user. The host hides UI for undeclared capabilities.
+  // user. The host hides UI for undeclared capabilities. With no working session, it
+  // holds what needs none, plus CAPABILITY_ATTENTION when the integration supports it,
+  // so the host can still learn about a broken session; see `Handshake`.
   repeated Capability capabilities = 1;
   // Display name of the connected provider (a proper noun, never translated).
   string provider_name = 2;
@@ -493,7 +496,11 @@ message ObserveAttentionResponse {
 // `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
 // transport. `Handshake` is the host's first call on every new connection.
 service RequestService {
-  // Core. The host's first call on every connection.
+  // Core. The host's first call on every connection. Never UNAUTHENTICATED: with
+  // nothing connected, or with a broken session, it answers OK. The host gates every
+  // other call on the capabilities it returns, so an UNAUTHENTICATED here would hide
+  // CAPABILITY_ATTENTION and leave `needs_reconnect` unreachable. The other rpcs keep
+  // the rule in the header.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
   // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
