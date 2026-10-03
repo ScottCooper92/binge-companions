@@ -1,6 +1,7 @@
 package com.binge.companion.sdk
 
 import android.content.Intent
+import com.binge.companion.contracts.v1.MediaType
 
 /**
  * The strings a companion's `AndroidManifest.xml` must carry for the host to find it, read
@@ -72,4 +73,28 @@ object CompanionManifest {
 
     /** `Boolean`: whether the user asked for the 4K version. */
     const val EXTRA_IS_4K = "com.binge.companion.extra.IS_4K"
+
+    /**
+     * The scheme of the link Binge answers to open a title: `binge://title/<movie|tv>/<tmdbId>`. A companion
+     * that offers "open in Binge" builds it with [hostTitleUri] and starts it with `ACTION_VIEW`. To ask first
+     * whether Binge is installed and answers, declare
+     * `<queries><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="binge" /></intent></queries>`
+     * in the manifest, or package visibility hides the answer on API 30+.
+     */
+    const val HOST_TITLE_SCHEME = "binge"
+
+    /**
+     * The link Binge answers for one title (see [HOST_TITLE_SCHEME]). Part of the platform rather than
+     * knowledge a companion learns by sharing an author with the host (binge-seerr#684).
+     */
+    fun hostTitleUri(mediaType: MediaType, tmdbId: Int): String {
+        val type =
+            when (mediaType) {
+                MediaType.MEDIA_TYPE_MOVIE -> "movie"
+                MediaType.MEDIA_TYPE_TV -> "tv"
+                else -> throw IllegalArgumentException("A title link needs a movie or a TV show, not $mediaType")
+            }
+        require(tmdbId > 0) { "A title link needs a TMDB id, not $tmdbId" }
+        return "$HOST_TITLE_SCHEME://title/$type/$tmdbId"
+    }
 }
