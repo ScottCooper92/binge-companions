@@ -192,8 +192,9 @@ message HandshakeRequest {
 }
 
 message HandshakeResponse {
-  // Everything this connection can ever do, for this provider and this signed-in
-  // user. The host hides UI for undeclared capabilities. With no working session, it
+  // What the integration can do for this provider and this signed-in user, with the
+  // session it holds when it answers; see `Handshake` for when the host asks again.
+  // The host hides UI for undeclared capabilities. With no working session, it
   // holds what needs none, plus CAPABILITY_ATTENTION when the integration supports it,
   // so the host can still learn about a broken session; see `Handshake`.
   repeated Capability capabilities = 1;

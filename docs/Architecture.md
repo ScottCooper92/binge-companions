@@ -99,10 +99,10 @@ status. A declared capability gates every other rpc.
   connection can do for this provider and this user, with the session the integration holds when
   it answers. The host hides UI for undeclared capabilities. The host never calls a gated rpc
   without its capability.
-  - With no working session (nothing connected, or a broken one), the handshake still answers OK,
+  - For REQUEST: with no working session (nothing connected, or a broken one), the handshake still answers OK,
     declaring only what needs no session plus `CAPABILITY_ATTENTION`, so the host can learn about
     the session at all (#106).
-  - That set is not final for the connection. The host handshakes again when the session may have
+  - For REQUEST, that set is not final for the connection. The host handshakes again when the session may have
     come back: when `needs_reconnect` turns false, and when the user returns from the integration
     app after the host sent them there for an `UNAUTHENTICATED`. The integration answers each
     handshake from its current session (#111).
