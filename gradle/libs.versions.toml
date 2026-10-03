@@ -2,7 +2,7 @@
 kotlin = "2.4.10"
 protobuf = "4.28.3"
 protobufPlugin = "0.9.5"
-grpc = "1.68.1"
+grpc = "1.76.3"
 grpcKotlin = "1.4.1"
 kotlinxCoroutines = "1.11.0"
 junit = "6.1.3"
