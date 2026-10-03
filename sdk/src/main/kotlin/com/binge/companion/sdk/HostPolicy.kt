@@ -38,10 +38,34 @@ object HostPolicy {
         )
 
     /**
-     * Admits every caller, and says so in the log each time. For debug builds only — Binge's
-     * debug build is signed with each developer's own key, which no allowlist can name — and
-     * never for a release build, where it hands the user's provider session to any app on the
-     * device. A companion should select it with `BuildConfig.DEBUG`, not a flag a user can flip.
+     * Admits a caller whose uid resolves to one of [packageNames], under any certificate, and says so in
+     * the log each time. This is the debug companion's policy (#122): debug Binge is signed with each
+     * developer's own key, which no allowlist can name, but its package name is known, so a debug build
+     * hands its provider session only to an app calling itself Binge rather than to every app on the
+     * device. Select it with `BuildConfig.DEBUG`, never a flag a user can flip. The decision is
+     * [HostPackagePolicy], tested on the JVM.
+     */
+    fun anyCertificateOf(
+        context: Context,
+        packageNames: Collection<String> = BingeHosts.PACKAGE_NAMES,
+        tag: String = "BingeCompanion",
+    ): SecurityPolicy =
+        HostPackagePolicy(
+            packageNames = packageNames,
+            packagesForUid = { uid ->
+                context.packageManager
+                    .getPackagesForUid(uid)
+                    .orEmpty()
+                    .toList()
+            },
+            warn = { message -> Log.w(tag, message) },
+        )
+
+    /**
+     * Admits every caller, and says so in the log each time. Not for a companion's own debug build, which
+     * should use [anyCertificateOf]: this is for a conformance harness, or a companion author's own test
+     * host whose package is neither of Binge's. Never for a release build, where it hands the user's
+     * provider session to any app on the device.
      */
     fun anyCaller(tag: String = "BingeCompanion"): SecurityPolicy =
         object : SecurityPolicy() {
@@ -73,6 +97,26 @@ class HostSecurityPolicy(
         } else {
             Status.PERMISSION_DENIED.withDescription("$host is not signed by a certificate this companion trusts")
         }
+    }
+}
+
+/**
+ * The debug check, with its Android lookup as a function so it is testable on the JVM: the caller's uid
+ * must resolve to one of [packageNames]. Any certificate is accepted, which is the point of the debug
+ * policy, and each admission is logged through [warn].
+ */
+class HostPackagePolicy(
+    packageNames: Collection<String>,
+    private val packagesForUid: (uid: Int) -> List<String>,
+    private val warn: (message: String) -> Unit = {},
+) : SecurityPolicy() {
+    private val allowed = packageNames.toSet()
+
+    override fun checkAuthorization(uid: Int): Status {
+        val host = packagesForUid(uid).firstOrNull { it in allowed }
+            ?: return Status.PERMISSION_DENIED.withDescription("uid $uid is not one of the allowed host packages")
+        warn("Admitting $host (uid=$uid) without verifying its certificate (debug-only policy)")
+        return Status.OK
     }
 }
 

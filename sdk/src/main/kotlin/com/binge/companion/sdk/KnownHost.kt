@@ -31,6 +31,9 @@ object BingeHosts {
     const val RELEASE_PACKAGE_NAME = "com.cooper.binge.app"
     const val DEBUG_PACKAGE_NAME = "com.cooper.binge.app.debug"
 
+    /** Both of Binge's package names: what a debug companion's [HostPolicy.anyCertificateOf] admits by default. */
+    val PACKAGE_NAMES: List<String> = listOf(RELEASE_PACKAGE_NAME, DEBUG_PACKAGE_NAME)
+
     /** Digests of the certificates release Binge is signed with. Empty until published. */
     val RELEASE_CERTIFICATE_SHA256S: Set<String> = emptySet()
 

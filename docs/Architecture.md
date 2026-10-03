@@ -165,6 +165,9 @@ Service.
   a request. Its exported Service fronts the user's provider session. Without the check, any app
   on the device could drive that session.
 - Both checks use `grpc-binder` `SecurityPolicy` instances. The SDK wires them on each side.
+- A debug companion cannot pin debug Binge's certificate, since each developer signs with their own key,
+  so it uses `HostPolicy.anyCertificateOf`: Binge's package names, any signer. `anyCaller` admits every
+  app and is only for a conformance harness or an author's own test host (#122).
 
 ## Play stance
 
