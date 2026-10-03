@@ -106,6 +106,9 @@ status. A declared capability gates every other rpc.
     come back: when `needs_reconnect` turns false, and when the user returns from the integration
     app after the host sent them there for an `UNAUTHENTICATED`. The integration answers each
     handshake from its current session (#111).
+  - For LIBRARY, which has no attention read, the handshake answers `UNAUTHENTICATED` with no working
+    session, and that error is the signal. The host handshakes again when the user returns from the
+    integration app after it sent them there for an `UNAUTHENTICATED` (#113).
 - **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
   subset — capabilities that aren't about any one existing request. A capability that is about one
   specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
