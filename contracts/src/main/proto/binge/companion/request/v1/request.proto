@@ -327,8 +327,12 @@ message ObserveStatusResponse {
 
 // The request/availability state of one title on the provider.
 message RequestStatus {
+  // The standard version's availability. A provider that tracks a 4K version separately
+  // reports that one in `availability_4k`, never folded in here: a user who cannot
+  // request or play 4K must not read a 4K-only title as available.
   Availability availability = 1;
   // Per-season state, populated for TV so the host can offer per-season requests.
+  // The standard version's, as with `availability`.
   repeated SeasonAvailability seasons = 2;
   // Aggregate progress while the title is downloading; absent otherwise.
   DownloadProgress download = 3;
@@ -360,6 +364,15 @@ message RequestStatus {
   // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which
   // this contract doesn't model.
   MediaFileInfo file_info = 8;
+  // The 4K version's availability, for a provider that tracks it apart from the
+  // standard one. Set only by an integration that declared CAPABILITY_REQUEST_4K;
+  // AVAILABILITY_UNSPECIFIED otherwise, which a host reads as "no separate 4K state",
+  // not as "not requested". A blocklisted title is AVAILABILITY_BLOCKLISTED here too.
+  // A host deciding whether to offer a 4K request reads this, not `availability`.
+  Availability availability_4k = 9;
+  // Per-season 4K state for TV, under the same rule as `availability_4k`. Empty
+  // when that is unspecified.
+  repeated SeasonAvailability seasons_4k = 10;
 }
 
 // A movie's resulting file, only meaningfully populated when
