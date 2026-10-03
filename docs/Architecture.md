@@ -165,6 +165,8 @@ to impersonate a host. Every hand-off is therefore started for a result, so ever
   a request. Its exported Service fronts the user's provider session. Without the check, any app
   on the device could drive that session.
 - Both checks use `grpc-binder` `SecurityPolicy` instances. The SDK wires them on each side.
+- Both match a certificate anywhere in the peer's signing lineage, so a key rotated through APK
+  Signature Scheme v3 (as Play App Signing rotates one) keeps matching a digest pinned before it (#115).
 - A debug companion cannot pin debug Binge's certificate, since each developer signs with their own key,
   so it uses `HostPolicy.anyCertificateOf`: Binge's package names, any signer. `anyCaller` admits every
   app and is only for a conformance harness or an author's own test host (#122).

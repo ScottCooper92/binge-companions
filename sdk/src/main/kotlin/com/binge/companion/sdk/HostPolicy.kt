@@ -19,8 +19,8 @@ import io.grpc.binder.SecurityPolicy
  */
 object HostPolicy {
     /**
-     * Admits only [hosts]: the caller's uid must resolve to a listed package, and that package
-     * must currently be signed by one of its listed certificates. This is the policy a release
+     * Admits only [hosts]: the caller's uid must resolve to a listed package, and that package's
+     * signing lineage must include one of its listed certificates. This is the policy a release
      * companion ships with, normally `HostPolicy.pinned(context, listOf(BingeHosts.release))`.
      * Only the Android lookups are wired here; the decision is [HostSecurityPolicy] and the signer
      * rules are [signerDigests], both tested on the JVM.
@@ -121,8 +121,8 @@ class HostPackagePolicy(
 }
 
 /**
- * The allowlist half of a pinned check: is this package a known host, and is its current signer
- * one the host's entry names. A package that cannot be read, or is signed by several keys, has no
+ * The allowlist half of a pinned check: is this package a known host, and does its signing lineage
+ * include a certificate the host's entry names. A package that cannot be read, or is signed by several keys, has no
  * signer here and is not trusted — one hash cannot identify an app signed by two.
  */
 internal class PinnedHosts(
@@ -141,7 +141,7 @@ internal class PinnedHosts(
 }
 
 /**
- * The current signer's digest for [packageName], or nothing. Only the Android lookup lives here;
+ * The digests of [packageName]'s signing lineage, or nothing. Only the Android lookup lives here;
  * every fail-closed decision, the API floor included, is [signerDigests], which is tested on the
  * JVM. The version check at the call site is what lets lint see [signingSnapshot] is only called on API 28+.
  */
@@ -150,11 +150,22 @@ internal fun PackageManager.signerSha256s(packageName: String): Set<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) signingSnapshot(packageName) else null
     }
 
+/**
+ * A single-signer package's whole signing lineage, `signingCertificateHistory`, not only its current
+ * certificate: a host that rotates its key through APK Signature Scheme v3, as Play App Signing does, keeps
+ * its old certificate in the history, so a digest pinned before the rotation still matches after it (#115).
+ * Lineage is safe to trust because each rotation is signed by the previous key. This mirrors grpc-binder's
+ * own `SecurityPolicies.oneOfSignatureSha256Hash`, and Binge's host-side check on companions. A package with
+ * several current signers reports those, which [signerDigests] then refuses.
+ */
 @TargetApi(Build.VERSION_CODES.P)
 private fun PackageManager.signingSnapshot(packageName: String): SignerSnapshot? =
     getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.let { signing ->
+        val multiple = signing.hasMultipleSigners()
         SignerSnapshot(
-            hasMultipleSigners = signing.hasMultipleSigners(),
-            certificates = signing.apkContentsSigners.orEmpty().map(Signature::toByteArray),
+            hasMultipleSigners = multiple,
+            certificates = (if (multiple) signing.apkContentsSigners else signing.signingCertificateHistory).orEmpty().map(
+                Signature::toByteArray,
+            ),
         )
     }

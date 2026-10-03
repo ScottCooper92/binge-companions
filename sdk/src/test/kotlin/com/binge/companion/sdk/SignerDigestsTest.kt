@@ -57,4 +57,12 @@ class SignerDigestsTest {
 
         assertEquals(false, looked)
     }
+
+    /** A host that rotated its key keeps the old certificate in its lineage, so a digest pinned before still matches (#115). */
+    @Test
+    fun `a rotated signer is admitted through its history`() {
+        val rotated = SignerSnapshot(hasMultipleSigners = false, certificates = listOf(CERT_A, CERT_B))
+
+        assertEquals(setOf(sha256Hex(CERT_A), sha256Hex(CERT_B)), signerDigests(modern) { rotated })
+    }
 }
