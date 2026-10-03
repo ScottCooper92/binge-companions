@@ -3,9 +3,9 @@ package com.binge.companion.contracts
 import com.binge.companion.contracts.stream.v1.Capability
 import com.binge.companion.contracts.stream.v1.HandshakeRequest
 import com.binge.companion.contracts.stream.v1.HandshakeResponse
+import com.binge.companion.contracts.stream.v1.Resolution
 import com.binge.companion.contracts.stream.v1.ResolveRequest
 import com.binge.companion.contracts.stream.v1.ResolveResponse
-import com.binge.companion.contracts.stream.v1.Resolution
 import com.binge.companion.contracts.stream.v1.StreamServiceGrpc
 import com.binge.companion.contracts.stream.v1.StreamServiceGrpcKt
 import com.binge.companion.contracts.stream.v1.handshakeResponse
@@ -166,7 +166,8 @@ class StreamServiceContractTest {
             assertEquals(listOf(Capability.CAPABILITY_PROBE), handshake.capabilitiesList)
             assertEquals(RESOLUTIONS, sources.map { it.source.quality.resolution })
             assertEquals(listOf("source-0", "source-1", "source-2"), sources.map { it.source.id })
-            assertEquals(EXPIRES_AT_SECONDS, sources.first().source.source.expiresAt.seconds)
+            val firstSource = sources.first().source.source
+            assertEquals(EXPIRES_AT_SECONDS, firstSource.expiresAt.seconds)
             val received = checkNotNull(seen)
             assertEquals(TMDB_ID, received.media.tmdbId)
             assertEquals(1, received.episode.seasonNumber)
