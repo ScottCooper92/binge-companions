@@ -40,6 +40,20 @@ syntax = "proto3";
 // MEDIA_TYPE_UNSPECIFIED or `tmdb_id` <= 0, an IssueType the integration cannot map) is
 // INVALID_ARGUMENT, not a silent default.
 //
+// Conformance rules both ends follow, so a third-party integration can learn them here:
+//   URLs           — every URL a response carries (`watch_url`) is http or https. The host
+//                    refuses any other scheme (content:, file:, intent:, a custom one)
+//                    rather than opening it.
+//   Undeclared     — an rpc whose capability the handshake did not declare is answered
+//   capabilities     PERMISSION_DENIED. The host never sends one; an integration that
+//                    receives one anyway refuses it rather than serving it.
+//   Privacy        — `RequestInfo.requested_by` is a display name or username, never an
+//                    email address or any part of one.
+//   Retries        — a host may retry `SubmitRequest` after DEADLINE_EXCEEDED, so a submit
+//                    must not double-request. For a provider with one request per title,
+//                    `already_requested` is the dedupe; a provider without that rule dedupes
+//                    on (media, is_4k, season_numbers) within a short window itself.
+//
 // Codes the TRANSPORT produces, which no integration chooses and every host must
 // handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
 // ScottCooper92/Binge#2306; the first of these is the one that surprises:
@@ -251,7 +265,7 @@ message RequestStatus {
   // Every request the provider knows for the title.
   repeated RequestInfo requests = 4;
   // Deep link to the title in the media server's web client, when the provider has one.
-  // The host validates every URL before opening it.
+  // http or https only; the host refuses any other scheme (see the header).
   string watch_url = 5;
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
@@ -315,7 +329,8 @@ message DownloadProgress {
 message RequestInfo {
   int32 id = 1;
   ApprovalState state = 2;
-  // Display name of the requesting user, when the provider says.
+  // Display name or username of the requesting user, when the provider says. Never an
+  // email address or any part of one (see the header).
   string requested_by = 3;
   // When the request was made, epoch milliseconds; 0 when the provider doesn't say.
   int64 requested_at_epoch_ms = 4;
@@ -514,7 +529,8 @@ service RequestService {
   // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
   // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
   // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is
-  // not an error: it answers OK with `already_requested` set.
+  // not an error: it answers OK with `already_requested` set. Safe to retry after
+  // DEADLINE_EXCEEDED: see the header's retry rule.
   rpc SubmitRequest(SubmitRequestRequest) returns (SubmitRequestResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media`. A title nobody has requested is
   // data, not an error: OK with AVAILABILITY_NOT_REQUESTED.
