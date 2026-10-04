@@ -29,8 +29,8 @@ syntax = "proto3";
 // stop work when the call is cancelled. Nothing in a message ranks sources against another
 // integration's: the host orders what it receives by `SourceQuality` and then by arrival, and
 // attributes each source to the integration that produced it, which it already knows from the
-// connection. The host stops reading after MAX_SOURCES_PER_RESOLVE (50) and cancels; an
-// integration that has more than that is listing, not resolving.
+// connection. The host stops reading after fifty sources and cancels; an integration that has
+// more than that is listing, not resolving.
 //
 // Multiple STREAM integrations may be installed and consented at once. The host resolves
 // against each under its own deadline and shows what arrives, grouped by integration. No
