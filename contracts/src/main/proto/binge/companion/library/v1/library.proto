@@ -253,11 +253,13 @@ message LibraryEntry {
 }
 
 message ListContinueWatchingRequest {
-  // Empty for the first page; otherwise the previous response's `next_page_token`.
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `page_size` it was issued under.
   string page_token = 1;
-  // The most entries to return. 0 lets the integration choose. An integration may
-  // return fewer than asked and must not read a short page as the end — only an empty
-  // `next_page_token` says that.
+  // At most this many entries; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked. The host must not
+  // read a short page as the end; only an empty `next_page_token` says that. Keep it the same
+  // on every page of one listing.
   int32 page_size = 2;
 }
 
@@ -268,12 +270,19 @@ message ListContinueWatchingResponse {
 }
 
 message ListNextUpRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `page_size` it was issued under.
   string page_token = 1;
+  // At most this many entries; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked. The host must not
+  // read a short page as the end; only an empty `next_page_token` says that. Keep it the same
+  // on every page of one listing.
   int32 page_size = 2;
 }
 
 message ListNextUpResponse {
   repeated LibraryEntry entries = 1;
+  // Empty when there are no more pages.
   string next_page_token = 2;
 }
 
@@ -313,7 +322,11 @@ service LibraryService {
   // read watch state but not write it, NOT_FOUND when the server does not hold the title.
   rpc SetPlayed(SetPlayedRequest) returns (SetPlayedResponse);
   // Requires CAPABILITY_CONTINUE_WATCHING. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for a `page_token` this integration did not issue, or that comes back
+  // with a different `page_size` than it was issued under.
   rpc ListContinueWatching(ListContinueWatchingRequest) returns (ListContinueWatchingResponse);
-  // Requires CAPABILITY_CONTINUE_WATCHING.
+  // Requires CAPABILITY_CONTINUE_WATCHING. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for a `page_token` this integration did not issue, or that comes back
+  // with a different `page_size` than it was issued under.
   rpc ListNextUp(ListNextUpRequest) returns (ListNextUpResponse);
 }
