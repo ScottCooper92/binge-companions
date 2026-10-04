@@ -156,6 +156,25 @@ to impersonate a host. Every hand-off is therefore started for a result, so ever
 `callingPackage` to check. A release companion pins; a debug one admits Binge's package names under any certificate
 (`HandOffPolicy.anyCertificateOf`), as with the Service.
 
+One link runs the other way, from the companion to the host: the title link,
+`binge://title/<movie|tv>/<tmdbId>`. It is part of the platform. Binge answers it, and a companion
+that offers "open in Binge" builds it with the SDK's `CompanionManifest.hostTitleUri` and starts it
+with `ACTION_VIEW`. The scheme is `CompanionManifest.HOST_TITLE_SCHEME`. The link carries the media
+type and the TMDB id and nothing else, as Media identity requires.
+
+Its trust stance differs from the other hand-offs on purpose. They are pinned by package and
+certificate. This link is resolved by its scheme alone, and any installed app can claim `binge://`.
+That is acceptable because the payload is a public TMDB id: an app that intercepts it learns which
+title the user opened, and nothing about the provider or the user's session. A companion that wants
+to narrow it can `setPackage` to `BingeHosts.RELEASE_PACKAGE_NAME` (or `DEBUG_PACKAGE_NAME` in a
+debug build). That only narrows it, since a package name is re-claimable on a sideloading device;
+it does not check the certificate. The SDK offers no helper for it.
+
+On API 30 and above, package visibility hides Binge from a companion that has not declared it. To
+ask whether Binge answers the link before starting it, a companion declares
+`<queries><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="binge" /></intent></queries>`
+in its manifest.
+
 ## Security: mutual verification
 
 - **Host side.** Binge asks the user for consent for each companion app. The consent record holds
