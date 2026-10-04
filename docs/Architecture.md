@@ -69,6 +69,10 @@ Practical rules:
 
 - Errors travel as gRPC status codes. Response messages never carry error fields. Each contract
   documents its code mapping in its `.proto` file.
+- A sentence for the user travels in gRPC's rich error model, never in the status description: a
+  `google.rpc.Status` in the `grpc-status-details-bin` trailer, holding an `ErrorInfo` and a
+  `LocalizedMessage` in `HostInfo.locale`. This applies to every contract, STREAM included;
+  `request.proto` states it in full.
 - Some codes come from the transport rather than from an integration, and a host has to handle
   them even though no integration ever chooses them. An integration that is **not installed**
   reads as `UNIMPLEMENTED`, not `UNAVAILABLE` — grpc-binder reports a `bindService()` that

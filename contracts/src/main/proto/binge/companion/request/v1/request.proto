@@ -336,7 +336,9 @@ message RequestStatus {
   // Per-season state, populated for TV so the host can offer per-season requests.
   // The standard version's, as with `availability`.
   repeated SeasonAvailability seasons = 2;
-  // Aggregate progress while the title is downloading; absent otherwise.
+  // Aggregate progress while the title is downloading; absent otherwise. Aggregate means
+  // across every active download for the title, the standard and 4K versions together:
+  // there is no per-version progress in this message.
   DownloadProgress download = 3;
   // Every request the provider knows for the title.
   repeated RequestInfo requests = 4;
@@ -346,7 +348,8 @@ message RequestStatus {
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
   // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
-  // (`SubmitRequest` is core): the host infers it from `availability`. A capability
+  // (`SubmitRequest` is core): the host infers it from `availability` for a standard request and from `availability_4k`
+  // for a 4K one. A capability
   // that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
   // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
   // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
@@ -377,8 +380,9 @@ message RequestStatus {
   repeated SeasonAvailability seasons_4k = 10;
 }
 
-// A movie's resulting file, only meaningfully populated when
-// `RequestStatus.availability` is AVAILABILITY_AVAILABLE. Requires
+// A movie's resulting file, only meaningfully populated when `RequestStatus.availability`
+// or `RequestStatus.availability_4k` is AVAILABILITY_AVAILABLE: a title available only in
+// 4K has a file to report although `availability` is not AVAILABLE. Requires
 // CAPABILITY_MEDIA_FILE_INFO.
 message MediaFileInfo {
   // The file's own name, without a path, e.g. "Movie.Title.2026.2160p.WEB-DL.mkv".
