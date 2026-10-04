@@ -79,6 +79,12 @@ Practical rules:
   package-removed broadcast covers the permanent case, and the rest is ordinary retry.
 - The Binder transaction limit is about 1 MB. Page all results. Send artwork as URLs, never as
   bytes.
+- Every paged rpc follows the same rules. A short page is not the end; only an empty
+  `next_page_token` says that. A `page_token` is only valid with the request it was issued under:
+  the same `page_size` and the same filter, where the rpc has one. The host keeps `page_size` the
+  same on every page of one listing. A token the integration did not issue, or one that comes back
+  with a different `page_size` or filter, is `INVALID_ARGUMENT`. Each `.proto` repeats this on its
+  paged rpcs.
 - The REQUEST stub spike validated the transport on real hardware. Bind-to-handshake p95 was
   119–128 ms on a phone (Android 16) and 22–37 ms on a SHIELD (Android 11), against a proposed
   ~300 ms bar — so the TV, the surface the spike existed to worry about, is the faster of the two
