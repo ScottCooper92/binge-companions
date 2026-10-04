@@ -54,8 +54,7 @@ jobs:
           path: companions
 
       # Submodules are fetched one by one: binge-seerr's pin of this repository is exactly what
-      # this job replaces with the PR, so cloning it would be wasted work. The submodule path in
-      # binge-seerr is still `binge-integrations/`, the name it had before the rename.
+      # this job replaces with the PR, so cloning it would be wasted work.
       - name: Check out binge-seerr at main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,11 +62,21 @@ jobs:
           ref: main
           path: seerr
 
+      # The swap reads the submodule's path from binge-seerr's `.gitmodules`: it is the submodule
+      # whose URL points at this repository. Nothing here assumes what that path is called.
       - name: Fetch the design system and swap in this PR
         run: |
           git -C seerr submodule update --init --depth 1 design-system
-          rm -rf seerr/binge-integrations
-          mv companions seerr/binge-integrations
+          key=$(git config -f seerr/.gitmodules --get-regexp '^submodule\..*\.url$' \
+            | awk '$2 ~ /github\.com[:\/]ScottCooper92\/binge-companions(\.git)?$/ { print $1 }')
+          if [ "$(printf '%s\n' "$key" | grep -c .)" -ne 1 ]; then
+            echo "::error::Expected exactly one submodule of binge-companions in binge-seerr's .gitmodules, found: ${key:-none}"
+            exit 1
+          fi
+          path=$(git config -f seerr/.gitmodules --get "${key%.url}.path")
+          echo "binge-companions is binge-seerr's submodule at ${path}/"
+          rm -rf "seerr/${path}"
+          mv companions "seerr/${path}"
 
       # JDK 17, binge-seerr's own toolchain (jvmTarget 17). binge-companions builds on 21, and
       # running the consumer on it would test a combination nobody ships.
