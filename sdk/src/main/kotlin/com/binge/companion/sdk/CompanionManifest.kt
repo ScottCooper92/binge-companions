@@ -8,9 +8,9 @@ import com.binge.companion.contracts.v1.MediaType
  * without binding — a typo here is silent, since the Service still exists and is reported as
  * declaring no contract at all.
  *
- * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving both REQUEST and LIBRARY
- * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY], and > Hand-offs for the Activities
- * on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS].
+ * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving several of REQUEST, LIBRARY and STREAM
+ * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM], and > Hand-offs for the
+ * Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -39,10 +39,10 @@ object CompanionManifest {
      */
     const val META_MAJORS = "com.binge.companion.majors"
 
-    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on [ACTION_LIBRARY]. */
+    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on another action. */
     const val META_MAJORS_REQUEST = "com.binge.companion.majors.request"
 
-    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on [ACTION_REQUEST]. */
+    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on another action. */
     const val META_MAJORS_LIBRARY = "com.binge.companion.majors.library"
 
     /** [META_MAJORS], scoped to [ACTION_STREAM], for a Service that also filters on another action. */
