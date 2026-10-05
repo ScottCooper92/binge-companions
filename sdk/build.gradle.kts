@@ -17,6 +17,9 @@ android {
         // discovers companions on API 28 and above (the signing-lineage check needs it), which the
         // caller policy here mirrors by refusing below 28 rather than checking weakly.
         minSdk = 26
+
+        // The one rule a minifying host needs and grpc-binder does not ship; see the file.
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
