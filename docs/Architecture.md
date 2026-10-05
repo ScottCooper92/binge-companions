@@ -89,10 +89,12 @@ Practical rules:
   same on every page of one listing. A token the integration did not issue, or one that comes back
   with a different `page_size` or filter, is `INVALID_ARGUMENT`. Each `.proto` repeats this on its
   paged rpcs.
-- **A consumer that minifies ships two keep rules, and neither grpc-binder nor protobuf-javalite
-  provides them.** `:sdk` carries the grpc-binder one (its name resolver is instantiated by
+- **A consumer that minifies needs keep rules that neither grpc-binder nor protobuf-javalite
+  provides.** `:sdk` carries the grpc-binder one (its name resolver is instantiated by
   reflection, which R8 cannot see) as a consumer rule, and `:contracts` carries the protobuf one
-  (a generated message's fields are looked up by name) under `META-INF/proguard/`. Both fail only
+  (a generated message's fields are looked up by name) under `META-INF/proguard/`. It keeps the
+  fields of the contracts' own messages and of the well-known types they embed, `Timestamp` and
+  `Any`. Both fail only
   at runtime, on the first channel or the first parse, so a consumer should run a Binder round
   trip in a minified build rather than trust that it compiled. A consumer that carries these rules
   itself can drop them once a release ships them.
