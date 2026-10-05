@@ -89,6 +89,13 @@ Practical rules:
   same on every page of one listing. A token the integration did not issue, or one that comes back
   with a different `page_size` or filter, is `INVALID_ARGUMENT`. Each `.proto` repeats this on its
   paged rpcs.
+- **A consumer that minifies ships two keep rules, and neither grpc-binder nor protobuf-javalite
+  provides them.** `:sdk` carries the grpc-binder one (its name resolver is instantiated by
+  reflection, which R8 cannot see) as a consumer rule, and `:contracts` carries the protobuf one
+  (a generated message's fields are looked up by name) under `META-INF/proguard/`. Both fail only
+  at runtime, on the first channel or the first parse, so a consumer should run a Binder round
+  trip in a minified build rather than trust that it compiled. A consumer that carries these rules
+  itself can drop them once a release ships them.
 - The REQUEST stub spike validated the transport on real hardware. Bind-to-handshake p95 was
   119–128 ms on a phone (Android 16) and 22–37 ms on a SHIELD (Android 11), against a proposed
   ~300 ms bar — so the TV, the surface the spike existed to worry about, is the faster of the two
