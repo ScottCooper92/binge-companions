@@ -13,8 +13,10 @@ pluginManagement {
         // are rate-limited by Central and get 429s mid-build, and Gradle treats a 429 as a failure rather than a miss,
         // so the build stops even when a later repository has the artifact. Anything the mirror lacks falls through.
         maven("https://maven-central.storage-download.googleapis.com/maven2/") { name = "MavenCentralMirror" }
-        mavenCentral()
+        // The portal before Central: some plugins (ktlint's, for one) are published only there, and a 429 from
+        // Central would fail the build before the portal was asked.
         gradlePluginPortal()
+        mavenCentral()
     }
 }
 
