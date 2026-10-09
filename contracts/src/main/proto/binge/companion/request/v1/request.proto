@@ -344,6 +344,11 @@ message RequestStatus {
   repeated RequestInfo requests = 4;
   // Deep link to the title in the media server's web client, when the provider has one.
   // http or https only; the host refuses any other scheme (see the header).
+  //
+  // The standard version's link, as with `availability`. A provider that keeps the 4K
+  // version on a separate server has a separate link for it, and that one is not sent
+  // here: a user who may not reach the 4K server must not be handed a link into it. So
+  // a title available only in 4K has no `watch_url`. There is no 4K link in this message.
   string watch_url = 5;
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
