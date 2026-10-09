@@ -9,6 +9,7 @@
 # (PlaybackSource.expires_at, last_played) and Any (google.rpc.Status.details), which come from
 # protobuf-javalite and ship no rule, so they are named here too.
 # Do not remove these as unused: nothing in the bytecode names these fields.
+# :minify-check's MinifiedKeepRulesTest fails the build if R8 stops keeping what this file holds.
 -keepclassmembers class com.binge.companion.contracts.** extends com.google.protobuf.GeneratedMessageLite {
     <fields>;
 }

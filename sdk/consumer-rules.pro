@@ -7,6 +7,7 @@
 # it. Every BinderChannelBuilder.forAddress then throws ServiceConfigurationError and no channel
 # opens. That hits a host, the side that opens channels; a companion's server side does not reach
 # it. Do not remove it as unused: the constructor is only ever called by reflection.
+# :minify-check's MinifiedKeepRulesTest fails the build if R8 stops keeping what this file holds.
 -keepclassmembers class io.grpc.binder.internal.IntentNameResolverProvider {
     public <init>();
 }
