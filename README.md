@@ -91,6 +91,7 @@ sdk/         Android library for companion apps: the exported Service base, the 
              the manifest keys, the handshake helper and the LIBRARY play-target hand-off (built
              by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`)
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
+minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs
 ```
 
 The conformance harness joins when it is built. The reference companion app lives in its own
@@ -104,7 +105,7 @@ Run:
 ./gradlew build
 ```
 
-That compiles all three modules, runs the tests, checks formatting, runs detekt and Android lint
+That compiles all four modules, runs the tests, checks formatting, runs detekt and Android lint
 over the SDK and holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
 
 You need JDK 17 or later.

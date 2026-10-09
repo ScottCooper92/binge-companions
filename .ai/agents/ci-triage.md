@@ -8,7 +8,7 @@ CI is two independent jobs:
 
 | Job | Runs |
 | --- | --- |
-| `build` | `./gradlew build` — compile, generate protos, run tests, `ktlintCheck`, `detekt` on `:sdk`, `koverVerify` (85% of `:sdk` lines), Android lint on `:sdk` (`lintDebug`) |
+| `build` | `./gradlew build` — compile, generate protos, run tests, `ktlintCheck`, `detekt` on `:sdk`, `koverVerify` (85% of `:sdk` lines), Android lint on `:sdk` (`lintDebug`), the R8 shrink of `:minify-check` and its `MinifiedKeepRulesTest` |
 | `proto` | `buf lint`, then `buf breaking --against main` on PRs |
 
 There is no screenshot suite in this repository.
@@ -31,6 +31,7 @@ an invitation to improvise.
 | `:sdk:lintDebug` fails | Android lint, AGP's defaults with no baseline; `NewApi` is an error at `minSdk` 26 | Read `sdk/build/reports/lint-results-debug.txt` for every finding, not just the first. For `NewApi`, keep the call in a function marked `@TargetApi(n)` and call it only behind a visible `Build.VERSION.SDK_INT >= n` check: lint does not follow a guard that lives in another function which takes the call as a lambda. Never add a `lint-baseline.xml`, `abortOnError = false` or a broad `@SuppressLint` |
 | `koverVerify` fails | `:sdk` line coverage fell below 85% | Add a test for the logic the diff added. Never lower the floor or widen the kover exclusions to make it pass: an exclusion is only for a class that holds an Android type and has its decision split into a tested class |
 | Kotlin compile error in `contracts` | Ordinary | Fix it. Note that generated stubs are not checked in — a symbol that "does not exist" after a proto edit usually means the proto and the Kotlin disagree, so fix the side that is wrong rather than deleting the reference |
+| `MinifiedKeepRulesTest` fails | A consumer keep rule no longer holds what R8 needs in a minified host (a message field, or grpc-binder's name resolver constructor) | Add or restore the rule in `sdk/consumer-rules.pro` or `contracts/src/main/resources/META-INF/proguard/binge-companion-contracts.pro`. Never add a keep rule to `:minify-check` or lower `MIN_MESSAGES`: that hides exactly what the check exists to catch |
 | `ProtoRoundTripTest` fails | A message no longer serialises and deserialises to itself | Read the assertion. This is usually a real contract bug — a field number collision, or a `oneof` that lost a case. Fix the proto, not the test |
 | Any other test failure | Ordinary | Fix the code the test is describing. Changing an assertion to match new behaviour is only correct when the PR deliberately changed that behaviour and says so |
 | Gradle "could not resolve" / dependency failure | Usually transient or a `libs.versions.toml` edit | If the diff touched `gradle/libs.versions.toml`, fix that. Otherwise it is infrastructure — **stop** and say so |
