@@ -605,20 +605,23 @@ message ObserveAttentionResponse {
 
 // Served by an integration app from a bound Service exported with the
 // `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
-// transport. `Handshake` is the host's first call on every new connection.
+// transport. `Handshake` is the host's first call on every new instance of the
+// integration, not on every connection: the host binds per operation, and keeps
+// the handshake's answer for the instance's life. So an integration keeps no
+// per-connection state. Each call stands alone.
 service RequestService {
-  // Core. The host's first call on every connection. Never UNAUTHENTICATED: with
+  // Core. The host's first call on every new instance. Never UNAUTHENTICATED: with
   // nothing connected, or with a broken session, it answers OK. The host gates every
   // other call on the capabilities it returns, so an UNAUTHENTICATED here would hide
   // CAPABILITY_ATTENTION and leave `needs_reconnect` unreachable. The other rpcs keep
   // the rule in the header.
   //
   // A handshake answered with no session declares a reduced set, so the host
-  // handshakes again on the same connection whenever the session may have come back:
-  // when `needs_reconnect` turns from true to false, and when the user returns from the
+  // handshakes again whenever the session may have come back: when
+  // `needs_reconnect` turns from true to false, and when the user returns from the
   // integration app after the host sent them there for an UNAUTHENTICATED. An
-  // integration answers every Handshake from the session it holds now, not from the
-  // connection's first.
+  // integration answers every Handshake from the session it holds now, not from an
+  // earlier one.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
   // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
