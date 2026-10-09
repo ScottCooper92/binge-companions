@@ -350,7 +350,9 @@ the proto stays `Draft` until that companion has served it. Two reasons, both ab
   series. `Resolve` resolves one playable thing, so a series needs the episode.
 - **A source is a `binge.companion.v1.PlaybackSource`**, the shared message, plus structured
   quality, a label and optional subtitles. Structured quality (resolution class, HDR, codec,
-  size) rather than labels, so the host can sort and a TV can pick without a screen.
+  size) rather than labels, so the host can sort and a TV can pick without a screen. A label is
+  at most 120 characters and a source carries at most ten subtitle tracks; the host truncates
+  beyond either, so one message stays far under the Binder limit.
 - **Resolution streams.** `Resolve` is server-streaming: one source per message, as found, and the
   stream ends when the integration is done. Partial results are normal. The host's deadline bounds
   it, cancellation abandons it, and an integration stops work when cancelled. The host reads at

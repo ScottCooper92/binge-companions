@@ -179,7 +179,9 @@ message StreamSource {
   // A short label the host shows as-is on the row, e.g. a release name. At most 120 characters;
   // the host truncates longer ones. Never the URL.
   string label = 4;
-  // Requires CAPABILITY_SUBTITLES; empty otherwise.
+  // Requires CAPABILITY_SUBTITLES; empty otherwise. At most ten tracks; the host keeps the
+  // first ten in the order sent and drops the rest, so one source message never nears the
+  // Binder transaction limit. An integration with more sends the ten it would offer first.
   repeated SubtitleTrack subtitles = 5;
 }
 
