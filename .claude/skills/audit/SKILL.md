@@ -17,7 +17,7 @@ whether the docs still describe the contracts, and whether the SDK's security po
 bug — say which.
 
 Modules: `contracts/` (`.proto` + generated stubs, not checked in), `sdk/` (`com.binge.companion.sdk`),
-`detekt-rules/` (custom rules loaded by `:sdk`). Skip `build/`.
+`detekt-rules/` (custom rules loaded by `:sdk`), `minify-check/` (the R8 probe app; its test reads R8 output). Skip `build/`.
 
 **Three disciplines make this useful rather than noisy:**
 
@@ -103,7 +103,7 @@ Extract every checkable claim from `docs/Architecture.md`, `docs/Status.md`, `do
 the SDK, `build.gradle.kts` and the workflows: the action-string table (`com.binge.companion.REQUEST`,
 `STREAM`, `TRACKING`, `PLAYER`, `LIBRARY`) vs what exists; the three manifest meta-data keys; capability
 lists vs the `Capability` enum in `request.proto` (`Capabilities.kt` has no list); **Status.md contract stages** (Draft / Spike-validated / Stable) vs reality and
-its "last updated" date; the 85% floor and the "a new module must apply kover" rule (`:detekt-rules` is the documented exception); JDK/`jvmTarget`
+its "last updated" date; the 85% floor and the "a new module must apply kover" rule (`:detekt-rules` and `:minify-check` are the documented exceptions); JDK/`jvmTarget`
 figures; Maven Central / published-artifact claims. Also check whether the docs mention consumers
 (`ScottCooper92/binge-seerr`, `ScottCooper92/Binge`) accurately. Report claim → reality → which side
 should change. Contract *definitions* must appear only here (nothing in the consumers may redefine one —
