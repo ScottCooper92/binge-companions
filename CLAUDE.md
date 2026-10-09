@@ -67,7 +67,9 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
 `build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt`, `koverVerify` and
 Android lint on `:sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
-themselves into `check`, and `build` depends on it. There
+themselves into `check`, and `build` depends on it. `build` also shrinks `:minify-check`, a probe app that
+depends on `:sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
+needs (#160). There
 is no screenshot suite in this repository, so do not look for one and do not report a
 finding as though one had caught it.
 
@@ -91,10 +93,11 @@ says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both
 
 The floor was set from a measurement (90.4% at the time) rather than inherited, so it
 ratchets. **A new module has to apply kover or say in its build file why not.** Binge
-enforces that with a root `checkCoverageGate` task; with three modules that is still overkill,
+enforces that with a root `checkCoverageGate` task; with four modules that is still overkill,
 so here it is a convention — which means the next module is where it can silently go wrong.
-`:detekt-rules` is the one module without a floor: it holds the custom detekt rules, its own
-tests run in `build`, and it is not shipped.
+Two modules have no floor, and neither is shipped. `:detekt-rules` holds the custom detekt rules,
+and its own tests run in `build`. `:minify-check` is a probe app shrunk by R8, and its test reads
+R8's output rather than covering code.
 
 **Never silence a gate instead of fixing it.** Do not add an exclusion to the
 `lint` or `breaking` configuration in `buf.yaml`, do not add a

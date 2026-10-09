@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Never installed: this app exists to be shrunk by R8, and the activity is the root R8 keeps from. -->
+    <application android:allowBackup="false">
+        <activity
+            android:name=".ProbeActivity"
+            android:exported="false" />
+    </application>
+</manifest>

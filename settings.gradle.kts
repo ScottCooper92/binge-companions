@@ -41,3 +41,4 @@ rootProject.name = "binge-companions"
 include(":contracts")
 include(":sdk")
 include(":detekt-rules")
+include(":minify-check")
