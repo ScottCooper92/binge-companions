@@ -44,6 +44,8 @@ intent action:
   and so on, one key per action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
   Service names more than one action. Both forms follow the same String-or-Int reading rule.
+  A host that includes the SDK reads them with `Bundle.readServedMajors(action)`, which tries the
+  scoped key first and falls back to the bare one.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
 

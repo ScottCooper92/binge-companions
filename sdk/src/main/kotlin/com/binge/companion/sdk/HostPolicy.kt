@@ -141,11 +141,15 @@ internal class PinnedHosts(
 }
 
 /**
- * The digests of [packageName]'s signing lineage, or nothing. Only the Android lookup lives here;
- * every fail-closed decision, the API floor included, is [signerDigests], which is tested on the
- * JVM. The version check at the call site is what lets lint see [signingSnapshot] is only called on API 28+.
+ * The digests of [packageName]'s signing lineage, or nothing: lowercase hex SHA-256, the form a
+ * [KnownHost] pins. Public for a host checking a companion's certificate the same way a companion
+ * checks the host's (#167), rather than re-deriving the lineage and fail-closed rules.
+ *
+ * Only the Android lookup lives here; every fail-closed decision, the API floor included, is
+ * [signerDigests], which is tested on the JVM. The version check at the call site is what lets lint
+ * see [signingSnapshot] is only called on API 28+.
  */
-internal fun PackageManager.signerSha256s(packageName: String): Set<String> =
+fun PackageManager.signerSha256s(packageName: String): Set<String> =
     signerDigests(Build.VERSION.SDK_INT) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) signingSnapshot(packageName) else null
     }

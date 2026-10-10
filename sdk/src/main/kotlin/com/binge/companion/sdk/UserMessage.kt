@@ -62,7 +62,8 @@ data class UserMessage(
 
 /**
  * The user-facing sentence in [trailers], or null when the integration sent none, which is when the host
- * shows its own copy for the code. Malformed or foreign details are ignored rather than thrown: a bad
+ * shows its own copy for the code. This is the host's reader (#167): pass the trailers of the failed call,
+ * `Status.trailersFromThrowable(e)`, rather than parsing `grpc-status-details-bin` by hand. Malformed or foreign details are ignored rather than thrown: a bad
  * detail must not turn a readable failure into a crash.
  */
 fun userMessageOf(trailers: Metadata?): UserMessage? {
