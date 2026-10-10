@@ -93,8 +93,8 @@ message HandshakeRequest {
 }
 
 message HandshakeResponse {
-  // What the connection can do for this server and this signed-in user, with the session
-  // the integration holds when it answers. Not final for the connection; see `Handshake`.
+  // What the integration can do for this server and this signed-in user, with the session
+  // it holds when it answers. Not final for the instance; see `Handshake`.
   repeated Capability capabilities = 1;
   // Display name of the connected server (a proper noun, never translated).
   string provider_name = 2;
@@ -288,19 +288,21 @@ message ListNextUpResponse {
 
 // Served by an integration app from a bound Service exported with the
 // `com.binge.companion.LIBRARY` intent action, over gRPC's Android Binder transport.
-// `Handshake` is the host's first call on every new connection.
+// `Handshake` is the host's first call on every new instance of the integration, not on
+// every connection: the host binds per operation, and keeps the handshake's answer for the
+// instance's life. So an integration keeps no per-connection state. Each call stands alone.
 //
 // A companion may serve REQUEST and LIBRARY from one exported Service or from two; the
 // host binds per action, so which it is stays the companion's business. Consent is per
 // package, so a companion serving both is consented once and its certificate pinned
 // once.
 service LibraryService {
-  // The host's first call on every connection. With nothing connected, or a broken
+  // The host's first call on every new instance. With nothing connected, or a broken
   // server session, it answers UNAUTHENTICATED, and the host directs the user to the
   // integration app. Unlike REQUEST's, this handshake is not exempt: LIBRARY has no
   // attention read for a reduced capability set to keep reachable, so the error itself
-  // is the signal. The host handshakes again on the same connection when the user
-  // returns from the integration app after it sent them there for an UNAUTHENTICATED,
+  // is the signal. The host handshakes again when the user returns from the
+  // integration app after it sent them there for an UNAUTHENTICATED,
   // from this rpc or any other. An integration answers every Handshake from the
   // session it holds now.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
