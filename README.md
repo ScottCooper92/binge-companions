@@ -96,7 +96,8 @@ sdk/         Android library for companion apps: the exported Service base, the 
              season list. Its test fixtures hold `awaitEvent`, for tests of one-shot event flows;
              a companion takes them with `testImplementation(testFixtures(...))`.
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
-minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs
+minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs,
+               and its instrumented test makes a real Binder round trip on the minified build (device-round-trip.yml)
 ```
 
 The conformance harness joins when it is built. The reference companion app lives in its own
