@@ -84,6 +84,29 @@ jobs:
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
 
+      # Gradle's managed device reports success when the instrumentation process crashes before it finds a test, so
+      # a green task proves nothing. Require the three round-trip tests by name.
+      - name: Require the round-trip tests to have run
+        run: |
+          set -euo pipefail
+          dir=minify-check/build/outputs/androidTest-results/managedDevice/minified
+          shopt -s globstar nullglob
+          files=("$dir"/**/TEST-*.xml)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No test result XML under $dir, so no test ran."
+            exit 1
+          fi
+          for t in requestHandshakesAnswersAndRefusesWithAUserMessage libraryHandshakesAndAnswersWithATimestamp streamHandshakesAndAnswers; do
+            if ! grep -h '<testcase' "${files[@]}" | grep -q "name=\"$t\""; then
+              echo "::error::Round-trip test $t is missing from the results. The runner probably crashed before discovering tests; read the logcat in the artifact."
+              exit 1
+            fi
+          done
+          if grep -hE '<(failure|error)' "${files[@]}" > /dev/null; then
+            echo "::error::A round-trip test failed or errored."
+            exit 1
+          fi
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

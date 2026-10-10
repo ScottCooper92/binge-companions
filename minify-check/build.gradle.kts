@@ -33,6 +33,9 @@ android {
         create("minified") {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
+            // The instrumentation runner's own classes, which R8 would otherwise strip from the app. Test
+            // infrastructure only; see the file for what may go in it.
+            proguardFiles("minified-test-rules.pro")
             matchingFallbacks += listOf("release")
         }
     }
