@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 protobuf = "4.28.3"
 protobufPlugin = "0.9.5"
 grpc = "1.76.3"
