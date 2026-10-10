@@ -31,7 +31,10 @@ fun Intent.toAdvancedRequest(): AdvancedRequest? =
         is4k = getBooleanExtra(CompanionManifest.EXTRA_IS_4K, false),
     )
 
-/** The most seasons a hand-off may carry; further picks are dropped rather than passed on. */
+/**
+ * The most seasons a title may name: a hand-off drops further picks, and [checkedSeasonNumbers]
+ * refuses a longer rpc list.
+ */
 const val MAX_SEASON_NUMBERS = 100
 
 /**
