@@ -98,7 +98,7 @@ jobs:
           fi
           for t in requestHandshakesAnswersAndRefusesWithAUserMessage libraryHandshakesAndAnswersWithATimestamp streamHandshakesAndAnswers; do
             if ! grep -h '<testcase' "${files[@]}" | grep -q "name=\"$t\""; then
-              echo "::error::Round-trip test $t is missing from the results. The runner probably crashed before discovering tests; read the logcat in the artifact."
+              echo "::error::Round-trip test $t is missing from the results. The runner probably crashed before discovering tests; the artifact has no logcat, so reproduce it with am instrument on an emulator."
               exit 1
             fi
           done
