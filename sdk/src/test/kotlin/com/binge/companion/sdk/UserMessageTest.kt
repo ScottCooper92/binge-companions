@@ -45,4 +45,19 @@ class UserMessageTest {
         }
         assertNull(userMessageOf(garbage))
     }
+
+    /** The host's side (#167): the failure arrives wrapped, its trailers rebuilt from the wire's bytes. */
+    @Test
+    fun `a host reads the sentence from a failed call's trailers`() {
+        val sent = Status.NOT_FOUND.withUserMessage(reason = "GONE", message = "This title was removed.", locale = "en")
+        val key = Metadata.Key.of("grpc-status-details-bin", Metadata.BINARY_BYTE_MARSHALLER)
+        val received = Metadata().apply { put(key, checkNotNull(sent.trailers?.get(key))) }
+
+        val caught = RuntimeException(io.grpc.StatusException(Status.NOT_FOUND, received))
+
+        assertEquals(
+            UserMessage(reason = "GONE", message = "This title was removed.", locale = "en"),
+            userMessageOf(Status.trailersFromThrowable(caught)),
+        )
+    }
 }
