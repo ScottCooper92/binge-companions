@@ -36,8 +36,14 @@ permissions:
 jobs:
   fix:
     # Skip the scheduled canary run of CI: it has no PR to review, fix or rebase.
-    if: github.event.workflow_run.event != 'schedule'
-    uses: ScottCooper92/binge-ci/.github/workflows/author-ci-fix.yml@v1
+    #
+    # A fork PR never reaches the bot. binge-ci refuses one too, and this keeps the guard in sight
+    # here (binge-design-system#407). It checks the events that name a head repository and lets the others through.
+    if: >-
+      (github.event.workflow_run.event != 'schedule') &&
+      (!github.event.pull_request || github.event.pull_request.head.repo.full_name == github.repository) &&
+      (!github.event.workflow_run || github.event.workflow_run.head_repository.full_name == github.repository)
+    uses: ScottCooper92/binge-ci/.github/workflows/author-ci-fix.yml@86232f187cb3f2d76f9cd3e20c8e2798a4dd86b9 # v1
     with:
       author_bot_id: ${{ vars.AUTHOR_BOT_ID }}
       toolchain: jvm
