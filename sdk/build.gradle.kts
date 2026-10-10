@@ -36,6 +36,12 @@ android {
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
     }
+
+    // Test helpers a companion's own tests can use, published apart from the runtime: a consumer
+    // asks for them with `testImplementation(testFixtures(...))`, and its APK never carries them.
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
@@ -43,6 +49,10 @@ dependencies {
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
     api(project(":contracts"))
     api(libs.grpc.binder)
+
+    // The fixtures' awaitEvent is written against kotlinx.coroutines; :contracts already exposes it
+    // to the runtime, so this only names it for the fixtures' own compile.
+    testFixturesApi(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)

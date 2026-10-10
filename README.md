@@ -89,7 +89,12 @@ source of truth for stage, so it isn't restated here.
 contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC services)
 sdk/         Android library for companion apps: the exported Service base, the caller policy,
              the manifest keys, the handshake helper and the LIBRARY play-target hand-off (built
-             by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`)
+             by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`).
+             It also carries the small pieces every companion would otherwise write again:
+             `attempt` (a `runCatching` that rethrows cancellation), `ListRequestsPageToken` and
+             `effectivePageSize` for paging `ListRequests`, and `checkedSeasonNumbers` for an rpc's
+             season list. Its test fixtures hold `awaitEvent`, for tests of one-shot event flows;
+             a companion takes them with `testImplementation(testFixtures(...))`.
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
 minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs
 ```
