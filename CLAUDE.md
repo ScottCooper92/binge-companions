@@ -69,7 +69,9 @@ CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --again
 Android lint on `:sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
 themselves into `check`, and `build` depends on it. `build` also shrinks `:minify-check`, a probe app that
 depends on `:sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
-needs (#160). There
+needs (#160). The device lane, `device-round-trip.yml`, is not part of `build`: it runs
+`:minify-check`'s instrumented round trip on an emulator, for a PR or push that touches the contracts, the SDK or
+`:minify-check`. There
 is no screenshot suite in this repository, so do not look for one and do not report a
 finding as though one had caught it.
 

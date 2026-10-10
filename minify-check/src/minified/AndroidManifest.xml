@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The minified build type only (#160): the Service the instrumented round trip binds. Not exported, so only
+         this app's own uid, which the test runs as, can reach it. -->
+    <application>
+        <service
+            android:name=".RoundTripService"
+            android:exported="false" />
+    </application>
+</manifest>
