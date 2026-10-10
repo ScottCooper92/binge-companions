@@ -13,7 +13,7 @@ import com.binge.companion.contracts.rpc.Status as RpcStatus
 /**
  * This status, carrying a sentence the host may show the user (#120). The contracts' headers describe the
  * channel: a `google.rpc.Status` in the `grpc-status-details-bin` trailer, holding an [ErrorInfo] with a
- * machine [reason] and [domain] and a [LocalizedMessage] in [locale], normally `HostInfo.locale`. The
+ * machine [reason] and [domain] and a [LocalizedMessage] in [locale], the device's locale (#177). The
  * status description stays developer text and never carries [message].
  *
  * Built by hand rather than through grpc's `StatusProto`, which needs full protobuf: these are javalite

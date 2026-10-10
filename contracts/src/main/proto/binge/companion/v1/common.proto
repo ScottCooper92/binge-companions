@@ -37,8 +37,10 @@ message HostInfo {
   string package_name = 1;
   string version_name = 2;
   int64 version_code = 3;
-  // The host's locale, BCP 47 (e.g. "en-GB", "es"), so an integration can localise a
-  // user-facing error detail. Informational, like the rest of HostInfo; empty when unset.
+  // The locale the host renders in, BCP 47 (e.g. "en-GB", "es"). Informational, like the
+  // rest of HostInfo; empty when unset. A user-facing error detail is in the device's
+  // locale, not this one: only the handshake carries it, and an integration keeps no
+  // per-connection state (#177). It tells the integration where the host differs.
   string locale = 4;
 }
 

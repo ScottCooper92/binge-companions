@@ -55,8 +55,8 @@ syntax = "proto3";
 //   PERMISSION_DENIED               — a gated rpc the integration did not declare.
 //
 // User-facing error detail travels as REQUEST's header describes: a google.rpc.Status in the
-// `grpc-status-details-bin` trailer with an ErrorInfo and a LocalizedMessage in
-// `HostInfo.locale`, never in the status description. An integration that answers
+// `grpc-status-details-bin` trailer with an ErrorInfo and a LocalizedMessage in the
+// device's locale, never in the status description. An integration that answers
 // UNAUTHENTICATED or NOT_FOUND from `Resolve` uses it to give the user a sentence.
 //
 // The transport codes are REQUEST's, for the same reasons: UNIMPLEMENTED means the integration
