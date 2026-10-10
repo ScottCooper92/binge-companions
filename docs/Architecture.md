@@ -118,15 +118,16 @@ it. Each contract keeps a small mandatory core. For REQUEST, the core is handsha
 status. A declared capability gates every other rpc.
 
 - **Static capabilities.** The handshake response declares them. They cover everything the
-  connection can do for this provider and this user, with the session the integration holds when
+  integration can do for this provider and this user, with the session the integration holds when
   it answers. The host hides UI for undeclared capabilities. The host never calls a gated rpc
   without its capability.
   - For REQUEST: with no working session (nothing connected, or a broken one), the handshake still answers OK,
     declaring only what needs no session plus `CAPABILITY_ATTENTION`, so the host can learn about
     the session at all (#106).
-  - For REQUEST, the host handshakes once for each new instance of an integration, not for each
-    connection: it binds per operation and keeps the answer for the instance's life, so a REQUEST
-    integration keeps no per-connection state.
+  - For every contract, the host handshakes once for each new instance of an integration, not for
+    each connection: it binds per operation and keeps the answer for the instance's life, so an
+    integration keeps no per-connection state. REQUEST set the rule, and LIBRARY and STREAM follow
+    it, so one rule covers every contract (#169).
   - For REQUEST, that set is not final for the instance. The host handshakes again when the session may have
     come back: when `needs_reconnect` turns false, and when the user returns from the integration
     app after the host sent them there for an `UNAUTHENTICATED`. The integration answers each

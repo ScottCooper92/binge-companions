@@ -48,7 +48,8 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   back an Intent addressed to it.
 - **Versioning.** The proto package version (for example `v1` in `binge.companion.request.v1`)
   is the contract major version. Changes inside a package must be additive. CI enforces this with
-  `buf breaking`. A handshake rpc opens every connection. The handshake declares the companion
+  `buf breaking`. The host's first call on every new instance of an integration is a handshake. The host binds per
+  operation and keeps the answer for the instance's life. The handshake declares the companion
   app's capabilities.
 
 ## Security model
