@@ -28,7 +28,7 @@ jobs:
       (github.event_name != 'workflow_run' || github.event.workflow_run.event != 'schedule') &&
       (!github.event.pull_request || github.event.pull_request.head.repo.full_name == github.repository) &&
       (!github.event.workflow_run || github.event.workflow_run.head_repository.full_name == github.repository)
-    uses: ScottCooper92/binge-ci/.github/workflows/author-conflicts.yml@c647fc04efc4e3239cfb0873b7220b89cc8777af # v1
+    uses: ScottCooper92/binge-ci/.github/workflows/author-conflicts.yml@20af7c1aa53be8f38a4ffff2eb0d414dea866459 # v1
     with:
       dispatched: ${{ github.event_name == 'workflow_dispatch' }}
       author_bot_id: ${{ vars.AUTHOR_BOT_ID }}

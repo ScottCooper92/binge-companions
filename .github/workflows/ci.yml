@@ -130,7 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: ScottCooper92/binge-ci/.github/actions/actionlint@c647fc04efc4e3239cfb0873b7220b89cc8777af # v1.0.23
+      - uses: ScottCooper92/binge-ci/.github/actions/actionlint@20af7c1aa53be8f38a4ffff2eb0d414dea866459 # v1
 
   # A red nightly has no PR or push to carry it, so without this it is a red mark in the
   # Actions tab that nothing points at. One issue stays open while the canary is red and
@@ -145,7 +145,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: ScottCooper92/binge-ci/.github/actions/nightly-report@c647fc04efc4e3239cfb0873b7220b89cc8777af # v1.0.23
+      - uses: ScottCooper92/binge-ci/.github/actions/nightly-report@20af7c1aa53be8f38a4ffff2eb0d414dea866459 # v1
         with:
           # The action takes one result. Both jobs gate the nightly, so pass `success` only when both
           # are green, and otherwise the summary the issue quotes.
