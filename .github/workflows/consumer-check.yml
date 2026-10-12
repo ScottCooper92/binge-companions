@@ -63,10 +63,12 @@ jobs:
           path: seerr
 
       # The swap reads the submodule's path from binge-seerr's `.gitmodules`: it is the submodule
-      # whose URL points at this repository. Nothing here assumes what that path is called.
-      - name: Fetch the design system and swap in this PR
+      # whose URL points at this repository. Nothing here assumes what that path is called. Every
+      # other submodule is checked out at binge-seerr's own pin, so one it adds later (the design
+      # system, the shared Gradle gates) needs no change here.
+      - name: Fetch binge-seerr's other submodules and swap in this PR
         run: |
-          git -C seerr submodule update --init --depth 1 design-system
+          set -euo pipefail
           key=$(git config -f seerr/.gitmodules --get-regexp '^submodule\..*\.url$' \
             | awk '$2 ~ /github\.com[:\/]ScottCooper92\/binge-companions(\.git)?$/ { print $1 }')
           if [ "$(printf '%s\n' "$key" | grep -c .)" -ne 1 ]; then
@@ -75,15 +77,20 @@ jobs:
           fi
           path=$(git config -f seerr/.gitmodules --get "${key%.url}.path")
           echo "binge-companions is binge-seerr's submodule at ${path}/"
+          mapfile -t others < <(git config -f seerr/.gitmodules --get-regexp '^submodule\..*\.path$' \
+            | awk -v p="$path" '$2 != p { print $2 }')
+          if [ "${#others[@]}" -gt 0 ]; then
+            git -C seerr submodule update --init --depth 1 -- "${others[@]}"
+          fi
           rm -rf "seerr/${path}"
           mv companions "seerr/${path}"
 
-      # JDK 17, binge-seerr's own toolchain (jvmTarget 17). binge-companions builds on 21, and
-      # running the consumer on it would test a combination nobody ships.
+      # JDK 21, the JDK binge-seerr's own CI builds on. Its bytecode target stays 17; that is set in
+      # its build, not by the JDK running it.
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
