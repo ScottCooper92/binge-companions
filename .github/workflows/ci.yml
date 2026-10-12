@@ -52,7 +52,10 @@ jobs:
     # a slow day.
     timeout-minutes: 20
     steps:
+      # binge-ci's shared Gradle gates are an included build from this submodule.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
 
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:

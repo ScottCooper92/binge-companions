@@ -41,7 +41,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # binge-ci's shared Gradle gates are an included build from this submodule.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
 
       # A stock ubuntu-latest has too little disk left for an AVD once the SDK and the build's dependencies land.
       - name: Free disk space for the emulator
