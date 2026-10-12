@@ -80,9 +80,10 @@ minus its Compose lines. `:binge-companion-contracts` excludes `build/generated`
 not checked in, so there is nothing there to format.
 
 detekt runs on `:binge-companion-sdk` only, off the root `detekt.yml`, which records deviations from
-detekt's defaults rather than a full ruleset. It runs **with type resolution**: the
-compile classpath is wired onto the task in `sdk/build.gradle.kts`, and without it
-`UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
+detekt's defaults rather than a full ruleset. It is detekt 2.x, through binge-ci's shared gate
+`binge.gates.detekt`, an included build from the `binge-ci` submodule pinned to a binge-ci release.
+It runs **with type resolution**: the gate wires the debug compilation's classpath onto the task,
+and without it `UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
 `detekt-baseline.xml`, because the first run found nothing; keep it that way rather than
 creating one.
 

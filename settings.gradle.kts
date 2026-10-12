@@ -1,4 +1,8 @@
 pluginManagement {
+    // The shared Gradle gates come from binge-ci as source, through a submodule pinned to the release
+    // the workflows also pin. Its plugins are applied by id with no version.
+    includeBuild("binge-ci/gradle-plugins")
+
     repositories {
         // Google first, for its own groups: the Android Gradle plugin is published only there, and asking Central
         // first for it fails the build outright when Central answers 429.

@@ -52,6 +52,8 @@ jobs:
     with:
       timeout_minutes: 60
       java_version: '21'
+      # binge-ci's Gradle gates are an included build from the binge-ci submodule.
+      submodules: 'true'
       module: ':minify-check'
       device: roundTripAtdApi34
       api_level: '34'

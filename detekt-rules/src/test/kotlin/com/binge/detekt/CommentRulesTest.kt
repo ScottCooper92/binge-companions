@@ -1,25 +1,25 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.test.compileAndLint
+import dev.detekt.test.lint
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class BannerCommentTest {
     @Test
     fun `flags an ascii ruler banner`() {
-        val findings = BannerComment().compileAndLint("// ------ Section ------\nval x = 1\n")
+        val findings = BannerComment().lint("// ------ Section ------\nval x = 1\n")
         assertEquals(1, findings.size)
     }
 
     @Test
     fun `flags a box-drawing ruler`() {
-        val findings = BannerComment().compileAndLint("// ──────────────\nval x = 1\n")
+        val findings = BannerComment().lint("// ──────────────\nval x = 1\n")
         assertEquals(1, findings.size)
     }
 
     @Test
     fun `ignores an ordinary why-comment with an em-dash`() {
-        val findings = BannerComment().compileAndLint("// keep this — it explains the guard\nval x = 1\n")
+        val findings = BannerComment().lint("// keep this — it explains the guard\nval x = 1\n")
         assertEquals(0, findings.size)
     }
 }
@@ -35,7 +35,7 @@ class ConsecutiveInlineCommentsTest {
             // four
             val x = 1
             """.trimIndent() + "\n"
-        assertEquals(1, ConsecutiveInlineComments().compileAndLint(code).size)
+        assertEquals(1, ConsecutiveInlineComments().lint(code).size)
     }
 
     @Test
@@ -47,7 +47,7 @@ class ConsecutiveInlineCommentsTest {
             // three
             val x = 1
             """.trimIndent() + "\n"
-        assertEquals(0, ConsecutiveInlineComments().compileAndLint(code).size)
+        assertEquals(0, ConsecutiveInlineComments().lint(code).size)
     }
 
     @Test
@@ -60,7 +60,7 @@ class ConsecutiveInlineCommentsTest {
             val d = 4 // trailing four
             val e = 5 // trailing five
             """.trimIndent() + "\n"
-        assertEquals(0, ConsecutiveInlineComments().compileAndLint(code).size)
+        assertEquals(0, ConsecutiveInlineComments().lint(code).size)
     }
 }
 
@@ -68,7 +68,7 @@ class DeclarationCommentShouldBeKDocTest {
     @Test
     fun `flags a slash-comment above a top-level declaration`() {
         val code = "// documents the constant\nconst val X = 1\n"
-        assertEquals(1, DeclarationCommentShouldBeKDoc().compileAndLint(code).size)
+        assertEquals(1, DeclarationCommentShouldBeKDoc().lint(code).size)
     }
 
     @Test
@@ -80,13 +80,13 @@ class DeclarationCommentShouldBeKDocTest {
                 fun bar() = Unit
             }
             """.trimIndent() + "\n"
-        assertEquals(1, DeclarationCommentShouldBeKDoc().compileAndLint(code).size)
+        assertEquals(1, DeclarationCommentShouldBeKDoc().lint(code).size)
     }
 
     @Test
     fun `accepts a KDoc above a declaration`() {
         val code = "/** documents the constant */\nconst val X = 1\n"
-        assertEquals(0, DeclarationCommentShouldBeKDoc().compileAndLint(code).size)
+        assertEquals(0, DeclarationCommentShouldBeKDoc().lint(code).size)
     }
 
     @Test
@@ -100,13 +100,13 @@ class DeclarationCommentShouldBeKDocTest {
                 fun inner() = Unit
             }
             """.trimIndent() + "\n"
-        assertEquals(0, DeclarationCommentShouldBeKDoc().compileAndLint(code).size)
+        assertEquals(0, DeclarationCommentShouldBeKDoc().lint(code).size)
     }
 
     @Test
     fun `ignores a detached comment separated by a blank line`() {
         val code = "// a detached aside\n\nconst val X = 1\n"
-        assertEquals(0, DeclarationCommentShouldBeKDoc().compileAndLint(code).size)
+        assertEquals(0, DeclarationCommentShouldBeKDoc().lint(code).size)
     }
 }
 
@@ -116,13 +116,13 @@ class KDocLengthTest {
     @Test
     fun `flags a class KDoc of seven prose lines`() {
         val code = kdoc("one", "two", "three", "four", "five", "six", "seven") + "class Foo\n"
-        assertEquals(1, KDocLength().compileAndLint(code).size)
+        assertEquals(1, KDocLength().lint(code).size)
     }
 
     @Test
     fun `allows a class KDoc of six prose lines`() {
         val code = kdoc("one", "two", "three", "four", "five", "six") + "class Foo\n"
-        assertEquals(0, KDocLength().compileAndLint(code).size)
+        assertEquals(0, KDocLength().lint(code).size)
     }
 
     @Test
@@ -130,7 +130,7 @@ class KDocLengthTest {
         val code =
             kdoc("one", "two", "three", "four", "five", "six", "seven") + "fun foo() = Unit\n" +
                 kdoc("one", "two", "three", "four", "five", "six", "seven") + "val bar = 1\n"
-        assertEquals(2, KDocLength().compileAndLint(code).size)
+        assertEquals(2, KDocLength().lint(code).size)
     }
 
     @Test
@@ -148,18 +148,18 @@ class KDocLengthTest {
                 "@param b the second",
                 "@return nothing of note",
             ) + "fun foo(a: Int, b: Int) = Unit\n"
-        assertEquals(0, KDocLength().compileAndLint(code).size)
+        assertEquals(0, KDocLength().lint(code).size)
     }
 
     @Test
     fun `does not count blank separator lines`() {
         val code = kdoc("one", "two", "", "three", "four", "", "five", "six") + "class Foo\n"
-        assertEquals(0, KDocLength().compileAndLint(code).size)
+        assertEquals(0, KDocLength().lint(code).size)
     }
 
     @Test
     fun `ignores a single-line KDoc and a declaration without one`() {
         val code = "/** documents the constant */\nconst val X = 1\nval y = 2\n"
-        assertEquals(0, KDocLength().compileAndLint(code).size)
+        assertEquals(0, KDocLength().lint(code).size)
     }
 }

@@ -1,14 +1,11 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.api.CodeSmell
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
-import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
-import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
-import org.jetbrains.kotlin.com.intellij.psi.PsiComment
-import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.PsiComment
+import com.intellij.psi.util.PsiTreeUtil
+import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Finding
+import dev.detekt.api.Rule
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtFile
 
@@ -20,16 +17,12 @@ import org.jetbrains.kotlin.psi.KtFile
  */
 class ConsecutiveInlineComments(
     config: Config = Config.empty,
-) : Rule(config) {
-    override val issue = Issue(
-        id = javaClass.simpleName,
-        severity = Severity.Style,
-        description = "A run of inline // comments longer than the cap; move the rationale into a " +
+) : Rule(
+        config,
+        "A run of inline // comments longer than the cap; move the rationale into a " +
             "KDoc on the enclosing declaration, or restructure the code.",
-        debt = Debt.TEN_MINS,
-    )
-
-    private val threshold: Int = valueOrDefault(THRESHOLD_KEY, DEFAULT_THRESHOLD)
+    ) {
+    private val threshold: Int = config.valueOrDefault(THRESHOLD_KEY, DEFAULT_THRESHOLD)
 
     override fun visitKtFile(file: KtFile) {
         super.visitKtFile(file)
@@ -61,8 +54,7 @@ class ConsecutiveInlineComments(
     private fun flush(anchor: PsiComment?, runLen: Int) {
         if (anchor != null && runLen > threshold) {
             report(
-                CodeSmell(
-                    issue = issue,
+                Finding(
                     entity = Entity.from(anchor),
                     message = "$runLen consecutive // comment lines exceed the $threshold-line cap. " +
                         "Move the rationale into a KDoc on the enclosing declaration, or restructure.",

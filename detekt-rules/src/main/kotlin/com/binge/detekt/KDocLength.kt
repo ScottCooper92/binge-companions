@@ -1,12 +1,9 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.api.CodeSmell
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
-import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
-import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
+import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Finding
+import dev.detekt.api.Rule
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -21,17 +18,13 @@ import org.jetbrains.kotlin.psi.KtProperty
  */
 class KDocLength(
     config: Config = Config.empty,
-) : Rule(config) {
-    override val issue = Issue(
-        id = javaClass.simpleName,
-        severity = Severity.Style,
-        description = "A KDoc longer than the cap; move the essay into docs/ or make the code say it.",
-        debt = Debt.TEN_MINS,
-    )
-
-    private val classThreshold: Int = valueOrDefault(CLASS_KEY, DEFAULT_THRESHOLD)
-    private val functionThreshold: Int = valueOrDefault(FUNCTION_KEY, DEFAULT_THRESHOLD)
-    private val propertyThreshold: Int = valueOrDefault(PROPERTY_KEY, DEFAULT_THRESHOLD)
+) : Rule(
+        config,
+        "A KDoc longer than the cap; move the essay into docs/ or make the code say it.",
+    ) {
+    private val classThreshold: Int = config.valueOrDefault(CLASS_KEY, DEFAULT_THRESHOLD)
+    private val functionThreshold: Int = config.valueOrDefault(FUNCTION_KEY, DEFAULT_THRESHOLD)
+    private val propertyThreshold: Int = config.valueOrDefault(PROPERTY_KEY, DEFAULT_THRESHOLD)
 
     override fun visitClassOrObject(classOrObject: KtClassOrObject) {
         super.visitClassOrObject(classOrObject)
@@ -57,8 +50,7 @@ class KDocLength(
         val lines = proseLineCount(doc.text)
         if (lines > threshold) {
             report(
-                CodeSmell(
-                    issue = issue,
+                Finding(
                     entity = Entity.from(declaration),
                     message = "KDoc on $kind '${declaration.name}' is $lines lines of prose, exceeding the " +
                         "$threshold-line cap. Move the essay into docs/, or make the code say it.",
