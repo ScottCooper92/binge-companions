@@ -138,10 +138,7 @@ status. A declared capability gates every other rpc.
     integration app after it sent them there for an `UNAUTHENTICATED` (#113).
 - **Settings the user can change at any time.** A setting that lives in the integration and that the host
   must honour does not fit a capability, because the host keeps the capability set for the instance's life.
-  It travels on the response of a call the host already makes, so each call reads it as it stands. The
-  first is `ListRequestsResponse.available_notifications_enabled`: whether the user has turned on
-  announcements, in the integration, for titles as they become available. The host holds no setting of its own for
-  it, and an integration that does not set it is read as "off".
+  It travels on the response of a call the host already makes, so each call reads it as it stands.
 - **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
   subset — capabilities that aren't about any one existing request. A capability that is about one
   specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
