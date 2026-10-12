@@ -48,7 +48,7 @@ jobs:
   round-trip:
     name: Round trip over Binder on a minified build
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    uses: ScottCooper92/binge-ci/.github/workflows/device-smoke.yml@c647fc04efc4e3239cfb0873b7220b89cc8777af # v1.0.23
+    uses: ScottCooper92/binge-ci/.github/workflows/device-smoke.yml@20af7c1aa53be8f38a4ffff2eb0d414dea866459 # v1
     with:
       timeout_minutes: 60
       java_version: '21'
@@ -83,7 +83,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: ScottCooper92/binge-ci/.github/actions/nightly-report@c647fc04efc4e3239cfb0873b7220b89cc8777af # v1.0.23
+      - uses: ScottCooper92/binge-ci/.github/actions/nightly-report@20af7c1aa53be8f38a4ffff2eb0d414dea866459 # v1
         with:
           result: ${{ needs.round-trip.result }}
           title: Weekly device round trip is failing on main
