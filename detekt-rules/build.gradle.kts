@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-// Custom detekt rules, packaged as a plain JVM jar that :sdk's detekt run loads via detektPlugins
+// Custom detekt rules, packaged as a plain JVM jar that :binge-companion-sdk's detekt run loads via detektPlugins
 // (wired in sdk/build.gradle.kts). It must NOT apply the detekt plugin itself — detekt can't
 // analyse the ruleset that defines it — and it carries no coverage gate: it has no production app
 // logic of its own for a line-coverage floor to mean anything against. The PSI rules are covered

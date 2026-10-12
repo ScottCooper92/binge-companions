@@ -1,4 +1,4 @@
-# detekt config for :sdk. `buildUponDefaultConfig = true` is set in sdk/build.gradle.kts, so this
+# detekt config for :binge-companion-sdk. `buildUponDefaultConfig = true` is set in sdk/build.gradle.kts, so this
 # file records only DEVIATIONS from detekt's defaults - it is not a full ruleset dump.
 #
 # Formatting is ktlint's job. detekt's own `formatting` ruleset ships in the separate

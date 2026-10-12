@@ -5,8 +5,8 @@ description: Whole-repo sweep of binge-companions (the contracts, the SDK and it
 
 # Contracts and SDK audit
 
-CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:sdk` with type
-resolution, `koverVerify` at 85% on `:sdk`, Android lint on `:sdk`) and, separately, `buf lint` (STANDARD) plus
+CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:binge-companion-sdk` with type
+resolution, `koverVerify` at 85% on `:binge-companion-sdk`, Android lint on `:binge-companion-sdk`) and, separately, `buf lint` (STANDARD) plus
 `buf breaking --against main` (FILE). There is **no** screenshot suite here — do not look for one
 and do not report a finding as though one had caught it. Do not re-report what that set decides.
 The audit's value is what it can't: whether a *breaking* change hides where `buf` can't see it,
@@ -17,7 +17,7 @@ whether the docs still describe the contracts, and whether the SDK's security po
 bug — say which.
 
 Modules: `contracts/` (`.proto` + generated stubs, not checked in), `sdk/` (`com.binge.companion.sdk`),
-`detekt-rules/` (custom rules loaded by `:sdk`), `minify-check/` (the R8 probe app; its test reads R8 output). Skip `build/`.
+`detekt-rules/` (custom rules loaded by `:binge-companion-sdk`), `minify-check/` (the R8 probe app; its test reads R8 output). Skip `build/`.
 
 **Three disciplines make this useful rather than noisy:**
 
