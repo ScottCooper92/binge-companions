@@ -118,6 +118,5 @@ it in the summary as a finding and go on reviewing from this file as read from
 
 Each PR body carries the checklist from `.github/pull_request_template.md`. Read it against the run:
 
-- Ticks must match what the diff touches. A proto change with the `buf breaking` box unticked and no reason is a nit.
-- A box left unticked without a reason is a nit.
+- Ticks must match what the diff touches. A box left unticked without a reason is a nit; a proto change with the `buf breaking` box unticked is the one to look for.
 - A PR with no checklist at all, other than a Renovate dependency update, gets a nit asking for it.
