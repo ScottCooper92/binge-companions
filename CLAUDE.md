@@ -129,6 +129,8 @@ repository already has rather than inventing new ones.
 
 ## Commits and pull requests
 
+**Open every PR from `.github/pull_request_template.md`** (`gh pr create --body-file` it, then fill it in, or paste its checklist into your body). Tick only the checks you ran locally on the final head, and say what you left to CI and why. The review bot reads the ticks against this PR's earlier CI runs, so a ticked check that failed one of them is a finding.
+
 - Conventional-commit subjects (`feat:`, `fix:`, `docs:`, `chore:`), imperative mood.
 - One reviewable idea per PR. A PR that changes a contract and refactors the build
   is two PRs.
