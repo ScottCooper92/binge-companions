@@ -8,7 +8,7 @@ CI is two independent jobs:
 
 | Job | Runs |
 | --- | --- |
-| `build` | `./gradlew build` — compile, generate protos, run tests, `ktlintCheck`, `detekt` on `:sdk`, `koverVerify` (85% of `:sdk` lines), Android lint on `:sdk` (`lintDebug`), the R8 shrink of `:minify-check` and its `MinifiedKeepRulesTest` |
+| `build` | `./gradlew build` — compile, generate protos, run tests, `ktlintCheck`, `detekt` on `:binge-companion-sdk`, `koverVerify` (85% of `:binge-companion-sdk` lines), Android lint on `:binge-companion-sdk` (`lintDebug`), the R8 shrink of `:minify-check` and its `MinifiedKeepRulesTest` |
 | `proto` | `buf lint`, then `buf breaking --against main` on PRs |
 
 There is no screenshot suite in this repository.
@@ -27,9 +27,9 @@ an invitation to improvise.
 | `buf lint` — `PACKAGE_DIRECTORY_MATCH` | Directory does not mirror the proto package | Move the file to match the package. Safe when the file is new; a **stop** if it is published |
 | `buf lint` — `RPC_REQUEST_RESPONSE_UNIQUE` / `RPC_REQUEST_STANDARD_NAME` | Each rpc needs its own `FooRequest`/`FooResponse` | Add the dedicated message types. Safe and additive |
 | `ktlintCheck` fails | Formatting | Run `./gradlew ktlintFormat` and commit the result. Never add a ktlint baseline or a `ktlint-disable` comment |
-| `detekt` fails on `:sdk` | Static analysis, with type resolution | Fix the finding in the code. Never add a `detekt-baseline.xml` (there is none, on purpose) or a `@Suppress`. If `UnsafeCallOnNullableType` is the rule, remove the `!!` |
-| `:sdk:lintDebug` fails | Android lint, AGP's defaults with no baseline; `NewApi` is an error at `minSdk` 26 | Read `sdk/build/reports/lint-results-debug.txt` for every finding, not just the first. For `NewApi`, keep the call in a function marked `@TargetApi(n)` and call it only behind a visible `Build.VERSION.SDK_INT >= n` check: lint does not follow a guard that lives in another function which takes the call as a lambda. Never add a `lint-baseline.xml`, `abortOnError = false` or a broad `@SuppressLint` |
-| `koverVerify` fails | `:sdk` line coverage fell below 85% | Add a test for the logic the diff added. Never lower the floor or widen the kover exclusions to make it pass: an exclusion is only for a class that holds an Android type and has its decision split into a tested class |
+| `detekt` fails on `:binge-companion-sdk` | Static analysis, with type resolution | Fix the finding in the code. Never add a `detekt-baseline.xml` (there is none, on purpose) or a `@Suppress`. If `UnsafeCallOnNullableType` is the rule, remove the `!!` |
+| `:binge-companion-sdk:lintDebug` fails | Android lint, AGP's defaults with no baseline; `NewApi` is an error at `minSdk` 26 | Read `sdk/build/reports/lint-results-debug.txt` for every finding, not just the first. For `NewApi`, keep the call in a function marked `@TargetApi(n)` and call it only behind a visible `Build.VERSION.SDK_INT >= n` check: lint does not follow a guard that lives in another function which takes the call as a lambda. Never add a `lint-baseline.xml`, `abortOnError = false` or a broad `@SuppressLint` |
+| `koverVerify` fails | `:binge-companion-sdk` line coverage fell below 85% | Add a test for the logic the diff added. Never lower the floor or widen the kover exclusions to make it pass: an exclusion is only for a class that holds an Android type and has its decision split into a tested class |
 | Kotlin compile error in `contracts` | Ordinary | Fix it. Note that generated stubs are not checked in — a symbol that "does not exist" after a proto edit usually means the proto and the Kotlin disagree, so fix the side that is wrong rather than deleting the reference |
 | `MinifiedKeepRulesTest` fails | A consumer keep rule no longer holds what R8 needs in a minified host (a message field, or grpc-binder's name resolver constructor) | Add or restore the rule in `sdk/consumer-rules.pro` or `contracts/src/main/resources/META-INF/proguard/binge-companion-contracts.pro`. Never add a keep rule to `:minify-check` or lower `MIN_MESSAGES`: that hides exactly what the check exists to catch |
 | `MinifiedRoundTripTest` fails (`device-round-trip.yml`) | A minified build broke across a real Binder: `ServiceConfigurationError` from `forAddress`, `Field … not found` on a parse, or a call that timed out | The artifact holds the reports and `TEST-*.xml` but no logcat, so read the failure in the report, and for a crash before any test reproduce it on an emulator with `adb shell am instrument -r -w com.binge.companion.minifycheck.test/androidx.test.runner.AndroidJUnitRunner` and read `adb logcat -b crash`. A missing rule goes in `sdk/consumer-rules.pro` or the contracts' consumer rules, never in `:minify-check`. If the step "Require the tests to have run" fails, or the log shows `Process crashed` / `NoClassDefFoundError` in the runner itself, the runner lost a class to R8: that is a gap in `minify-check/minified-test-rules.pro`, the one place test infrastructure may be kept, and never a consumer-rule gap. A `NoClassDefFoundError` on a client class (a stub, `io.grpc`, a `Builder`) means client code has crept back into the test APK: it belongs in `RoundTripClient`, in the app. If the emulator never booted (no `/dev/kvm`, a system image download), it is the runner, not the code: re-run once. A red weekly run opens the "Weekly device round trip is failing on main" issue; nothing was pushed to cause it, so suspect the runner or system image first |
@@ -46,7 +46,7 @@ Run only what failed, scoped:
 ```sh
 buf lint
 buf breaking --against ".git#branch=main"
-./gradlew :contracts:test
+./gradlew :binge-companion-contracts:test
 ```
 
 Do not run the full gate. CI does that on push.

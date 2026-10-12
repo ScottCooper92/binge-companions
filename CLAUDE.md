@@ -59,16 +59,16 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 - Kotlin/JVM, `jvmTarget` 17, built and tested on JDK 21.
 - Runtime is `protobuf-javalite` with `grpc-kotlin` stubs — suspend functions and
   `Flow`s, not callbacks. Generated code is not checked in.
-- Tests are JUnit 5. Scope Gradle to a module (`:contracts:test`) rather than
+- Tests are JUnit 5. Scope Gradle to a module (`:binge-companion-contracts:test`) rather than
   running the whole tree when you are checking one thing.
 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
 `build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt`, `koverVerify` and
-Android lint on `:sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
+Android lint on `:binge-companion-sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
 themselves into `check`, and `build` depends on it. `build` also shrinks `:minify-check`, a probe app that
-depends on `:sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
+depends on `:binge-companion-sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
 needs (#160). The device lane, `device-round-trip.yml`, is not part of `build`: it runs
 `:minify-check`'s instrumented round trip on an emulator, for a PR or push that touches the contracts, the SDK or
 `:minify-check`, and weekly for the runner and system images. There
@@ -76,22 +76,22 @@ is no screenshot suite in this repository, so do not look for one and do not rep
 finding as though one had caught it.
 
 Formatting is `ktlint_official` with the settings in `.editorconfig`, which are Binge's
-minus its Compose lines. `:contracts` excludes `build/generated` — protoc's output is
+minus its Compose lines. `:binge-companion-contracts` excludes `build/generated` — protoc's output is
 not checked in, so there is nothing there to format.
 
-detekt runs on `:sdk` only, off the root `detekt.yml`, which records deviations from
+detekt runs on `:binge-companion-sdk` only, off the root `detekt.yml`, which records deviations from
 detekt's defaults rather than a full ruleset. It runs **with type resolution**: the
 compile classpath is wired onto the task in `sdk/build.gradle.kts`, and without it
 `UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
 `detekt-baseline.xml`, because the first run found nothing; keep it that way rather than
 creating one.
 
-Coverage gates `:sdk` at **85% of lines**, measured after excluding the handful of classes
+Coverage gates `:binge-companion-sdk` at **85% of lines**, measured after excluding the handful of classes
 that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`
 and the `PackageManager` extension. That is not a fudge: each of those already has its
 decision split out into a JVM-testable class the tests do cover, and the KDoc at each one
 says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both halves.
-`:contracts` has no gate at all — generated stubs, nothing to write a test for.
+`:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
 
 The floor was set from a measurement (90.4% at the time) rather than inherited, so it
 ratchets. **A new module has to apply kover or say in its build file why not.** Binge

@@ -38,7 +38,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "binge-companions"
 
-include(":contracts")
-include(":sdk")
+// The two published modules are named for their artifact ids (#183): a composite build substitutes
+// `group:projectName`, so a consumer's `io.github.scottcooper92:binge-companion-sdk` resolves here. The
+// directories keep their short names.
+include(":binge-companion-contracts")
+include(":binge-companion-sdk")
+project(":binge-companion-contracts").projectDir = file("contracts")
+project(":binge-companion-sdk").projectDir = file("sdk")
 include(":detekt-rules")
 include(":minify-check")
