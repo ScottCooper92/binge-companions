@@ -71,7 +71,7 @@ themselves into `check`, and `build` depends on it. `build` also shrinks `:minif
 depends on `:sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
 needs (#160). The device lane, `device-round-trip.yml`, is not part of `build`: it runs
 `:minify-check`'s instrumented round trip on an emulator, for a PR or push that touches the contracts, the SDK or
-`:minify-check`. There
+`:minify-check`, and weekly for the runner and system images. There
 is no screenshot suite in this repository, so do not look for one and do not report a
 finding as though one had caught it.
 
