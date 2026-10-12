@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.detekt)
+    id("binge.gates.detekt")
     alias(libs.plugins.kover)
 }
 
@@ -59,46 +59,15 @@ dependencies {
     testImplementation(libs.grpc.inprocess)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
-
-    // Binge's custom `binge:` comment-quality rules (#39), loaded onto this module's detekt run.
-    detektPlugins(project(":detekt-rules"))
 }
 
 // detekt analyses `:sdk` and not `:contracts`: the only Kotlin under contracts/src/main is protoc's
-// output, which is not checked in, and its one hand-written file is a test. Pinned to src/main for
-// the same reason - a test's shape is not the SDK's contract.
-detekt {
-    config.setFrom(layout.settingsDirectory.file("detekt.yml"))
-    buildUponDefaultConfig = true
-    parallel = true
-}
-
-tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-    setSource(fileTree("src/main") { include("**/*.kt") })
-    jvmTarget = "17"
-    reports {
-        xml.required.set(false)
-        txt.required.set(false)
-        sarif.required.set(false)
-        md.required.set(false)
-    }
-}
-
-// UnsafeCallOnNullableType - the `!!` ban - needs type resolution, and a detekt task has no
-// classpath by default, so without this the rule loads and silently never fires. `libraries` is
-// the compile task's already-variant-resolved classpath; resolving compileDependencyFiles directly
-// trips AGP 9 variant ambiguity. configureEach rather than a lookup, because the Android variant
-// compilations do not exist yet when the Kotlin plugin applies.
-kotlin.target.compilations.configureEach {
-    if (name != "debug") return@configureEach
-    val classpathFiles =
-        compileTaskProvider.map {
-            (it as org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool).libraries
-        }
-    val outputClasses = output.classesDirs
-    tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-        classpath.from(classpathFiles, outputClasses)
-    }
+// output, which is not checked in, and its one hand-written file is a test. binge-ci's shared gate
+// pins it to src/main, for the same reason: a test's shape is not the SDK's contract. It also wires
+// the debug compilation's classpath on, without which UnsafeCallOnNullableType, the `!!` ban, loads
+// and silently never fires. Binge's custom `binge:` comment rules (#39) load onto the same run.
+detektGate {
+    customRulesProject = ":detekt-rules"
 }
 
 // Coverage gates :sdk and not :contracts: generated protobuf and grpc-kotlin stubs would swamp the

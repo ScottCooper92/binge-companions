@@ -13,8 +13,8 @@
 # own subset rather than a published ruleset, and this one takes only the lexical comment rules -
 # FileLength and the Tv* focus rules stayed in Binge, see the `binge:` block below for why.
 
-build:
-  maxIssues: 0
+# detekt 2.x, through binge-ci's shared gate. 2.x fails on any finding by default, so 1.x's
+# `build: maxIssues: 0` has no counterpart.
 
 potential-bugs:
   # The `!!` ban. Needs type resolution, which sdk/build.gradle.kts wires onto the detekt task;

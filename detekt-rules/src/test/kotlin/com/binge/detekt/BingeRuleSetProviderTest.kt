@@ -1,9 +1,8 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.RuleSetProvider
-import io.gitlab.arturbosch.detekt.test.TestConfig
-import io.gitlab.arturbosch.detekt.test.compileAndLint
+import dev.detekt.api.RuleSetProvider
+import dev.detekt.test.TestConfig
+import dev.detekt.test.lint
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,13 +16,14 @@ class BingeRuleSetProviderTest {
     fun `the provider registers every comment rule under the binge id`() {
         val provider = BingeRuleSetProvider()
 
-        assertEquals("binge", provider.ruleSetId)
+        assertEquals("binge", provider.ruleSetId.value)
         assertEquals(
             RULE_IDS,
             provider
-                .instance(Config.empty)
+                .instance()
                 .rules
-                .map { it.ruleId }
+                .keys
+                .map { it.value }
                 .toSet(),
         )
     }
@@ -60,10 +60,10 @@ class BingeRuleSetProviderTest {
     fun `ConsecutiveInlineComments configured from detekt yml allows three lines and flags four`() {
         val rule = ConsecutiveInlineComments(fileConfig("ConsecutiveInlineComments"))
 
-        assertEquals(0, rule.compileAndLint(commentRun(3) + "val x = 1\n").size)
+        assertEquals(0, rule.lint(commentRun(3) + "val x = 1\n").size)
         assertEquals(
             1,
-            ConsecutiveInlineComments(fileConfig("ConsecutiveInlineComments")).compileAndLint(commentRun(4) + "val x = 1\n").size,
+            ConsecutiveInlineComments(fileConfig("ConsecutiveInlineComments")).lint(commentRun(4) + "val x = 1\n").size,
         )
     }
 
@@ -72,12 +72,12 @@ class BingeRuleSetProviderTest {
         listOf("class Foo", "fun foo() = Unit", "val foo = 1").forEach { declaration ->
             assertEquals(
                 0,
-                KDocLength(fileConfig("KDocLength")).compileAndLint(kdoc(6) + declaration + "\n").size,
+                KDocLength(fileConfig("KDocLength")).lint(kdoc(6) + declaration + "\n").size,
                 "6 lines above `$declaration`",
             )
             assertEquals(
                 1,
-                KDocLength(fileConfig("KDocLength")).compileAndLint(kdoc(7) + declaration + "\n").size,
+                KDocLength(fileConfig("KDocLength")).lint(kdoc(7) + declaration + "\n").size,
                 "7 lines above `$declaration`",
             )
         }

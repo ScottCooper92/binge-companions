@@ -1,13 +1,10 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.api.CodeSmell
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
-import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
-import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
-import org.jetbrains.kotlin.com.intellij.psi.PsiComment
+import com.intellij.psi.PsiComment
+import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Finding
+import dev.detekt.api.Rule
 
 /**
  * Flags banner / ruler comments — a comment carrying a run of repeated ruler characters
@@ -16,20 +13,15 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiComment
  */
 class BannerComment(
     config: Config = Config.empty,
-) : Rule(config) {
-    override val issue = Issue(
-        id = javaClass.simpleName,
-        severity = Severity.Style,
-        description = "Banner/ruler comments are disallowed; name a type or file for the section instead.",
-        debt = Debt.FIVE_MINS,
-    )
-
+) : Rule(
+        config,
+        "Banner/ruler comments are disallowed; name a type or file for the section instead.",
+    ) {
     override fun visitComment(comment: PsiComment) {
         super.visitComment(comment)
         if (hasRulerRun(comment.text)) {
             report(
-                CodeSmell(
-                    issue = issue,
+                Finding(
                     entity = Entity.from(comment),
                     message = "This looks like a banner/ruler comment. Remove it and group the code " +
                         "into a well-named type or file.",
