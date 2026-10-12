@@ -13,9 +13,6 @@ name: Consumer check (binge-seerr)
 # The reusable workflow swaps this change in for binge-seerr's pin of this repository, found by URL
 # in its `.gitmodules`, and fetches every other binge-seerr submodule at its own pin. It runs on
 # pushes to main too, because setup-gradle saves its cache only there.
-#
-# JDK 17 is binge-seerr's toolchain, not this repository's 21: running the consumer on 21 would test
-# a combination nobody ships.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -45,4 +42,3 @@ jobs:
     with:
       consumer: ScottCooper92/binge-seerr
       tasks: ':app:compileDebugKotlin :app:compileDebugUnitTestKotlin'
-      java_version: '17'
