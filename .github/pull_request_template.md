@@ -7,5 +7,5 @@
 <!-- Tick what you ran locally on the final head. If you couldn't run one (it runs out of memory, or needs the network), leave it unticked and say so. Don't tick a box you didn't run. -->
 - [ ] `./gradlew :<module>:build` for each module this touches
 - [ ] `buf lint`, and `buf breaking --against '.git#branch=main'`; a contract change stays additive
-- [ ] Status.md and the contract docs match any contract change
+- [ ] docs/Status.md and the contract docs match any contract change
 - [ ] Left to CI, and why: <!-- e.g. `:minify-check`'s instrumented round trip needs an emulator, so `device-round-trip.yml` runs it -->
