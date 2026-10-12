@@ -82,6 +82,9 @@ not checked in, so there is nothing there to format.
 detekt runs on `:binge-companion-sdk` only, off the root `detekt.yml`, which records deviations from
 detekt's defaults rather than a full ruleset. It is detekt 2.x, through binge-ci's shared gate
 `binge.gates.detekt`, an included build from the `binge-ci` submodule pinned to a binge-ci release.
+The submodule, every binge-ci `uses:` pin in `.github/workflows/` and the catalog's detekt version
+move together: the build job runs `tools/check-binge-ci-lockstep.sh` first, and it fails when they
+disagree. Renovate moves only the workflow pins, so its binge-ci PR needs the submodule moved by hand.
 It runs **with type resolution**: the gate wires the debug compilation's classpath onto the task,
 and without it `UnsafeCallOnNullableType` — the `!!` ban — loads and silently never fires. There is no
 `detekt-baseline.xml`, because the first run found nothing; keep it that way rather than

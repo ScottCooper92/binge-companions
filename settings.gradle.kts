@@ -1,6 +1,7 @@
 pluginManagement {
     // The shared Gradle gates come from binge-ci as source, through a submodule pinned to the release
-    // the workflows also pin. Its plugins are applied by id with no version.
+    // the workflows also pin; tools/check-binge-ci-lockstep.sh fails CI when the two differ. Its
+    // plugins are applied by id with no version.
     includeBuild("binge-ci/gradle-plugins")
 
     repositories {
