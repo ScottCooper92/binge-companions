@@ -47,10 +47,10 @@ android {
 dependencies {
     // api: a companion implements the generated service base and speaks grpc-binder's types
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
-    api(project(":contracts"))
+    api(project(":binge-companion-contracts"))
     api(libs.grpc.binder)
 
-    // The fixtures' awaitEvent is written against kotlinx.coroutines; :contracts already exposes it
+    // The fixtures' awaitEvent is written against kotlinx.coroutines; :binge-companion-contracts already exposes it
     // to the runtime, so this only names it for the fixtures' own compile.
     testFixturesApi(libs.kotlinx.coroutines.core)
 
@@ -61,7 +61,7 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-// detekt analyses `:sdk` and not `:contracts`: the only Kotlin under contracts/src/main is protoc's
+// detekt analyses `:binge-companion-sdk` and not `:binge-companion-contracts`: the only Kotlin under contracts/src/main is protoc's
 // output, which is not checked in, and its one hand-written file is a test. binge-ci's shared gate
 // pins it to src/main, for the same reason: a test's shape is not the SDK's contract. It also wires
 // the debug compilation's classpath on, without which UnsafeCallOnNullableType, the `!!` ban, loads
@@ -70,7 +70,7 @@ detektGate {
     customRulesProject = ":detekt-rules"
 }
 
-// Coverage gates :sdk and not :contracts: generated protobuf and grpc-kotlin stubs would swamp the
+// Coverage gates :binge-companion-sdk and not :binge-companion-contracts: generated protobuf and grpc-kotlin stubs would swamp the
 // figure with code no test should be written for. The exclusions below are the same idea one level
 // down - each is a class that exists only to hold an Android type, and each already has its
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:

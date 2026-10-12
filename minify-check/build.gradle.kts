@@ -69,7 +69,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":sdk"))
+    implementation(project(":binge-companion-sdk"))
 
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)

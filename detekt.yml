@@ -1,4 +1,4 @@
-# detekt config for :sdk. binge-ci's shared gate, binge.gates.detekt, sets `buildUponDefaultConfig = true`,
+# detekt config for :binge-companion-sdk. binge-ci's shared gate, binge.gates.detekt, sets `buildUponDefaultConfig = true`,
 # so this file records only DEVIATIONS from detekt's defaults - it is not a full ruleset dump.
 #
 # Formatting is ktlint's job. detekt's own `formatting` ruleset ships in the separate
