@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.20"
 protobuf = "4.28.3"
-protobufPlugin = "0.9.5"
+protobufPlugin = "0.10.0"
 grpc = "1.76.3"
 grpcKotlin = "1.4.1"
 kotlinxCoroutines = "1.11.0"
