@@ -6,7 +6,10 @@ name: Device round trip (minified)
 # proves its own round trip rather than leaning on one of theirs.
 #
 # It is its own workflow, not a job in ci.yml: the emulator needs KVM and takes many minutes, and the bots read ci.yml
-# by name. It runs for the paths that can change the answer, and on request.
+# by name. The answer is a function of the committed tree plus the toolchain, so the paths that can change it trigger
+# it, with a weekly run behind them for what changes with time rather than with a diff: the hosted runner image, the
+# aosp-atd system image and Gradle Managed Devices. The lane itself, with its AVD cache, is device-smoke.yml in
+# binge-ci; the cache is saved only on a push to main, so a PR, a dispatch or the weekly run reads it without writing.
 
 on:
   workflow_dispatch:
@@ -26,94 +29,63 @@ on:
       - 'minify-check/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/device-round-trip.yml'
+  schedule:
+    - cron: '0 6 * * 1'
 
+# The weekly run has its own group. Sharing main's would let a push cancel it, and a cancelled scheduled run reports
+# as a failure.
 concurrency:
-  group: device-round-trip-${{ github.ref }}
+  group: device-round-trip-${{ github.event_name == 'schedule' && 'weekly' || github.ref }}
   cancel-in-progress: true
 
+# actions: write is for the AVD cache save, which deletes the previous entry first. The called workflow cannot hold
+# more than this.
 permissions:
   contents: read
+  actions: write
 
 jobs:
   round-trip:
     name: Round trip over Binder on a minified build
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    uses: ScottCooper92/binge-ci/.github/workflows/device-smoke.yml@ab385f7b9be823b925831cc5da6b399f2eeb7173 # v1.0.20
+    with:
+      timeout_minutes: 60
+      java_version: '21'
+      module: ':minify-check'
+      device: roundTripAtdApi34
+      api_level: '34'
+      system_image_source: aosp-atd
+      default_branch: main
+      tasks: ':minify-check:roundTripAtdApi34MinifiedAndroidTest'
+      # Gradle's managed device reports success when the instrumentation crashes before it finds a test, so a green
+      # task proves nothing. The lane fails unless each round trip is in the results by name.
+      results_dir: minify-check/build/outputs/androidTest-results/managedDevice/minified
+      expected_tests: >-
+        requestHandshakesAnswersAndRefusesWithAUserMessage
+        libraryHandshakesAndAnswersWithATimestamp
+        streamHandshakesAndAnswers
+      artifact_name: device-round-trip-results
+      artifact_paths: |
+        minify-check/build/reports/androidTests/**
+        minify-check/build/outputs/androidTest-results/**
+
+  # A red weekly run has no PR or push to carry it. One issue stays open while it is red and closes itself on the
+  # next green one, so an open one means "still broken", not "old". Scheduled runs only: a PR, a push or a dispatch
+  # already has someone watching it.
+  scheduled-report:
+    if: ${{ always() && github.event_name == 'schedule' }}
+    needs: round-trip
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    permissions:
+      issues: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # A stock ubuntu-latest has too little disk left for an AVD once the SDK and the build's dependencies land.
-      - name: Free disk space for the emulator
-        run: |
-          df -h /
-          sudo rm -rf /usr/local/lib/android/sdk/ndk /usr/share/dotnet /opt/ghc \
-            /usr/local/.ghcup /usr/share/swift /usr/local/share/powershell
-          docker system prune -af || true
-          df -h /
-
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      - uses: ScottCooper92/binge-ci/.github/actions/nightly-report@ab385f7b9be823b925831cc5da6b399f2eeb7173 # v1.0.20
         with:
-          distribution: temurin
-          java-version: 21
-
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
-
-      - name: Accept the SDK licences the system image needs
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-
-      - name: Enable KVM for the runner user
-        continue-on-error: true
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Check the runner can virtualise
-        run: |
-          set -euo pipefail
-          if [ ! -w /dev/kvm ]; then
-            echo "::error::/dev/kvm is missing or not writable by $(id -un), so no emulator can run here."
-            exit 1
-          fi
-
-      # showKernelLogging is what makes an emulator that fails to start say why.
-      - name: Run the round trip on the minified build
-        run: >
-          ./gradlew :minify-check:roundTripAtdApi34MinifiedAndroidTest
-          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
-          -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
-
-      # Gradle's managed device reports success when the instrumentation process crashes before it finds a test, so
-      # a green task proves nothing. Require the three round-trip tests by name.
-      - name: Require the round-trip tests to have run
-        run: |
-          set -euo pipefail
-          dir=minify-check/build/outputs/androidTest-results/managedDevice/minified
-          shopt -s globstar nullglob
-          files=("$dir"/**/TEST-*.xml)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "::error::No test result XML under $dir, so no test ran."
-            exit 1
-          fi
-          for t in requestHandshakesAnswersAndRefusesWithAUserMessage libraryHandshakesAndAnswersWithATimestamp streamHandshakesAndAnswers; do
-            if ! grep -h '<testcase' "${files[@]}" | grep -q "name=\"$t\""; then
-              echo "::error::Round-trip test $t is missing from the results. The runner probably crashed before discovering tests; the artifact has no logcat, so reproduce it with am instrument on an emulator."
-              exit 1
-            fi
-          done
-          if grep -hE '<(failure|error)' "${files[@]}" > /dev/null; then
-            echo "::error::A round-trip test failed or errored."
-            exit 1
-          fi
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: device-round-trip-results
-          path: |
-            minify-check/build/reports/androidTests/**
-            minify-check/build/outputs/androidTest-results/**
-          if-no-files-found: ignore
-          retention-days: 7
+          result: ${{ needs.round-trip.result }}
+          title: Weekly device round trip is failing on main
+          note: >-
+            Nothing was pushed to cause this, so suspect the environment first: a runner image or Android SDK update,
+            the aosp-atd system image, Gradle Managed Devices, or /dev/kvm on the hosted runner. The
+            device-round-trip-results artifact is kept for seven days.
