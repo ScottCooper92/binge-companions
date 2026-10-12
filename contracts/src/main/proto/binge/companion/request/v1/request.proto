@@ -306,22 +306,8 @@ message ListRequestsResponse {
   repeated RequestEntry entries = 1;
   // Empty when there are no more pages.
   string next_page_token = 2;
-  // True when the user has turned on, in the integration, "tell me when a title I asked for is
-  // available". The host announces availability only while this is true and keeps no setting of its
-  // own for it. False when the user has not, and false for an integration with no such setting, so
-  // an integration that never sets it asks nothing new of a host.
-  //
-  // It is the same on every page and for every `filter`, and the integration answers it from the
-  // setting as it stands when it answers. That is why it travels here and is not a capability: the
-  // capability set is kept for the instance's life (see `Handshake`), so a switch the user flips
-  // later would not reach the host until the next instance, where this reaches it on the next call.
-  // A host announces availability only from `REQUEST_FILTER_MINE_RECENTLY_AVAILABLE`, which holds the
-  // signed-in user's own requests. It announces nothing for an integration that does not declare
-  // `CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE`, and it never falls back to `RECENTLY_AVAILABLE`: that
-  // list can hold other users' requests. A host that polls the mine filter reads this flag from the
-  // first page and need not page on when it is false. Declared only with `CAPABILITY_LIST_REQUESTS`:
-  // it is on that rpc's response.
-  bool available_notifications_enabled = 3;
+  // Deprecated: never set by a companion, and a host reads it as false; the opt-in lives in the host (#133).
+  bool available_notifications_enabled = 3 [deprecated = true];
 }
 
 // One request in a `ListRequests` page: the title, its status, and the request that put it
