@@ -3,11 +3,11 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-// Custom detekt rules, packaged as a plain JVM jar that :sdk's detekt run loads via detektPlugins
-// (wired in sdk/build.gradle.kts). It must NOT apply the detekt plugin itself — detekt can't
+// Custom detekt rules, packaged as a plain JVM jar that :sdk's detekt run loads as binge.gates.detekt's
+// `customRulesProject` (set in sdk/build.gradle.kts). It must NOT apply the detekt plugin itself — detekt can't
 // analyse the ruleset that defines it — and it carries no coverage gate: it has no production app
 // logic of its own for a line-coverage floor to mean anything against. The PSI rules are covered
-// by JUnit 5 tests (io.gitlab.arturbosch.detekt:detekt-test), the same harness Binge's copy uses.
+// by JUnit 5 tests (dev.detekt:detekt-test), the same harness Binge's copy uses.
 //
 // Ported from Binge's detekt-rules module per #39: this repository takes only the lexical comment
 // rules (BannerComment, ConsecutiveInlineComments, DeclarationCommentShouldBeKDoc, KDocLength).

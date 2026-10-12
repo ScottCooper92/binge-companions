@@ -44,7 +44,7 @@
       matchPackageNames: [
         "/^org\\.jetbrains\\.kotlin[.:]/",
         "/^com\\.android\\.(tools\\.build|library|application)/",
-        "/^io\\.gitlab\\.arturbosch\\.detekt/",
+        "/^dev\\.detekt[.:]/",
       ],
       groupName: "kotlin, android and detekt toolchain",
       automerge: false,

@@ -91,8 +91,8 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - The ruleset is the comment gates (`BannerComment`, `ConsecutiveInlineComments`, `DeclarationCommentShouldBeKDoc`, `KDocLength`, registered in `BingeRuleSetProvider`). Each rule needs a test with a positive **and** a negative case (`CommentRulesTest`); a rule that never fires (malformed
   pattern, wrong PSI type) is a confident false "clean" — run/read the test to confirm it fires.
 - Rules registered in the provider and enabled in `detekt.yml`; `detekt.yml` records only deviations
-  from defaults (no full ruleset dump); `UnsafeCallOnNullableType` still fires (type-resolution
-  classpath wired in `sdk/build.gradle.kts` — without it the `!!` ban silently never runs).
+  from defaults (no full ruleset dump); `UnsafeCallOnNullableType` still fires (binge-ci's
+  `binge.gates.detekt` wires the type-resolution classpath — without it the `!!` ban silently never runs).
 - `!!` or suppressions anywhere in `sdk/src/main`; no `detekt-baseline.xml` exists (the first run found
   nothing; **keep it that way**).
 

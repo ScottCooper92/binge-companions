@@ -1,5 +1,5 @@
-# detekt config for :sdk. `buildUponDefaultConfig = true` is set in sdk/build.gradle.kts, so this
-# file records only DEVIATIONS from detekt's defaults - it is not a full ruleset dump.
+# detekt config for :sdk. binge-ci's shared gate, binge.gates.detekt, sets `buildUponDefaultConfig = true`,
+# so this file records only DEVIATIONS from detekt's defaults - it is not a full ruleset dump.
 #
 # Formatting is ktlint's job. detekt's own `formatting` ruleset ships in the separate
 # detekt-formatting artifact, which is deliberately NOT on the classpath, so it never loads.
@@ -17,7 +17,7 @@
 # `build: maxIssues: 0` has no counterpart.
 
 potential-bugs:
-  # The `!!` ban. Needs type resolution, which sdk/build.gradle.kts wires onto the detekt task;
+  # The `!!` ban. Needs type resolution, which binge.gates.detekt wires onto the detekt task;
   # without that classpath the rule loads and silently never fires.
   UnsafeCallOnNullableType:
     active: true
@@ -72,7 +72,7 @@ style:
   WildcardImport:
     active: false
 
-# Binge's custom comment-quality gates (`detekt-rules` module, loaded via detektPlugins in
+# Binge's custom comment-quality gates (`detekt-rules` module, the gate's `customRulesProject` in
 # sdk/build.gradle.kts), copied per #39 rather than depended on: each repo that wants the `binge:`
 # rules carries its own subset. This one takes the lexical comment rules only - stable, no type
 # resolution, no repo-specific allowlist. FileLength (a repo-specific grandfather list) and the
