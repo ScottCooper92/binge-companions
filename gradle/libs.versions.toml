@@ -14,6 +14,8 @@ androidxTestJunit = "1.3.0"
 # The version matches Binge and binge-seerr so the SDK builds with the toolchain its consumers use.
 agp = "9.4.1"
 ktlint = "14.2.0"
+# binge-ci's gate applies dev.detekt at its own catalog's version, so this follows it.
+# tools/check-binge-ci-lockstep.sh fails CI when the two differ.
 detekt = "2.0.0-alpha.6"
 kover = "0.9.9"
 

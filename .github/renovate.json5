@@ -40,13 +40,25 @@
     },
     {
       // binge-seerr takes its Kotlin version from this build, so a bump here moves the consumer.
-      // Kotlin and AGP are coordinated upgrades; detekt is pinned to the Kotlin it analyses.
+      // Kotlin and AGP are coordinated upgrades; detekt is pinned to the Kotlin it analyses, and to
+      // binge-ci's catalog, which the lockstep check enforces.
       matchPackageNames: [
         "/^org\\.jetbrains\\.kotlin[.:]/",
         "/^com\\.android\\.(tools\\.build|library|application)/",
         "/^dev\\.detekt[.:]/",
       ],
       groupName: "kotlin, android and detekt toolchain",
+      automerge: false,
+    },
+    {
+      // binge-ci is pinned in the workflows and again as the submodule that supplies the Gradle gates,
+      // and tools/check-binge-ci-lockstep.sh fails CI until both name one commit. Renovate moves only
+      // the workflow pins, so its PR stays red until someone moves the submodule in it too. Never a bot
+      // merge, and one PR for every binge-ci pin. Listed after the actions rule so its automerge: false
+      // wins.
+      matchManagers: ["github-actions"],
+      matchPackageNames: ["ScottCooper92/binge-ci"],
+      groupName: "binge-ci",
       automerge: false,
     },
   ],
