@@ -225,7 +225,15 @@ in its manifest.
 
 ## Play stance
 
-- No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
+- No bundled providers. No provider ships inside the Binge APK.
+- A curated list of vetted companions, and no directory. Binge may list companion apps that are
+  vetted and published on Google Play, on one screen, and each entry opens its Play listing. The list
+  is never ranked and never searchable, it never includes an infringing companion, and an app that is
+  not on Play is not on it. Binge links to no other listing, and promotes no companion anywhere else.
+  Play's intellectual-property policy bars apps that encourage or induce infringement. What it guards
+  against is pointing users at infringing companions, not linking to legitimate Play apps, and a short
+  curated list of Play-reviewed, vetted companions stays on the right side of that line.
+  This mirrors §8 of Binge's companion-platform architecture, which is the authority for it.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
 - Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` (planned; v1 ships without it) will
@@ -377,8 +385,8 @@ A host ships no STREAM UI until a first-party companion exists that resolves lic
 the proto stays `Draft` until that companion has served it. Two reasons, both about Play:
 
 - An app whose screens list third-party stream links is the pattern that gets a media app removed,
-  hand-off or not. The host cannot tell an infringing source from a licit one, so "no promotion of
-  infringing companions" protects nothing here on its own. What protects the host is what it does
+  hand-off or not. The host cannot tell an infringing source from a licit one, so "the curated list
+  never includes an infringing companion" protects nothing here on its own. What protects the host is what it does
   and does not do with a source, which is the rest of this section.
 - The licit cases are mostly already covered. The user's own server is LIBRARY. Ad-supported and
   subscription services are TMDB watch providers with deep links. STREAM has to earn its place with
