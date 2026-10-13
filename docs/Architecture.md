@@ -41,12 +41,15 @@ intent action:
   `majors` alone cannot say which contract's package a value names. The host first reads which
   actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
   multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
-  and so on, one key per action the Service filters on. A single-action Service keeps using the
+  and so on, one key per contract action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
-  Service names more than one action. Both forms follow the same String-or-Int reading rule.
+  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY` and
+  `STREAM` count: a Service filtering on REQUEST and an app-internal action of its own is a
+  single-action Service, and keeps the bare key. The bare key can only be ambiguous between
+  contracts, so only contracts decide. Both forms follow the same String-or-Int reading rule.
   A host that includes the SDK reads them with `Bundle.readServedMajors(action, filteredActions)`.
-  For a multi-action Service it reads only the scoped key, and a missing key means no majors. For a
-  single-action Service it reads only the bare key.
+  It counts only the contract actions among those the Service filters on. With more than one, it
+  reads only the scoped key, and a missing key means no majors. With one, it reads only the bare key.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
 

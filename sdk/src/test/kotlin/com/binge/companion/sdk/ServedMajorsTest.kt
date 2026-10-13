@@ -3,7 +3,10 @@ package com.binge.companion.sdk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-/** The host reading a companion's declared majors (#167): scoped keys for a multi-action Service, the bare key for one action. */
+/**
+ * The host reading a companion's declared majors (#167): scoped keys for a Service on more than one contract action, the bare
+ * key for one. Only contract actions count (#173).
+ */
 class ServedMajorsTest {
     private val single = setOf(CompanionManifest.ACTION_REQUEST)
     private val multi = setOf(CompanionManifest.ACTION_REQUEST, CompanionManifest.ACTION_LIBRARY)
@@ -55,6 +58,16 @@ class ServedMajorsTest {
         assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_REQUEST, single))
         assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_REQUEST, single, CompanionManifest.META_MAJORS to "one,0,-2"))
         assertEquals(setOf(3), majors(CompanionManifest.ACTION_REQUEST, single, CompanionManifest.META_MAJORS to "x,3,"))
+    }
+
+    @Test
+    fun `a private action beside one contract action leaves the bare key in use`() {
+        val requestAndPrivate = single + "com.example.INTERNAL"
+        assertEquals(setOf(1), majors(CompanionManifest.ACTION_REQUEST, requestAndPrivate, CompanionManifest.META_MAJORS to "1"))
+        assertEquals(
+            emptySet<Int>(),
+            majors(CompanionManifest.ACTION_REQUEST, requestAndPrivate, CompanionManifest.META_MAJORS_REQUEST to "1"),
+        )
     }
 
     @Test

@@ -5,9 +5,10 @@ import android.os.Bundle
 /**
  * The contract majors a companion's Service declares for [action], read from its manifest `<meta-data>`: the
  * host's half of [CompanionManifest.META_MAJORS]. [filteredActions] is the actions the Service's
- * `<intent-filter>`s name. With more than one, only the key scoped to [action] is read, and a missing key means
- * no majors. With one, only the bare key is read. String and Int values both parse, as `docs/Architecture.md`
- * > Transport requires; the parsing is [servedMajors], tested on the JVM.
+ * `<intent-filter>`s name; only the contract actions among them count. With more than one contract action, only
+ * the key scoped to [action] is read, and a missing key means no majors. With one, only the bare key is read, so
+ * an app-internal action beside REQUEST changes nothing. String and Int values both parse, as
+ * `docs/Architecture.md` > Transport requires; the parsing is [servedMajors], tested on the JVM.
  */
 fun Bundle.readServedMajors(action: String, filteredActions: Set<String>): Set<Int> =
     servedMajors(action, filteredActions) { key ->
@@ -16,17 +17,18 @@ fun Bundle.readServedMajors(action: String, filteredActions: Set<String>): Set<I
     }
 
 /**
- * The parsing behind [readServedMajors], with the Bundle as [read], so it runs on the JVM. A multi-action
- * Service reads only the scoped key for [action]; a single-action Service reads only the bare key. A value is
- * a comma-separated list of majors; a piece that is not a positive number is ignored rather than failing the
- * whole declaration.
+ * The parsing behind [readServedMajors], with the Bundle as [read], so it runs on the JVM. A Service filtering
+ * on more than one contract action reads only the scoped key for [action]; one filtering on a single contract
+ * action reads only the bare key, whatever other actions it names. A value is a comma-separated list of majors;
+ * a piece that is not a positive number is ignored rather than failing the whole declaration.
  */
 internal fun servedMajors(
     action: String,
     filteredActions: Set<String>,
     read: (key: String) -> String?,
 ): Set<Int> {
-    val key = if (filteredActions.size > 1) scopedMajorsKey(action) else CompanionManifest.META_MAJORS
+    val contractActions = filteredActions.count { scopedMajorsKey(it) != null }
+    val key = if (contractActions > 1) scopedMajorsKey(action) else CompanionManifest.META_MAJORS
     val value = key?.let(read) ?: return emptySet()
     return value
         .split(',')
