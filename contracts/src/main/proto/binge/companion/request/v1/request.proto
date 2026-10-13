@@ -252,11 +252,12 @@ message SubmitRequestRequest {
 
 message SubmitRequestResponse {
   // The request this call created or, when `already_requested` is true, the one
-  // request the integration can name. 0 means unset (proto3 has no presence): it is 0
-  // whenever `already_requested` is true and the integration cannot name one request.
+  // request the integration can name. Empty means unset: it is empty whenever
+  // `already_requested` is true and the integration cannot name one request.
   // A title can hold a standard and a 4K request, so the host reads `status.requests`
-  // for the full list rather than relying on this id.
-  int32 request_id = 1;
+  // for the full list rather than relying on this id. Opaque, as every request id is:
+  // see `RequestInfo.id`.
+  string request_id = 1;
   // True when the provider already had a request for this title and created nothing new.
   bool already_requested = 2;
   // The title's state after the submit, so the host can update without a second call.
@@ -436,7 +437,10 @@ message DownloadProgress {
 
 // One request for a title, as listed on the host's request sheet.
 message RequestInfo {
-  int32 id = 1;
+  // The provider's own id for this request, opaque to the host: whatever the provider's
+  // server uses, a number, a UUID or a slug, as a string. The host only hands it back on
+  // Edit/Cancel/Approve/Decline/Retry and never parses it. Never empty for a listed request.
+  string id = 1;
   ApprovalState state = 2;
   // Display name or username of the requesting user, when the provider says. Never an
   // email address or any part of one (see the header).
@@ -459,7 +463,8 @@ message RequestInfo {
 }
 
 message EditRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
   // The full replacement set, as `SubmitRequestRequest.season_numbers` is; not a delta.
   //
   // Empty is INVALID_ARGUMENT here, where on a submit it means the provider's default
@@ -548,25 +553,29 @@ message SubmitAdvancedRequestResponse {
 }
 
 message CancelRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message CancelRequestResponse {}
 
 message ApproveRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message ApproveRequestResponse {}
 
 message DeclineRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message DeclineRequestResponse {}
 
 message RetryRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message RetryRequestResponse {}
