@@ -94,8 +94,8 @@ Practical rules:
   with a different `page_size` or filter, is `INVALID_ARGUMENT`. Each `.proto` repeats this on its
   paged rpcs.
 - **A consumer that minifies needs keep rules that neither grpc-binder nor protobuf-javalite
-  provides.** `:sdk` carries the grpc-binder one (its name resolver is instantiated by
-  reflection, which R8 cannot see) as a consumer rule, and `:contracts` carries the protobuf one
+  provides.** `:binge-companion-sdk` carries the grpc-binder one (its name resolver is instantiated by
+  reflection, which R8 cannot see) as a consumer rule, and `:binge-companion-contracts` carries the protobuf one
   (a generated message's fields are looked up by name) under `META-INF/proguard/`. It keeps the
   fields of the contracts' own messages and of the well-known types they embed, `Timestamp` and
   `Any`. Both fail only
@@ -136,6 +136,9 @@ status. A declared capability gates every other rpc.
   - For LIBRARY, which has no attention read, the handshake answers `UNAUTHENTICATED` with no working
     session, and that error is the signal. The host handshakes again when the user returns from the
     integration app after it sent them there for an `UNAUTHENTICATED` (#113).
+- **Settings the user can change at any time.** A setting that lives in the integration and that the host
+  must honour does not fit a capability, because the host keeps the capability set for the instance's life.
+  It travels on the response of a call the host already makes, so each call reads it as it stands.
 - **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
   subset — capabilities that aren't about any one existing request. A capability that is about one
   specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own

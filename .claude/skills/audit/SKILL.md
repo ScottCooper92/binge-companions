@@ -5,8 +5,8 @@ description: Whole-repo sweep of binge-companions (the contracts, the SDK and it
 
 # Contracts and SDK audit
 
-CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:sdk` with type
-resolution, `koverVerify` at 85% on `:sdk`, Android lint on `:sdk`) and, separately, `buf lint` (STANDARD) plus
+CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:binge-companion-sdk` with type
+resolution, `koverVerify` at 85% on `:binge-companion-sdk`, Android lint on `:binge-companion-sdk`) and, separately, `buf lint` (STANDARD) plus
 `buf breaking --against main` (FILE). There is **no** screenshot suite here — do not look for one
 and do not report a finding as though one had caught it. Do not re-report what that set decides.
 The audit's value is what it can't: whether a *breaking* change hides where `buf` can't see it,
@@ -17,7 +17,7 @@ whether the docs still describe the contracts, and whether the SDK's security po
 bug — say which.
 
 Modules: `contracts/` (`.proto` + generated stubs, not checked in), `sdk/` (`com.binge.companion.sdk`),
-`detekt-rules/` (custom rules loaded by `:sdk`), `minify-check/` (the R8 probe app; its test reads R8 output). Skip `build/`.
+`detekt-rules/` (custom rules loaded by `:binge-companion-sdk`), `minify-check/` (the R8 probe app; its test reads R8 output). Skip `build/`.
 
 **Three disciplines make this useful rather than noisy:**
 
@@ -91,8 +91,8 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - The ruleset is the comment gates (`BannerComment`, `ConsecutiveInlineComments`, `DeclarationCommentShouldBeKDoc`, `KDocLength`, registered in `BingeRuleSetProvider`). Each rule needs a test with a positive **and** a negative case (`CommentRulesTest`); a rule that never fires (malformed
   pattern, wrong PSI type) is a confident false "clean" — run/read the test to confirm it fires.
 - Rules registered in the provider and enabled in `detekt.yml`; `detekt.yml` records only deviations
-  from defaults (no full ruleset dump); `UnsafeCallOnNullableType` still fires (type-resolution
-  classpath wired in `sdk/build.gradle.kts` — without it the `!!` ban silently never runs).
+  from defaults (no full ruleset dump); `UnsafeCallOnNullableType` still fires (binge-ci's
+  `binge.gates.detekt` wires the type-resolution classpath — without it the `!!` ban silently never runs).
 - `!!` or suppressions anywhere in `sdk/src/main`; no `detekt-baseline.xml` exists (the first run found
   nothing; **keep it that way**).
 

@@ -2,6 +2,7 @@ package com.binge.companion.sdk
 
 import android.os.Build
 import java.security.MessageDigest
+import java.util.Locale
 
 /**
  * What the platform reports about a package's signing, as plain values: whether it has several
@@ -35,4 +36,4 @@ internal fun sha256Hex(certificate: ByteArray): String =
     MessageDigest
         .getInstance("SHA-256")
         .digest(certificate)
-        .joinToString(separator = "") { "%02x".format(it) }
+        .joinToString(separator = "") { "%02x".format(Locale.ROOT, it) }

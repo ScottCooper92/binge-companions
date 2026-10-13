@@ -43,7 +43,7 @@ jobs:
       (github.event.workflow_run.event != 'schedule') &&
       (!github.event.pull_request || github.event.pull_request.head.repo.full_name == github.repository) &&
       (!github.event.workflow_run || github.event.workflow_run.head_repository.full_name == github.repository)
-    uses: ScottCooper92/binge-ci/.github/workflows/author-ci-fix.yml@86232f187cb3f2d76f9cd3e20c8e2798a4dd86b9 # v1
+    uses: ScottCooper92/binge-ci/.github/workflows/author-ci-fix.yml@83696d01c14aca048486bba7f2079073c2e15a1e # v1
     with:
       author_bot_id: ${{ vars.AUTHOR_BOT_ID }}
       toolchain: jvm
@@ -51,7 +51,7 @@ jobs:
       setup_buf: true
       verify_guidance: >
         Verify by running only the check that failed — `buf lint`, `buf breaking`,
-        `./gradlew :contracts:test` for the round-trip test. Do not run the whole
+        `./gradlew :binge-companion-contracts:test` for the round-trip test. Do not run the whole
         build; CI will do that when you push.
       gate_rules: |
         NEVER silence a gate instead of fixing it. In this repository that

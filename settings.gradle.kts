@@ -1,4 +1,9 @@
 pluginManagement {
+    // The shared Gradle gates come from binge-ci as source, through a submodule pinned to the release
+    // the workflows also pin; tools/check-binge-ci-lockstep.sh fails CI when the two differ. Its
+    // plugins are applied by id with no version.
+    includeBuild("binge-ci/gradle-plugins")
+
     repositories {
         // Google first, for its own groups: the Android Gradle plugin is published only there, and asking Central
         // first for it fails the build outright when Central answers 429.
@@ -38,7 +43,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "binge-companions"
 
-include(":contracts")
-include(":sdk")
+// The two published modules are named for their artifact ids (#183): a composite build substitutes
+// `group:projectName`, so a consumer's `io.github.scottcooper92:binge-companion-sdk` resolves here. The
+// directories keep their short names.
+include(":binge-companion-contracts")
+include(":binge-companion-sdk")
+project(":binge-companion-contracts").projectDir = file("contracts")
+project(":binge-companion-sdk").projectDir = file("sdk")
 include(":detekt-rules")
 include(":minify-check")

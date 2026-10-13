@@ -153,12 +153,18 @@ enum Capability {
   // that would rather not pay that on every status check simply doesn't declare it.
   CAPABILITY_MEDIA_FILE_INFO = 13;
   // Answers `ListRequests`: the requests the provider holds, paged and filtered, which is
-  // what a host's "now available" row and notifications are built from. Per title the host
+  // what a host's "now available" row is built from. Notifications need
+  // `CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE` as well. Per title the host
   // cannot build either: it would have to remember and poll every title it ever requested.
   CAPABILITY_LIST_REQUESTS = 14;
   // Answers `GetStatuses`: the statuses of a page of titles in one call, for a requested badge
   // on a grid. Live updates for what is on screen still come from `ObserveStatus`.
   CAPABILITY_BATCH_STATUS = 15;
+  // Answers `ListRequests` with `REQUEST_FILTER_MINE_RECENTLY_AVAILABLE`: the signed-in user's own
+  // requests that became available recently. It is what a host notifies the user from, since
+  // `REQUEST_FILTER_RECENTLY_AVAILABLE` holds other users' requests too and a `RequestEntry`
+  // names no requester to filter by. Declared only with CAPABILITY_LIST_REQUESTS.
+  CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE = 16;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -265,8 +271,8 @@ message GetStatusResponse {
   RequestStatus status = 1;
 }
 
-// Which requests `ListRequests` answers with. Only `RECENTLY_AVAILABLE` states an order; for
-// the others the order is the integration's to choose, and a host must not assume one.
+// Which requests `ListRequests` answers with. Only the two `RECENTLY_AVAILABLE` values state an
+// order; for the others the order is the integration's to choose, and a host must not assume one.
 enum RequestFilter {
   REQUEST_FILTER_UNSPECIFIED = 0;
   // The signed-in user's own requests.
@@ -278,6 +284,10 @@ enum RequestFilter {
   // Requests whose title became available recently, most recent first. How recent is the
   // integration's to choose; the host shows what it is given.
   REQUEST_FILTER_RECENTLY_AVAILABLE = 4;
+  // The signed-in user's own requests among `RECENTLY_AVAILABLE`: the same window, most recent
+  // first. Requires CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE; an integration that does not declare
+  // it answers INVALID_ARGUMENT, as for any filter it does not know.
+  REQUEST_FILTER_MINE_RECENTLY_AVAILABLE = 5;
 }
 
 message ListRequestsRequest {
@@ -296,6 +306,8 @@ message ListRequestsResponse {
   repeated RequestEntry entries = 1;
   // Empty when there are no more pages.
   string next_page_token = 2;
+  // Deprecated: never set by a companion, and a host reads it as false; the opt-in lives in the host (#133).
+  bool available_notifications_enabled = 3 [deprecated = true];
 }
 
 // One request in a `ListRequests` page: the title, its status, and the request that put it
@@ -642,10 +654,11 @@ service RequestService {
   // is open the host knows the status is at least as fresh as the last push. Codes as
   // `GetStatus`, answered by failing the stream.
   rpc ObserveStatus(ObserveStatusRequest) returns (stream ObserveStatusResponse);
-  // Requires CAPABILITY_LIST_REQUESTS. Paged, as every list on this platform is.
-  // INVALID_ARGUMENT for an unspecified or unknown `filter`, or a `page_token` this
-  // integration did not issue or that comes back with a different `filter` or `page_size`
-  // than it was issued under.
+  // Requires CAPABILITY_LIST_REQUESTS, and `REQUEST_FILTER_MINE_RECENTLY_AVAILABLE` also
+  // CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for an unspecified or unknown `filter`, one whose capability is not
+  // declared, or a `page_token` this integration did not issue or that comes back with a
+  // different `filter` or `page_size` than it was issued under.
   rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
   // Requires CAPABILITY_BATCH_STATUS. INVALID_ARGUMENT for more than 50 titles or for any
   // unusable `MediaId`, naming none of the others. A title nobody has requested is data, not

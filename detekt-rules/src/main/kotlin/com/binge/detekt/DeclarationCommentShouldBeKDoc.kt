@@ -1,15 +1,12 @@
 package com.binge.detekt
 
-import io.gitlab.arturbosch.detekt.api.CodeSmell
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
-import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
-import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
-import org.jetbrains.kotlin.com.intellij.psi.PsiComment
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
+import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Finding
+import dev.detekt.api.Rule
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtClassOrObject
@@ -27,14 +24,10 @@ import org.jetbrains.kotlin.psi.KtProperty
  */
 class DeclarationCommentShouldBeKDoc(
     config: Config = Config.empty,
-) : Rule(config) {
-    override val issue = Issue(
-        id = javaClass.simpleName,
-        severity = Severity.Style,
-        description = "A comment documenting a declaration should be KDoc (/** */), not //.",
-        debt = Debt.FIVE_MINS,
-    )
-
+) : Rule(
+        config,
+        "A comment documenting a declaration should be KDoc (/** */), not //.",
+    ) {
     override fun visitClassOrObject(classOrObject: KtClassOrObject) {
         super.visitClassOrObject(classOrObject)
         if (classOrObject !is KtEnumEntry) check(classOrObject)
@@ -56,8 +49,7 @@ class DeclarationCommentShouldBeKDoc(
         if (declaration.docComment != null) return
         val comment = precedingLineComment(declaration) ?: return
         report(
-            CodeSmell(
-                issue = issue,
+            Finding(
                 entity = Entity.from(comment),
                 message = "This // comment documents '${declaration.name}'. Make it a KDoc /** */ block.",
             ),

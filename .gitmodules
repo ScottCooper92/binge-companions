@@ -1,0 +1,3 @@
+[submodule "binge-ci"]
+	path = binge-ci
+	url = https://github.com/ScottCooper92/binge-ci

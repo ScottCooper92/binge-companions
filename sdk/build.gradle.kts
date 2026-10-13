@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.detekt)
+    id("binge.gates.detekt")
     alias(libs.plugins.kover)
 }
 
@@ -47,10 +47,10 @@ android {
 dependencies {
     // api: a companion implements the generated service base and speaks grpc-binder's types
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
-    api(project(":contracts"))
+    api(project(":binge-companion-contracts"))
     api(libs.grpc.binder)
 
-    // The fixtures' awaitEvent is written against kotlinx.coroutines; :contracts already exposes it
+    // The fixtures' awaitEvent is written against kotlinx.coroutines; :binge-companion-contracts already exposes it
     // to the runtime, so this only names it for the fixtures' own compile.
     testFixturesApi(libs.kotlinx.coroutines.core)
 
@@ -59,49 +59,18 @@ dependencies {
     testImplementation(libs.grpc.inprocess)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
-
-    // Binge's custom `binge:` comment-quality rules (#39), loaded onto this module's detekt run.
-    detektPlugins(project(":detekt-rules"))
 }
 
-// detekt analyses `:sdk` and not `:contracts`: the only Kotlin under contracts/src/main is protoc's
-// output, which is not checked in, and its one hand-written file is a test. Pinned to src/main for
-// the same reason - a test's shape is not the SDK's contract.
-detekt {
-    config.setFrom(layout.settingsDirectory.file("detekt.yml"))
-    buildUponDefaultConfig = true
-    parallel = true
+// detekt analyses `:binge-companion-sdk` and not `:binge-companion-contracts`: the only Kotlin under contracts/src/main is protoc's
+// output, which is not checked in, and its one hand-written file is a test. binge-ci's shared gate
+// pins it to src/main, for the same reason: a test's shape is not the SDK's contract. It also wires
+// the debug compilation's classpath on, without which UnsafeCallOnNullableType, the `!!` ban, loads
+// and silently never fires. Binge's custom `binge:` comment rules (#39) load onto the same run.
+detektGate {
+    customRulesProject = ":detekt-rules"
 }
 
-tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-    setSource(fileTree("src/main") { include("**/*.kt") })
-    jvmTarget = "17"
-    reports {
-        xml.required.set(false)
-        txt.required.set(false)
-        sarif.required.set(false)
-        md.required.set(false)
-    }
-}
-
-// UnsafeCallOnNullableType - the `!!` ban - needs type resolution, and a detekt task has no
-// classpath by default, so without this the rule loads and silently never fires. `libraries` is
-// the compile task's already-variant-resolved classpath; resolving compileDependencyFiles directly
-// trips AGP 9 variant ambiguity. configureEach rather than a lookup, because the Android variant
-// compilations do not exist yet when the Kotlin plugin applies.
-kotlin.target.compilations.configureEach {
-    if (name != "debug") return@configureEach
-    val classpathFiles =
-        compileTaskProvider.map {
-            (it as org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool).libraries
-        }
-    val outputClasses = output.classesDirs
-    tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-        classpath.from(classpathFiles, outputClasses)
-    }
-}
-
-// Coverage gates :sdk and not :contracts: generated protobuf and grpc-kotlin stubs would swamp the
+// Coverage gates :binge-companion-sdk and not :binge-companion-contracts: generated protobuf and grpc-kotlin stubs would swamp the
 // figure with code no test should be written for. The exclusions below are the same idea one level
 // down - each is a class that exists only to hold an Android type, and each already has its
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
