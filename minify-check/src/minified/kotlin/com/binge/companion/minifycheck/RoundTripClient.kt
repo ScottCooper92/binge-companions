@@ -79,7 +79,7 @@ class RoundTripClient(
             RequestOutcome(
                 providerName = handshake.providerName,
                 capabilityCount = handshake.capabilitiesCount,
-                availability = status.status.availability.name,
+                availability = status.status.versionsList.first { !it.is4K }.availability.name,
                 refusalCode = refusal?.status?.code?.name ?: "NOT_REFUSED",
                 refusalReason = message?.reason,
                 refusalMessage = message?.message,
