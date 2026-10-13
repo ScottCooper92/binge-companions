@@ -225,7 +225,14 @@ in its manifest.
 
 ## Play stance
 
-- No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
+- No bundled providers. No provider ships inside the Binge APK.
+- A curated list of vetted companions, and no directory. Binge may list companion apps that are
+  vetted and published on Google Play, on one screen, and each entry opens its Play listing. The list
+  is never ranked and never searchable, it never includes an infringing companion, and an app that is
+  not on Play is not on it. Binge links to no other listing, and promotes no companion anywhere else.
+  Play's intellectual-property policy bars apps that encourage or induce infringement. What it guards
+  against is pointing users at infringing companions, not linking to legitimate Play apps, and a short
+  curated list of Play-reviewed, vetted companions stays on the right side of that line.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
 - Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` (planned; v1 ships without it) will
