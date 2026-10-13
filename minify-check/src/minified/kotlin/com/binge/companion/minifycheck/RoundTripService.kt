@@ -59,8 +59,7 @@ class RoundTripService : IntegrationService() {
                 .newBuilder()
                 .setStatus(
                     RequestStatus.newBuilder().addVersions(VersionStatus.newBuilder().setAvailability(Availability.AVAILABILITY_AVAILABLE)),
-                )
-                .build()
+                ).build()
         }
 
         override suspend fun submitRequest(request: SubmitRequestRequest): SubmitRequestResponse {

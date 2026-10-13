@@ -163,7 +163,12 @@ class RequestServiceContractTest {
                         override fun observeStatus(request: ObserveStatusRequest): Flow<ObserveStatusResponse> =
                             flow {
                                 AVAILABILITY_SEQUENCE.forEach { state ->
-                                    emit(observeStatusResponse { status = requestStatus { versions += versionStatus { availability = state } } })
+                                    emit(
+                                        observeStatusResponse {
+                                            status =
+                                                requestStatus { versions += versionStatus { availability = state } }
+                                        },
+                                    )
                                 }
                             }
                     },
@@ -175,7 +180,14 @@ class RequestServiceContractTest {
                 ).observeStatus(ObserveStatusRequest.getDefaultInstance())
                 .toList()
 
-            assertEquals(AVAILABILITY_SEQUENCE, updates.map { it.status.versionsList.single().availability })
+            assertEquals(
+                AVAILABILITY_SEQUENCE,
+                updates.map {
+                    it.status.versionsList
+                        .single()
+                        .availability
+                },
+            )
         }
 
     /** Builds the empty request the method's own marshaller parses, so the call needs no hand-written message. */
