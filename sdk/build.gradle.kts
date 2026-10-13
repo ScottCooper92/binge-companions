@@ -49,6 +49,9 @@ dependencies {
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
     api(project(":binge-companion-contracts"))
     api(libs.grpc.binder)
+    // The offset paging source and the open-source tracker are `PagingSource`s, so the type is part of their
+    // surface. paging-common is the JVM artifact: no Android, no Room, no Compose.
+    api(libs.paging.common)
 
     // The fixtures' awaitEvent is written against kotlinx.coroutines; :binge-companion-contracts already exposes it
     // to the runtime, so this only names it for the fixtures' own compile.
