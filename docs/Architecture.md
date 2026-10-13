@@ -232,6 +232,33 @@ in its manifest.
   hand a short-lived source to a player the user chose, and that player renders it. See
   `Ecosystem.md` > Playback.
 
+## REQUEST: one status per version
+
+A title can exist on the provider twice, as a standard and a 4K version, and the two can differ
+in everything: whether it is requested or available, which seasons, how far a download has got,
+where to watch it, and what the file is. `RequestStatus` holds that per-version state in
+`repeated VersionStatus versions`, one entry per version, told apart by `is_4k` (#166). It does
+not use parallel `_4k` fields.
+
+The parallel form was the first shape, and it did not scale. Every per-version field needed a
+`_4k` sibling, and the ones that had none were pinned to one version by a comment: no 4K watch
+link, and download progress summed across both. Each new field forced the same choice again.
+Once v1 is published, moving from one shape to the other means keeping both forever or making a
+`v2`, so the nested message was settled while REQUEST was still Draft.
+
+The rules:
+
+- An integration always sends the standard entry, and sends a 4K entry only when it declared
+  `CAPABILITY_REQUEST_4K` and its provider tracks 4K apart. A missing entry reads as an entry
+  with every field unset.
+- The versions are never folded together. A user who cannot request or play 4K must not read a
+  4K-only title as available, nor be handed a link into a 4K server they may not reach.
+- What belongs to the title as a whole stays on `RequestStatus`: its requests, the title-level
+  capabilities and `observed_at_epoch_ms`. Each `RequestInfo` already says which version it
+  asks for with its own `is_4k`.
+- A new per-version field goes on `VersionStatus`, additively. A third version, if one ever
+  appears, needs a new key beside `is_4k`, not a new set of fields.
+
 ## LIBRARY: the user's own media server
 
 Binge decides what to watch and remembers what you decided. REQUEST gets a title into a library.
