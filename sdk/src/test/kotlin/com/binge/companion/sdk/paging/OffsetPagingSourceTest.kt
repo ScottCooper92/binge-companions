@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 private const val PAGE_SIZE = 2
@@ -101,6 +100,14 @@ class OffsetPagingSourceTest {
         val state = PagingState<Int, Int>(emptyList(), anchorPosition = null, config = PagingConfig(PAGE_SIZE), leadingPlaceholderCount = 0)
 
         assertNull(NumberedSource(total = 5).getRefreshKey(state))
-        assertTrue(true)
+    }
+
+    @Test
+    fun `a page size that is not positive is refused`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            object : OffsetPagingSource<Int>(0) {
+                override suspend fun loadPage(take: Int, skip: Int) = OffsetPage(emptyList<Int>(), null)
+            }
+        }
     }
 }

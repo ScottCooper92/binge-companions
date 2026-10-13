@@ -51,7 +51,7 @@ class OpenPagingSourcesTest {
         }
 
     @Test
-    fun `a source that was invalidated is no longer kept`() =
+    fun `a source invalidated on its own does not disturb the others`() =
         runBlocking {
             val gone = sources.track(EmptySource())
             gone.invalidate()

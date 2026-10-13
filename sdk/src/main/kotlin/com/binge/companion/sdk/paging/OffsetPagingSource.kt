@@ -21,6 +21,10 @@ data class OffsetPage<T>(
 abstract class OffsetPagingSource<T : Any>(
     private val pageSize: Int,
 ) : PagingSource<Int, T>() {
+    init {
+        require(pageSize > 0) { "pageSize must be positive, was $pageSize" }
+    }
+
     protected abstract suspend fun loadPage(take: Int, skip: Int): OffsetPage<T>
 
     final override suspend fun load(params: LoadParams<Int>): LoadResult<Int, T> {

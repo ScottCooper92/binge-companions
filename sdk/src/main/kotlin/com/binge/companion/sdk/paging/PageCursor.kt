@@ -15,6 +15,7 @@ fun pageCursorAfter(
     pageSize: Int,
     totalPages: Int?,
 ): PageCursor {
+    require(pageSize > 0) { "pageSize must be positive, was $pageSize" }
     val pages = totalPages?.takeIf { it > 0 } ?: (skip / pageSize + 1)
     val endReached = skip / pageSize + 1 >= pages
     return PageCursor(endReached = endReached, nextSkip = if (endReached) null else skip + pageSize)

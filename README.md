@@ -98,7 +98,8 @@ sdk/         Android library for companion apps: the exported Service base, the 
              a companion takes them with `testImplementation(testFixtures(...))`.
              Its `paging` package holds what a companion that caches a server's list would write again:
              `OffsetPagingSource` (a `take`/`skip` list), `pageCursorAfter`, `OpenPagingSources` and
-             `ListRefreshes`. The first two kinds are `androidx.paging.PagingSource`s, so the SDK exposes
+             `ListRefreshes`. `OffsetPagingSource` is an `androidx.paging.PagingSource`, and `OpenPagingSources`
+             takes and returns them, so the SDK exposes
              `androidx.paging:paging-common` as an `api` dependency, and every companion gets it
              transitively whether it pages or not. That is the JVM artifact: no Android, Room or Compose
              comes with it. The Room-backed stores and the remote mediator stay in the companion.

@@ -1,6 +1,7 @@
 package com.binge.companion.sdk.paging
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 class PageCursorTest {
@@ -27,5 +28,10 @@ class PageCursorTest {
     @Test
     fun `a page count of zero is no page count`() {
         assertEquals(PageCursor(endReached = true, nextSkip = null), pageCursorAfter(skip = 20, pageSize = 20, totalPages = 0))
+    }
+
+    @Test
+    fun `a page size that is not positive is refused`() {
+        assertThrows(IllegalArgumentException::class.java) { pageCursorAfter(skip = 0, pageSize = 0, totalPages = 5) }
     }
 }
