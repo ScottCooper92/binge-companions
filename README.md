@@ -29,7 +29,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   Service, since `IntegrationService` takes a list of service implementations, or from a Service of
   its own per contract; which it is stays the companion's business, since consent and the
   certificate pin are per package, not per Service. A Service whose `<intent-filter>` names more
-  than one action declares its majors per contract (`CompanionManifest.META_MAJORS_REQUEST` /
+  than one contract action declares its majors per contract (`CompanionManifest.META_MAJORS_REQUEST` /
   `META_MAJORS_LIBRARY`) rather than the bare `META_MAJORS` a single-action Service uses, so the
   host always knows which contract's package a majors value names.
 - **Transport.** Calls cross the app boundary as gRPC. The transport is the official Android
