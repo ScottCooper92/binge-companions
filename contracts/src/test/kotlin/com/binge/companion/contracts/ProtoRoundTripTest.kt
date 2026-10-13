@@ -65,12 +65,12 @@ class ProtoRoundTripTest {
     @Test
     fun `RequestInfo carries is_4k and reads false when the field is absent`() {
         val fourK = requestInfo {
-            id = 7
+            id = "7"
             is4K = true
         }
 
         assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
-        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = 7 }.toByteArray()).is4K)
+        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = "7" }.toByteArray()).is4K)
     }
 
     @Test
@@ -83,7 +83,7 @@ class ProtoRoundTripTest {
                 }
                 status = requestStatus { availability = Availability.AVAILABILITY_AVAILABLE }
                 request = requestInfo {
-                    id = 12
+                    id = "req-12"
                     seasonNumbers += listOf(1, 2)
                 }
             }

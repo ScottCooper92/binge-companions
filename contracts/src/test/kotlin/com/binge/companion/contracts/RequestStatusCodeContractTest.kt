@@ -64,7 +64,7 @@ class RequestStatusCodeContractTest {
         if (::server.isInitialized) server.shutdownNow()
     }
 
-    private fun edit(id: Int, seasons: List<Int>): EditRequestRequest =
+    private fun edit(id: String, seasons: List<Int>): EditRequestRequest =
         editRequestRequest {
             requestId = id
             seasonNumbers += seasons
@@ -211,9 +211,9 @@ class RequestStatusCodeContractTest {
     }
 
     private companion object {
-        const val KNOWN_ID = 7
-        const val UNKNOWN_ID = 404
-        const val FOREIGN_ID = 403
+        const val KNOWN_ID = "7"
+        const val UNKNOWN_ID = "404"
+        const val FOREIGN_ID = "403"
     }
 }
 

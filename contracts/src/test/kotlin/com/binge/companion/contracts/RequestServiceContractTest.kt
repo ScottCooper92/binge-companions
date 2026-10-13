@@ -196,7 +196,7 @@ class RequestServiceContractTest {
     }
 
     private companion object {
-        const val REQUEST_ID = 4321
+        const val REQUEST_ID = "4321"
         const val TMDB_ID = 1399
         val AVAILABILITY_SEQUENCE =
             listOf(Availability.AVAILABILITY_PENDING, Availability.AVAILABILITY_PROCESSING, Availability.AVAILABILITY_AVAILABLE)
