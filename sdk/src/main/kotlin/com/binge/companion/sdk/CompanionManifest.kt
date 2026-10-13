@@ -39,13 +39,13 @@ object CompanionManifest {
      */
     const val META_MAJORS = "com.binge.companion.majors"
 
-    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on another action. */
+    /** [META_MAJORS], scoped to [ACTION_REQUEST], for a Service that also filters on another contract action. */
     const val META_MAJORS_REQUEST = "com.binge.companion.majors.request"
 
-    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on another action. */
+    /** [META_MAJORS], scoped to [ACTION_LIBRARY], for a Service that also filters on another contract action. */
     const val META_MAJORS_LIBRARY = "com.binge.companion.majors.library"
 
-    /** [META_MAJORS], scoped to [ACTION_STREAM], for a Service that also filters on another action. */
+    /** [META_MAJORS], scoped to [ACTION_STREAM], for a Service that also filters on another contract action. */
     const val META_MAJORS_STREAM = "com.binge.companion.majors.stream"
 
     /**

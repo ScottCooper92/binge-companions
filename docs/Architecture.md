@@ -41,7 +41,7 @@ intent action:
   `majors` alone cannot say which contract's package a value names. The host first reads which
   actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
   multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
-  and so on, one key per action the Service filters on. A single-action Service keeps using the
+  and so on, one key per contract action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
   Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY` and
   `STREAM` count: a Service filtering on REQUEST and an app-internal action of its own is a
