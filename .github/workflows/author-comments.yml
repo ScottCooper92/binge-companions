@@ -61,7 +61,7 @@ jobs:
                 github.event.review.author_association || github.event.comment.author_association)) &&
       (!github.event.pull_request || github.event.pull_request.head.repo.full_name == github.repository) &&
       (!github.event.workflow_run || github.event.workflow_run.head_repository.full_name == github.repository)
-    uses: ScottCooper92/binge-ci/.github/workflows/author-comments.yml@6770dca46491538de4e4f08dc9843808b3919803 # v1
+    uses: ScottCooper92/binge-ci/.github/workflows/author-comments.yml@83696d01c14aca048486bba7f2079073c2e15a1e # v1
     with:
       author_bot_id: ${{ vars.AUTHOR_BOT_ID }}
       maintainer_handle: ScottCooper92
