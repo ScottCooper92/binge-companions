@@ -21,11 +21,13 @@ class CompanionManifestKeysTest {
         assertEquals("com.binge.companion.majors.library", CompanionManifest.META_MAJORS_LIBRARY)
         assertEquals("com.binge.companion.majors.stream", CompanionManifest.META_MAJORS_STREAM)
         assertEquals("com.binge.companion.ADVANCED_REQUEST", CompanionManifest.ACTION_ADVANCED_REQUEST)
+        assertEquals("com.binge.companion.VIEW_REQUEST", CompanionManifest.ACTION_VIEW_REQUEST)
         assertEquals("com.binge.companion.SETTINGS", CompanionManifest.ACTION_SETTINGS)
         assertEquals("com.binge.companion.extra.MEDIA_TYPE", CompanionManifest.EXTRA_MEDIA_TYPE)
         assertEquals("com.binge.companion.extra.TMDB_ID", CompanionManifest.EXTRA_TMDB_ID)
         assertEquals("com.binge.companion.extra.SEASON_NUMBERS", CompanionManifest.EXTRA_SEASON_NUMBERS)
         assertEquals("com.binge.companion.extra.IS_4K", CompanionManifest.EXTRA_IS_4K)
+        assertEquals("com.binge.companion.extra.REQUEST_ID", CompanionManifest.EXTRA_REQUEST_ID)
         assertEquals("binge", CompanionManifest.HOST_TITLE_SCHEME)
     }
 }

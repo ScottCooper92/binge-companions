@@ -173,7 +173,17 @@ same boundary rule as everywhere else in the contract (a behavior variation over
 a capability), not an exception to it. The two capabilities coexist: a companion declares whichever
 fits its flow, and a host that only understands the older one keeps getting the hand-off.
 
-A second hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
+A second hand-off shows one existing request: `CompanionManifest.ACTION_VIEW_REQUEST`
+(`com.binge.companion.VIEW_REQUEST`), an Activity a companion may export to open a request in its own
+UI. Its one extra, `CompanionManifest.EXTRA_REQUEST_ID`, is the `RequestInfo.id` the request status
+already returns, as a string the host never parses. It has no capability: the host resolves it by
+action and package, inside the companion the user consented to, and offers "view in the companion" on
+a request only when something resolves. Another app can't answer it, because the host never looks
+outside that package. It answers nothing, and the host discards the result. Like every hand-off it is
+started for a result, so the companion checks `callingPackage` before it reads the extra. A companion
+with nothing to show declares nothing. Adding it is additive.
+
+A third hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
 companion may export for the host's "manage" affordance on its row — its own settings or hub. It
 takes no extras and answers nothing; the host resolves it by action and package, shows the
 affordance only when something resolves, and starts it the same way as the advanced hand-off —
