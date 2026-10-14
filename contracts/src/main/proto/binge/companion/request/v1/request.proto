@@ -450,7 +450,7 @@ message DownloadProgress {
 message RequestInfo {
   // The provider's own id for this request, opaque to the host: whatever the provider's
   // server uses, a number, a UUID or a slug, as a string. The host only hands it back on
-  // Edit/Cancel/Approve/Decline/Retry and never parses it. Never empty for a listed request.
+  // Edit/Cancel/Approve/Decline/Retry, and as the `VIEW_REQUEST` hand-off's request id, and never parses it. Never empty for a listed request.
   string id = 1;
   ApprovalState state = 2;
   // Display name or username of the requesting user, when the provider says. Never an

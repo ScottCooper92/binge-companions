@@ -5,7 +5,7 @@ import android.util.Log
 
 /**
  * The companion half of the mutual check for a hand-off Activity — the one behind
- * `CAPABILITY_ADVANCED_OPTIONS`, and the settings one on `CompanionManifest.ACTION_SETTINGS`.
+ * `CAPABILITY_ADVANCED_OPTIONS`, and the `ACTION_VIEW_REQUEST` and `ACTION_SETTINGS` ones in `CompanionManifest`.
  * The Activity is exported and resolvable by action, so any app on
  * the device can start it with extras of its own choosing; this is what says whether the one that
  * did is a host the companion serves, before the Activity acts on what it was handed.

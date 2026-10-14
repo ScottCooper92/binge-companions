@@ -10,7 +10,7 @@ import com.binge.companion.contracts.v1.MediaType
  *
  * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving several of REQUEST, LIBRARY and STREAM
  * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM], and > Hand-offs for the
- * Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_SETTINGS].
+ * Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_VIEW_REQUEST] / [ACTION_SETTINGS].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -58,6 +58,15 @@ object CompanionManifest {
     const val ACTION_ADVANCED_REQUEST = "com.binge.companion.ADVANCED_REQUEST"
 
     /**
+     * The action of an Activity a companion may export to show one existing request in its own UI.
+     * Optional. The host starts it for a result, scoped to the companion's package, with the request's
+     * id in [EXTRA_REQUEST_ID]. It discards the result but re-reads the request's status on return,
+     * and offers the affordance only when something resolves. The companion checks the caller with
+     * [HandOffCallerPolicy.permits] before it reads the extra.
+     */
+    const val ACTION_VIEW_REQUEST = "com.binge.companion.VIEW_REQUEST"
+
+    /**
      * The action of an Activity a companion may export for the host's "manage" affordance:
      * its own settings or hub, taking no extras and answering nothing. Optional — a companion
      * with nothing to manage declares nothing.
@@ -79,6 +88,12 @@ object CompanionManifest {
 
     /** `Boolean`: whether the user asked for the 4K version. */
     const val EXTRA_IS_4K = "com.binge.companion.extra.IS_4K"
+
+    /**
+     * `String`: the id of the request to show on [ACTION_VIEW_REQUEST] — the `RequestInfo.id` the request
+     * status already returns, opaque to the host and never empty.
+     */
+    const val EXTRA_REQUEST_ID = "com.binge.companion.extra.REQUEST_ID"
 
     /**
      * The scheme of the link Binge answers to open a title: `binge://title/<movie|tv>/<tmdbId>`. A companion
