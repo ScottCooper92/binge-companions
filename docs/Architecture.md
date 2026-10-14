@@ -179,7 +179,7 @@ UI. Its one extra, `CompanionManifest.EXTRA_REQUEST_ID`, is the `RequestInfo.id`
 already returns, as a string the host never parses. It has no capability: the host resolves it by
 action and package, inside the companion the user consented to, and offers "view in the companion" on
 a request only when something resolves. Another app can't answer it, because the host never looks
-outside that package. It answers nothing, and the host discards the result. Like every hand-off it is
+outside that package. It answers nothing: the host discards the result, but re-reads the request's status on return, since the user may have changed it in the companion. Like every hand-off it is
 started for a result, so the companion checks `callingPackage` before it reads the extra. A companion
 with nothing to show declares nothing. Adding it is additive.
 

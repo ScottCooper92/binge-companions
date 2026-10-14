@@ -60,8 +60,9 @@ object CompanionManifest {
     /**
      * The action of an Activity a companion may export to show one existing request in its own UI.
      * Optional. The host starts it for a result, scoped to the companion's package, with the request's
-     * id in [EXTRA_REQUEST_ID], and discards the result; it offers the affordance only when something
-     * resolves. The companion checks the caller with [HandOffCallerPolicy.permits] before it reads the extra.
+     * id in [EXTRA_REQUEST_ID]. It discards the result but re-reads the request's status on return,
+     * and offers the affordance only when something resolves. The companion checks the caller with
+     * [HandOffCallerPolicy.permits] before it reads the extra.
      */
     const val ACTION_VIEW_REQUEST = "com.binge.companion.VIEW_REQUEST"
 
