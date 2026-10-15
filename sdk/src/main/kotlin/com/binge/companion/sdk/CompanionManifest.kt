@@ -118,4 +118,23 @@ object CompanionManifest {
         require(tmdbId > 0) { "A title link needs a TMDB id, not $tmdbId" }
         return "$HOST_TITLE_SCHEME://title/$type/$tmdbId"
     }
+
+    /**
+     * The link Binge answers to open its own page for one companion, `binge://companions/<package>`: where the user
+     * turns it on and chooses what Binge shows from it. A companion passes its own package name, to say "turn me on in
+     * Binge" after its user signs in. It grants nothing: Binge opens its Companions list when the package is not one it
+     * found, and consent stays the user's switch. Same scheme, trust stance and `<queries>` as [hostTitleUri].
+     */
+    fun hostCompanionUri(packageName: String): String {
+        require(PACKAGE_NAME.matches(packageName)) { "A companion link needs a package name, not '$packageName'" }
+        return "$HOST_TITLE_SCHEME://companions/$packageName"
+    }
+
+    /**
+     * Binge's Google Play listing, for a companion offering "Get Binge" when [hostTitleUri] resolves to nothing.
+     * The https form opens in the Play Store app where there is one and in a browser where there is not.
+     */
+    const val HOST_PLAY_LISTING_URL = "https://play.google.com/store/apps/details?id=${BingeHosts.RELEASE_PACKAGE_NAME}"
+
+    private val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
 }
