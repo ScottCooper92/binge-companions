@@ -213,8 +213,16 @@ to narrow it can `setPackage` to `BingeHosts.RELEASE_PACKAGE_NAME` (or `DEBUG_PA
 debug build). That only narrows it, since a package name is re-claimable on a sideloading device;
 it does not check the certificate. The SDK offers no helper for it.
 
+A second link uses the same scheme and the same stance: the companion link,
+`binge://companions/<package>`, built with `CompanionManifest.hostCompanionUri`. It opens Binge's
+own page for that companion, where the user turns it on and picks what Binge shows from it. A
+companion sends its own package name, typically right after its user signs in, to say "turn me on
+in Binge". It grants nothing. Binge opens its Companions list instead when the package is not one
+it discovered, and consent stays the user's switch on that page. A companion with no Binge to link
+to can send its user to `CompanionManifest.HOST_PLAY_LISTING_URL`.
+
 On API 30 and above, package visibility hides Binge from a companion that has not declared it. To
-ask whether Binge answers the link before starting it, a companion declares
+ask whether Binge answers either link before starting it, a companion declares
 `<queries><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="binge" /></intent></queries>`
 in its manifest.
 
