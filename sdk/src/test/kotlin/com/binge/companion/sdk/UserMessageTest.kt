@@ -46,6 +46,15 @@ class UserMessageTest {
         assertNull(userMessageOf(garbage))
     }
 
+    @Test
+    fun `a blank sentence reads as none`() {
+        listOf("", "  ").forEach { blank ->
+            val sent = Status.RESOURCE_EXHAUSTED.withUserMessage(reason = "QUOTA", message = blank, locale = "en")
+
+            assertNull(userMessageOf(sent.trailers), "'$blank'")
+        }
+    }
+
     /** The host's side (#167): the failure arrives wrapped, its trailers rebuilt from the wire's bytes. */
     @Test
     fun `a host reads the sentence from a failed call's trailers`() {
