@@ -443,8 +443,10 @@ reasons for the gate, both about Play:
 | C. The title is not in its catalogue. | `NOT_FOUND`. | A line, e.g. "Not on the Internet Archive". |
 | D. A bad request. | `INVALID_ARGUMENT`. | A line. |
 
-A bad request is `MEDIA_TYPE_UNSPECIFIED`, `tmdb_id <= 0`, an id the integration knows is not a
-film, an episode on a movie, or a `source_id` it never issued.
+A bad request is `MEDIA_TYPE_UNSPECIFIED`, `tmdb_id <= 0`, a `MediaId` whose type the integration
+knows is wrong (a movie id that is not a film, or the reverse), an episode on a movie, an episode
+the series does not have, or a `source_id` it never issued. A valid series the integration does
+not carry is `NOT_FOUND`, not a bad request.
 
 - **`NOT_FOUND` is not a failure.** The host does not retry it, and it does not count toward
   health or the kill switch. For binge-archive it is the common answer.

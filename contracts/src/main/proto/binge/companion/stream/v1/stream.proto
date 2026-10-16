@@ -53,10 +53,12 @@ syntax = "proto3";
 //                                     sources, which is OK and empty: the integration knows
 //                                     the title and has no source for it.
 //   INVALID_ARGUMENT                — a bad request: an unusable `MediaId`
-//                                     (MEDIA_TYPE_UNSPECIFIED, `tmdb_id` <= 0), an id the
-//                                     integration knows is not a film, an `episode` on a
+//                                     (MEDIA_TYPE_UNSPECIFIED, `tmdb_id` <= 0), a `MediaId`
+//                                     whose type the integration knows is wrong (a movie id
+//                                     that is not a film, or the reverse), an `episode` on a
 //                                     movie, an episode the series does not have, or a
-//                                     `source_id` this integration never issued.
+//                                     `source_id` this integration never issued. A valid
+//                                     series the integration does not carry is NOT_FOUND.
 //   PERMISSION_DENIED               — a gated rpc the integration did not declare.
 //
 // So `Resolve` has four answers: sources; OK and empty (a known title with no licit source);
