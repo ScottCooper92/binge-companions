@@ -17,7 +17,7 @@ syntax = "proto3";
 // Playback is a HAND-OFF. A source is a `binge.companion.v1.PlaybackSource`, the shared message
 // whose header lists what the host does and refuses before it hands one to a player. The host
 // renders no video and no web view of a source, fetches nothing from a source URL, and keeps
-// nothing once the Play sheet that showed it closes. There is no in-app player for a source
+// nothing once the title page that resolved it closes. There is no in-app player for a source
 // from this contract and there will not be one: an in-app surface that plays arbitrary
 // third-party links is the pattern that gets a media app removed from Play, and an app cannot be
 // un-removed.
@@ -94,7 +94,7 @@ option java_multiple_files = true;
 // Append-only: new capabilities get new numbers; hosts ignore values they don't know.
 enum Capability {
   CAPABILITY_UNSPECIFIED = 0;
-  // Answers `Probe`: a cheap yes/no the host may ask on a title page instead of resolving.
+  // Answers `Probe`: a yes/no the host may ask on a title page more cheaply than resolving.
   CAPABILITY_PROBE = 1;
   // Populates `StreamSource.subtitles`. Without it the host assumes the player finds its own.
   CAPABILITY_SUBTITLES = 2;
