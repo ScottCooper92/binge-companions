@@ -41,12 +41,15 @@ intent action:
   `majors` alone cannot say which contract's package a value names. The host first reads which
   actions the Service's `<intent-filter>`s name, then reads majors **per contract** for a
   multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
-  and so on, one key per action the Service filters on. A single-action Service keeps using the
+  and so on, one key per contract action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
-  Service names more than one action. Both forms follow the same String-or-Int reading rule.
+  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY` and
+  `STREAM` count: a Service filtering on REQUEST and an app-internal action of its own is a
+  single-action Service, and keeps the bare key. The bare key can only be ambiguous between
+  contracts, so only contracts decide. Both forms follow the same String-or-Int reading rule.
   A host that includes the SDK reads them with `Bundle.readServedMajors(action, filteredActions)`.
-  For a multi-action Service it reads only the scoped key, and a missing key means no majors. For a
-  single-action Service it reads only the bare key.
+  It counts only the contract actions among those the Service filters on. With more than one, it
+  reads only the scoped key, and a missing key means no majors. With one, it reads only the bare key.
 
 ## RPC layer: gRPC over Binder, protobuf payloads
 
@@ -105,7 +108,7 @@ Practical rules:
 - The REQUEST stub spike validated the transport on real hardware. Bind-to-handshake p95 was
   119–128 ms on a phone (Android 16) and 22–37 ms on a SHIELD (Android 11), against a proposed
   ~300 ms bar — so the TV, the surface the spike existed to worry about, is the faster of the two
-  by roughly 4x. The APK cost after R8 is a separate build measurement and is not yet recorded.
+  by roughly 4x. The APK cost after R8 was +209 KB (1.5%).
 
 ## Media identity
 
@@ -170,7 +173,17 @@ same boundary rule as everywhere else in the contract (a behavior variation over
 a capability), not an exception to it. The two capabilities coexist: a companion declares whichever
 fits its flow, and a host that only understands the older one keeps getting the hand-off.
 
-A second hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
+A second hand-off shows one existing request: `CompanionManifest.ACTION_VIEW_REQUEST`
+(`com.binge.companion.VIEW_REQUEST`), an Activity a companion may export to open a request in its own
+UI. Its one extra, `CompanionManifest.EXTRA_REQUEST_ID`, is the `RequestInfo.id` the request status
+already returns, as a string the host never parses. It has no capability: the host resolves it by
+action and package, inside the companion the user consented to, and offers "view in the companion" on
+a request only when something resolves. Another app can't answer it, because the host never looks
+outside that package. It answers nothing: the host discards the result, but re-reads the request's status on return, since the user may have changed it in the companion. Like every hand-off it is
+started for a result, so the companion checks `callingPackage` before it reads the extra. A companion
+with nothing to show declares nothing. Adding it is additive.
+
+A third hand-off has no title and no result: `CompanionManifest.ACTION_SETTINGS`, an Activity a
 companion may export for the host's "manage" affordance on its row — its own settings or hub. It
 takes no extras and answers nothing; the host resolves it by action and package, shows the
 affordance only when something resolves, and starts it the same way as the advanced hand-off —
@@ -200,8 +213,16 @@ to narrow it can `setPackage` to `BingeHosts.RELEASE_PACKAGE_NAME` (or `DEBUG_PA
 debug build). That only narrows it, since a package name is re-claimable on a sideloading device;
 it does not check the certificate. The SDK offers no helper for it.
 
+A second link uses the same scheme and the same stance: the companion link,
+`binge://companions/<package>`, built with `CompanionManifest.hostCompanionUri`. It opens Binge's
+own page for that companion, where the user turns it on and picks what Binge shows from it. A
+companion sends its own package name, typically right after its user signs in, to say "turn me on
+in Binge". It grants nothing. Binge opens its Companions list instead when the package is not one
+it discovered, and consent stays the user's switch on that page. A companion with no Binge to link
+to can send its user to `CompanionManifest.HOST_PLAY_LISTING_URL`.
+
 On API 30 and above, package visibility hides Binge from a companion that has not declared it. To
-ask whether Binge answers the link before starting it, a companion declares
+ask whether Binge answers either link before starting it, a companion declares
 `<queries><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="binge" /></intent></queries>`
 in its manifest.
 
@@ -222,12 +243,47 @@ in its manifest.
 
 ## Play stance
 
-- No bundled providers. No in-app plugin directory. No promotion of infringing companion apps.
+- No bundled providers. No provider ships inside the Binge APK.
+- A curated list of vetted companions, and no directory. Binge may list companion apps that are
+  vetted and published on Google Play, on one screen, and each entry opens its Play listing. The list
+  is never ranked and never searchable, it never includes an infringing companion, and an app that is
+  not on Play is not on it. Binge links to no other listing, and promotes no companion anywhere else.
+  Play's intellectual-property policy bars apps that encourage or induce infringement. What it guards
+  against is pointing users at infringing companions, not linking to legitimate Play apps, and a short
+  curated list of Play-reviewed, vetted companions stays on the right side of that line.
+  This mirrors §8 of Binge's companion-platform architecture, which is the authority for it.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
 - Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` (planned; v1 ships without it) will
   hand a short-lived source to a player the user chose, and that player renders it. See
   `Ecosystem.md` > Playback.
+
+## REQUEST: one status per version
+
+A title can exist on the provider twice, as a standard and a 4K version, and the two can differ
+in everything: whether it is requested or available, which seasons, how far a download has got,
+where to watch it, and what the file is. `RequestStatus` holds that per-version state in
+`repeated VersionStatus versions`, one entry per version, told apart by `is_4k` (#166). It does
+not use parallel `_4k` fields.
+
+The parallel form was the first shape, and it did not scale. Every per-version field needed a
+`_4k` sibling, and the ones that had none were pinned to one version by a comment: no 4K watch
+link, and download progress summed across both. Each new field forced the same choice again.
+Once v1 is published, moving from one shape to the other means keeping both forever or making a
+`v2`, so the nested message was settled while REQUEST was still Draft.
+
+The rules:
+
+- An integration always sends the standard entry, and sends a 4K entry only when it declared
+  `CAPABILITY_REQUEST_4K` and its provider tracks 4K apart. A missing entry reads as an entry
+  with every field unset.
+- The versions are never folded together. A user who cannot request or play 4K must not read a
+  4K-only title as available, nor be handed a link into a 4K server they may not reach.
+- What belongs to the title as a whole stays on `RequestStatus`: its requests, the title-level
+  capabilities and `observed_at_epoch_ms`. Each `RequestInfo` already says which version it
+  asks for with its own `is_4k`.
+- A new per-version field goes on `VersionStatus`, additively. A third version, if one ever
+  appears, needs a new key beside `is_4k`, not a new set of fields.
 
 ## LIBRARY: the user's own media server
 
@@ -347,8 +403,8 @@ A host ships no STREAM UI until a first-party companion exists that resolves lic
 the proto stays `Draft` until that companion has served it. Two reasons, both about Play:
 
 - An app whose screens list third-party stream links is the pattern that gets a media app removed,
-  hand-off or not. The host cannot tell an infringing source from a licit one, so "no promotion of
-  infringing companions" protects nothing here on its own. What protects the host is what it does
+  hand-off or not. The host cannot tell an infringing source from a licit one, so "the curated list
+  never includes an infringing companion" protects nothing here on its own. What protects the host is what it does
   and does not do with a source, which is the rest of this section.
 - The licit cases are mostly already covered. The user's own server is LIBRARY. Ad-supported and
   subscription services are TMDB watch providers with deep links. STREAM has to earn its place with

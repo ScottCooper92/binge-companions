@@ -62,8 +62,9 @@ data class UserMessage(
 
 /**
  * The user-facing sentence in [trailers], or null when the integration sent none, which is when the host
- * shows its own copy for the code. This is the host's reader (#167): pass the trailers of the failed call,
- * `Status.trailersFromThrowable(e)`, rather than parsing `grpc-status-details-bin` by hand. Malformed or foreign details are ignored rather than thrown: a bad
+ * shows its own copy for the code. A blank sentence counts as none. This is the host's reader (#167): pass
+ * the trailers of the failed call, `Status.trailersFromThrowable(e)`, rather than parsing
+ * `grpc-status-details-bin` by hand. Malformed or foreign details are ignored rather than thrown: a bad
  * detail must not turn a readable failure into a crash.
  */
 fun userMessageOf(trailers: Metadata?): UserMessage? {
@@ -74,7 +75,11 @@ fun userMessageOf(trailers: Metadata?): UserMessage? {
         } catch (_: InvalidProtocolBufferException) {
             return null
         }
-    val localized = status.detailsList.unpack(LOCALIZED_MESSAGE_URL, LocalizedMessage::parseFrom) ?: return null
+    val localized =
+        status.detailsList
+            .unpack(LOCALIZED_MESSAGE_URL, LocalizedMessage::parseFrom)
+            ?.takeIf { it.message.isNotBlank() }
+            ?: return null
     val reason = status.detailsList.unpack(ERROR_INFO_URL, ErrorInfo::parseFrom)?.reason
     return UserMessage(reason = reason, message = localized.message, locale = localized.locale)
 }

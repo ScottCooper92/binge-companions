@@ -122,15 +122,19 @@ class HostPackagePolicy(
 
 /**
  * The allowlist half of a pinned check: is this package a known host, and does its signing lineage
- * include a certificate the host's entry names. A package that cannot be read, or is signed by several keys, has no
- * signer here and is not trusted — one hash cannot identify an app signed by two.
+ * include a certificate the host's entries name. Entries for one package are merged, so a second entry
+ * adds certificates rather than replacing the first's. A package that cannot be read, or is signed by
+ * several keys, has no signer here and is not trusted — one hash cannot identify an app signed by two.
  */
 internal class PinnedHosts(
     hosts: Collection<KnownHost>,
     private val signerSha256s: (packageName: String) -> Set<String>,
 ) {
     private val allowed: Map<String, Set<String>> =
-        hosts.map(KnownHost::normalised).associate { it.packageName to it.certificateSha256s }
+        hosts
+            .map(KnownHost::normalised)
+            .groupBy(KnownHost::packageName)
+            .mapValues { (_, entries) -> entries.flatMap(KnownHost::certificateSha256s).toSet() }
 
     fun isKnown(packageName: String): Boolean = packageName in allowed
 

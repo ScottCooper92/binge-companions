@@ -48,11 +48,12 @@ syntax = "proto3";
 // locale. Host and integration run on one device, and an integration keeps no
 // per-connection state, so it answers in the locale it resolves its own strings in.
 // `HostInfo.locale` tells the integration what the host renders in, where that differs
-// (#177). The host renders the LocalizedMessage when present and its own copy for the
-// code otherwise. The sentence never goes in the status description.
+// (#177). The host renders a non-empty LocalizedMessage when present and its own copy for
+// the code otherwise, an empty or blank one included. The sentence never goes in the status
+// description.
 //
 // Conformance rules both ends follow, so a third-party integration can learn them here:
-//   URLs           — every URL a response carries (`watch_url`) is http or https. The host
+//   URLs           — every URL a response carries (`VersionStatus.watch_url`) is http or https. The host
 //                    refuses any other scheme (content:, file:, intent:, a custom one)
 //                    rather than opening it.
 //   Undeclared     — an rpc whose capability the handshake did not declare is answered
@@ -147,7 +148,7 @@ enum Capability {
   // See "Hand-offs" in docs/Architecture.md for how this capability relates to
   // CAPABILITY_ADVANCED_OPTIONS.
   CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
-  // Answers a movie's resulting file on an available title (`RequestStatus.file_info`).
+  // Answers a movie's resulting file on an available title (`VersionStatus.file_info`).
   // Its own capability because it costs an extra fetch: Seerr's media details never
   // carry the file, so answering means asking the *arr directly, and an integration
   // that would rather not pay that on every status check simply doesn't declare it.
@@ -252,11 +253,12 @@ message SubmitRequestRequest {
 
 message SubmitRequestResponse {
   // The request this call created or, when `already_requested` is true, the one
-  // request the integration can name. 0 means unset (proto3 has no presence): it is 0
-  // whenever `already_requested` is true and the integration cannot name one request.
+  // request the integration can name. Empty means unset: it is empty whenever
+  // `already_requested` is true and the integration cannot name one request.
   // A title can hold a standard and a 4K request, so the host reads `status.requests`
-  // for the full list rather than relying on this id.
-  int32 request_id = 1;
+  // for the full list rather than relying on this id. Opaque, as every request id is:
+  // see `RequestInfo.id`.
+  string request_id = 1;
   // True when the provider already had a request for this title and created nothing new.
   bool already_requested = 2;
   // The title's state after the submit, so the host can update without a second call.
@@ -343,34 +345,25 @@ message ObserveStatusResponse {
 }
 
 // The request/availability state of one title on the provider.
+//
+// Per-version state lives in `versions`, one entry per version the provider tracks, rather
+// than in parallel `_4k` fields (#166). Everything that differs between the standard and the
+// 4K version (availability, seasons, download progress, the watch link, the file) is on
+// `VersionStatus`, so a 4K watch link or per-version download needs no new field here.
+// What is about the title as a whole (its requests, the title-level capabilities and how
+// fresh the answer is) stays on this message.
 message RequestStatus {
-  // The standard version's availability. A provider that tracks a 4K version separately
-  // reports that one in `availability_4k`, never folded in here: a user who cannot
-  // request or play 4K must not read a 4K-only title as available.
-  Availability availability = 1;
-  // Per-season state, populated for TV so the host can offer per-season requests.
-  // The standard version's, as with `availability`.
-  repeated SeasonAvailability seasons = 2;
-  // Aggregate progress while the title is downloading; absent otherwise. Aggregate means
-  // across every active download for the title, the standard and 4K versions together:
-  // there is no per-version progress in this message.
-  DownloadProgress download = 3;
+  reserved 1, 2, 3, 5, 8, 9, 10;
+  reserved "availability", "seasons", "download", "watch_url", "file_info", "availability_4k", "seasons_4k";
+
   // Every request the provider knows for the title.
   repeated RequestInfo requests = 4;
-  // Deep link to the title in the media server's web client, when the provider has one.
-  // http or https only; the host refuses any other scheme (see the header).
-  //
-  // The standard version's link, as with `availability`. A provider that keeps the 4K
-  // version on a separate server has a separate link for it, and that one is not sent
-  // here: a user who may not reach the 4K server must not be handed a link into it. So
-  // a title available only in 4K has no `watch_url`. There is no 4K link in this message.
-  string watch_url = 5;
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
   // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
-  // (`SubmitRequest` is core): the host infers it from `availability` for a standard request and from `availability_4k`
-  // for a 4K one. A capability
-  // that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
+  // (`SubmitRequest` is core): the host infers it from the standard version's
+  // `availability` for a standard request and from the 4K version's for a 4K one. A
+  // capability that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
   // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
   // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
   // cannot express "approve applies to request #7, not #8".
@@ -384,26 +377,46 @@ message RequestStatus {
   // not old. An integration that cannot reach its provider but holds an earlier
   // status may return it with the time it was observed, rather than an error.
   int64 observed_at_epoch_ms = 7;
-  // The movie's file, once available. Absent means not offered or not known, and a
-  // host must not tell those apart, as with `watch_url`. Requires
-  // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which
-  // this contract doesn't model.
-  MediaFileInfo file_info = 8;
-  // The 4K version's availability, for a provider that tracks it apart from the
-  // standard one. Set only by an integration that declared CAPABILITY_REQUEST_4K;
-  // AVAILABILITY_UNSPECIFIED otherwise, which a host reads as "no separate 4K state",
-  // not as "not requested". A blocklisted title is AVAILABILITY_BLOCKLISTED here too.
-  // A host deciding whether to offer a 4K request reads this, not `availability`.
-  Availability availability_4k = 9;
-  // Per-season 4K state for TV, under the same rule as `availability_4k`. Empty
-  // when that is unspecified.
-  repeated SeasonAvailability seasons_4k = 10;
+  // The title's state per version, at most one entry per `VersionStatus.is_4k` value.
+  //
+  // An integration always sends the standard version's entry (`is_4k` false). It sends a
+  // 4K entry only when it declared CAPABILITY_REQUEST_4K and its provider tracks the 4K
+  // version apart from the standard one. A missing entry reads exactly as an entry whose
+  // every field is unset: AVAILABILITY_UNSPECIFIED, which a host reads as "no state for
+  // this version", not as "not requested". A host must not rely on the entries' order,
+  // and if a peer sends two entries for one version the host reads the first.
+  //
+  // The versions are never folded together: a user who cannot request or play 4K must not
+  // read a 4K-only title as available, nor be handed a link into a 4K server they may not
+  // reach. A host deciding whether to offer a 4K request reads the 4K entry.
+  repeated VersionStatus versions = 11;
 }
 
-// A movie's resulting file, only meaningfully populated when `RequestStatus.availability`
-// or `RequestStatus.availability_4k` is AVAILABILITY_AVAILABLE: a title available only in
-// 4K has a file to report although `availability` is not AVAILABLE. Requires
-// CAPABILITY_MEDIA_FILE_INFO.
+// One version of a title, standard or 4K, on the provider.
+message VersionStatus {
+  // Which version this is. False is the standard version.
+  bool is_4k = 1;
+  // This version's availability. A blocklisted title is AVAILABILITY_BLOCKLISTED in every
+  // entry the integration sends.
+  Availability availability = 2;
+  // Per-season state for TV, so the host can offer per-season requests. Empty for movies.
+  repeated SeasonAvailability seasons = 3;
+  // This version's progress while it is downloading; absent otherwise.
+  DownloadProgress download = 4;
+  // Deep link to this version of the title in the media server's web client, when the
+  // provider has one. http or https only; the host refuses any other scheme (see the
+  // header). A provider that keeps the 4K version on a separate server links into that
+  // server here only when the connected user may reach it; otherwise this is empty.
+  string watch_url = 5;
+  // The movie's file for this version, once available. Absent means not offered or not
+  // known, and a host must not tell those apart, as with `watch_url`. Requires
+  // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which this
+  // contract doesn't model.
+  MediaFileInfo file_info = 6;
+}
+
+// A movie's resulting file, only meaningfully populated when its `VersionStatus.availability`
+// is AVAILABILITY_AVAILABLE. Requires CAPABILITY_MEDIA_FILE_INFO.
 message MediaFileInfo {
   // The file's own name, without a path, e.g. "Movie.Title.2026.2160p.WEB-DL.mkv".
   // Empty when unknown.
@@ -423,20 +436,23 @@ message SeasonAvailability {
 }
 
 message DownloadProgress {
-  // Completed fraction across all active downloads, 0.0..1.0.
+  // Completed fraction across this version's active downloads, 0.0..1.0.
   float fraction = 1;
   // The first in-flight download's release title, when the provider names one.
   string label = 2;
   // Whole minutes until the slowest download finishes; 0 when unknown.
   int32 eta_minutes = 3;
-  // Total bytes across all active downloads; 0 when the provider doesn't report sizes.
+  // Total bytes across this version's active downloads; 0 when the provider doesn't report sizes.
   int64 total_bytes = 4;
   DownloadState state = 5;
 }
 
 // One request for a title, as listed on the host's request sheet.
 message RequestInfo {
-  int32 id = 1;
+  // The provider's own id for this request, opaque to the host: whatever the provider's
+  // server uses, a number, a UUID or a slug, as a string. The host only hands it back on
+  // Edit/Cancel/Approve/Decline/Retry, and as the `VIEW_REQUEST` hand-off's request id, and never parses it. Never empty for a listed request.
+  string id = 1;
   ApprovalState state = 2;
   // Display name or username of the requesting user, when the provider says. Never an
   // email address or any part of one (see the header).
@@ -459,7 +475,8 @@ message RequestInfo {
 }
 
 message EditRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
   // The full replacement set, as `SubmitRequestRequest.season_numbers` is; not a delta.
   //
   // Empty is INVALID_ARGUMENT here, where on a submit it means the provider's default
@@ -548,25 +565,29 @@ message SubmitAdvancedRequestResponse {
 }
 
 message CancelRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message CancelRequestResponse {}
 
 message ApproveRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message ApproveRequestResponse {}
 
 message DeclineRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message DeclineRequestResponse {}
 
 message RetryRequestRequest {
-  int32 request_id = 1;
+  // A `RequestInfo.id`.
+  string request_id = 1;
 }
 
 message RetryRequestResponse {}
@@ -698,9 +719,9 @@ service RequestService {
   // FAILED_PRECONDITION when the request is not in a state that allows it;
   // PERMISSION_DENIED when the user may not retry this one.
   rpc RetryRequest(RetryRequestRequest) returns (RetryRequestResponse);
-  // Requires CAPABILITY_REPORT_ISSUE, and an availability with something to
-  // report against (available or partially available): FAILED_PRECONDITION for any
-  // other availability, including AVAILABILITY_NOT_REQUESTED, which is also how a
+  // Requires CAPABILITY_REPORT_ISSUE, and a version with something to report
+  // against (available or partially available, standard or 4K): FAILED_PRECONDITION
+  // when no version has one, for any other availability, including AVAILABILITY_NOT_REQUESTED, which is also how a
   // title the provider has no record of reads. INVALID_ARGUMENT for an unspecified
   // `media` or issue type.
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);

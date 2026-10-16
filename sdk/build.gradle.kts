@@ -49,6 +49,9 @@ dependencies {
     // (SecurityPolicy, Status), so both are part of this library's surface, not details of it.
     api(project(":binge-companion-contracts"))
     api(libs.grpc.binder)
+    // `OffsetPagingSource` is a `PagingSource` and `OpenPagingSources` takes and returns them, so the type is
+    // part of their surface. paging-common is the JVM artifact: no Android, no Room, no Compose.
+    api(libs.paging.common)
 
     // The fixtures' awaitEvent is written against kotlinx.coroutines; :binge-companion-contracts already exposes it
     // to the runtime, so this only names it for the fixtures' own compile.
@@ -76,7 +79,7 @@ detektGate {
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
 // HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy and signerDigests,
 // IntegrationService to inboundParcelablePolicy (its per-service registration needs grpc-binder's
-// Android statics, so it has no JVM test). AdvancedRequestKt
+// Android statics, so it has no JVM test), PlayTargetIntentKt to resolveIntent. AdvancedRequestKt
 // is deliberately NOT excluded - it holds both halves, so excluding it would drop a tested function
 // from the measurement.
 kover {

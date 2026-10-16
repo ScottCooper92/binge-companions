@@ -103,6 +103,11 @@ class ListRequestsPagingTest {
     }
 
     @Test
+    fun `a default above the cap is cut to it`() {
+        assertEquals(10, request(pageSize = 0).effectivePageSize(max = 10))
+    }
+
+    @Test
     fun `a negative page size is INVALID_ARGUMENT`() {
         assertInvalidArgument { request(pageSize = -1).effectivePageSize() }
     }

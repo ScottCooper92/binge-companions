@@ -14,6 +14,7 @@ import com.binge.companion.contracts.request.v1.RequestServiceGrpcKt
 import com.binge.companion.contracts.request.v1.RequestStatus
 import com.binge.companion.contracts.request.v1.SubmitRequestRequest
 import com.binge.companion.contracts.request.v1.SubmitRequestResponse
+import com.binge.companion.contracts.request.v1.VersionStatus
 import com.binge.companion.contracts.stream.v1.ProbeRequest
 import com.binge.companion.contracts.stream.v1.ProbeResponse
 import com.binge.companion.contracts.stream.v1.StreamServiceGrpcKt
@@ -56,8 +57,9 @@ class RoundTripService : IntegrationService() {
             request.media.requireSent()
             return GetStatusResponse
                 .newBuilder()
-                .setStatus(RequestStatus.newBuilder().setAvailability(Availability.AVAILABILITY_AVAILABLE))
-                .build()
+                .setStatus(
+                    RequestStatus.newBuilder().addVersions(VersionStatus.newBuilder().setAvailability(Availability.AVAILABILITY_AVAILABLE)),
+                ).build()
         }
 
         override suspend fun submitRequest(request: SubmitRequestRequest): SubmitRequestResponse {

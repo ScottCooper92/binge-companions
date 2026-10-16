@@ -6,10 +6,12 @@ import com.binge.companion.contracts.request.v1.HandshakeResponse
 import com.binge.companion.contracts.request.v1.RequestEntry
 import com.binge.companion.contracts.request.v1.RequestInfo
 import com.binge.companion.contracts.request.v1.RequestStatus
+import com.binge.companion.contracts.request.v1.VersionStatus
 import com.binge.companion.contracts.request.v1.mediaFileInfo
 import com.binge.companion.contracts.request.v1.requestEntry
 import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.request.v1.requestStatus
+import com.binge.companion.contracts.request.v1.versionStatus
 import com.binge.companion.contracts.v1.MediaId
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
@@ -46,8 +48,9 @@ class ProtoRoundTripTest {
     }
 
     @Test
-    fun `RequestStatus carries a movie's file info and reads as absent when unset`() {
-        val withFile = requestStatus {
+    fun `a version carries a movie's file info and reads as absent when unset`() {
+        val withFile = versionStatus {
+            is4K = true
             fileInfo = mediaFileInfo {
                 fileName = "Movie.Title.2026.2160p.WEB-DL.mkv"
                 sizeBytes = 42_000_000_000L
@@ -56,21 +59,41 @@ class ProtoRoundTripTest {
             }
         }
 
-        val parsed = RequestStatus.parseFrom(withFile.toByteArray())
+        val parsed = VersionStatus.parseFrom(withFile.toByteArray())
         assertEquals(withFile.fileInfo, parsed.fileInfo)
         assertEquals(true, parsed.hasFileInfo())
-        assertEquals(false, RequestStatus.parseFrom(requestStatus { }.toByteArray()).hasFileInfo())
+        assertEquals(false, VersionStatus.parseFrom(versionStatus { }.toByteArray()).hasFileInfo())
+    }
+
+    @Test
+    fun `RequestStatus carries each version apart, with its own availability and watch link`() {
+        val status = requestStatus {
+            versions += versionStatus { availability = Availability.AVAILABILITY_PENDING }
+            versions += versionStatus {
+                is4K = true
+                availability = Availability.AVAILABILITY_AVAILABLE
+                watchUrl = "https://media.example/4k/603"
+            }
+        }
+
+        val parsed = RequestStatus.parseFrom(status.toByteArray())
+        val standard = parsed.versionsList.single { !it.is4K }
+        val fourK = parsed.versionsList.single { it.is4K }
+        assertEquals(Availability.AVAILABILITY_PENDING, standard.availability)
+        assertEquals("", standard.watchUrl)
+        assertEquals(Availability.AVAILABILITY_AVAILABLE, fourK.availability)
+        assertEquals("https://media.example/4k/603", fourK.watchUrl)
     }
 
     @Test
     fun `RequestInfo carries is_4k and reads false when the field is absent`() {
         val fourK = requestInfo {
-            id = 7
+            id = "7"
             is4K = true
         }
 
         assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
-        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = 7 }.toByteArray()).is4K)
+        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = "7" }.toByteArray()).is4K)
     }
 
     @Test
@@ -81,9 +104,9 @@ class ProtoRoundTripTest {
                     mediaType = MediaType.MEDIA_TYPE_TV
                     tmdbId = 1399
                 }
-                status = requestStatus { availability = Availability.AVAILABILITY_AVAILABLE }
+                status = requestStatus { versions += versionStatus { availability = Availability.AVAILABILITY_AVAILABLE } }
                 request = requestInfo {
-                    id = 12
+                    id = "req-12"
                     seasonNumbers += listOf(1, 2)
                 }
             }

@@ -84,6 +84,17 @@ class HostSecurityPolicyTest {
     }
 
     @Test
+    fun `two entries for one package admit both certificates`() {
+        uidOwners[UID] = listOf(HOST)
+        val both = policy(KnownHost(HOST, setOf(CERT)), KnownHost(HOST, setOf("ffff")))
+
+        signers[HOST] = setOf(CERT)
+        assertEquals(Status.Code.OK, code(both))
+        signers[HOST] = setOf("ffff")
+        assertEquals(Status.Code.OK, code(both))
+    }
+
+    @Test
     fun `a shared uid is admitted through its listed owner`() {
         uidOwners[UID] = listOf(OTHER, HOST)
         signers[HOST] = setOf(CERT)

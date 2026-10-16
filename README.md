@@ -29,7 +29,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   Service, since `IntegrationService` takes a list of service implementations, or from a Service of
   its own per contract; which it is stays the companion's business, since consent and the
   certificate pin are per package, not per Service. A Service whose `<intent-filter>` names more
-  than one action declares its majors per contract (`CompanionManifest.META_MAJORS_REQUEST` /
+  than one contract action declares its majors per contract (`CompanionManifest.META_MAJORS_REQUEST` /
   `META_MAJORS_LIBRARY`) rather than the bare `META_MAJORS` a single-action Service uses, so the
   host always knows which contract's package a majors value names.
 - **Transport.** Calls cross the app boundary as gRPC. The transport is the official Android
@@ -96,6 +96,13 @@ sdk/         Android library for companion apps: the exported Service base, the 
              `effectivePageSize` for paging `ListRequests`, and `checkedSeasonNumbers` for an rpc's
              season list. Its test fixtures hold `awaitEvent`, for tests of one-shot event flows;
              a companion takes them with `testImplementation(testFixtures(...))`.
+             Its `paging` package holds what a companion that caches a server's list would write again:
+             `OffsetPagingSource` (a `take`/`skip` list), `pageCursorAfter`, `OpenPagingSources` and
+             `ListRefreshes`. `OffsetPagingSource` is an `androidx.paging.PagingSource`, and `OpenPagingSources`
+             takes and returns them, so the SDK exposes
+             `androidx.paging:paging-common` as an `api` dependency, and every companion gets it
+             transitively whether it pages or not. That is the JVM artifact: no Android, Room or Compose
+             comes with it. The Room-backed stores and the remote mediator stay in the companion.
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
 minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs,
                and its instrumented test makes a real Binder round trip on the minified build (device-round-trip.yml)
@@ -106,7 +113,14 @@ repository, [binge-seerr](https://github.com/ScottCooper92/binge-seerr).
 
 ## Building
 
-Run:
+The build includes Gradle plugins from the `binge-ci` submodule, so clone with it:
+
+```sh
+git clone --recurse-submodules https://github.com/ScottCooper92/binge-companions
+```
+
+In an existing clone, run `git submodule update --init` once. Without the submodule the build stops
+with "Included build … does not exist". Then run:
 
 ```sh
 ./gradlew build
