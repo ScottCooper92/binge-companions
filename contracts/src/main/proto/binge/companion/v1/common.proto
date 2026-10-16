@@ -73,11 +73,15 @@ message HttpHeader {
 //     `headers` or in the URL would travel in the clear on its behalf.
 //   - `expires_at` is REQUIRED. A source with none is dropped: players keep history, so a URL
 //     a player was given is a URL that gets stored, and the expiry is what bounds that. The
-//     host never caches a source past it and never past the Play sheet that showed it.
+//     host never caches a source past it and never past the title page that resolved it.
 //   - `headers` carry only `Authorization`, `Cookie`, `Referer` and `User-Agent`, each value
 //     at most 4 KiB. Others are dropped. A header the chosen player cannot be given (VLC and mpv
 //     take none) makes the whole source unusable for that player, and the host hides it there
 //     rather than sending the request without it.
+//   - `mime_type` is on a video allowlist: `video/*`, `application/x-mpegURL`,
+//     `application/vnd.apple.mpegurl` and `application/dash+xml`. Anything else is dropped,
+//     because the type picks the Intent, and `text/html` or an APK type would reach a browser or
+//     the package installer instead of a player. Empty reads as `video/*`.
 //   - The host never follows, fetches or inspects the URL itself: no thumbnails, no HEAD
 //     requests, no metadata scraping. What it knows about the source is what this message says.
 message PlaybackSource {
@@ -85,6 +89,7 @@ message PlaybackSource {
   repeated HttpHeader headers = 2;
   google.protobuf.Timestamp expires_at = 3;
   // The container or stream type when the integration knows it ("video/mp4",
-  // "application/x-mpegURL"), so the host can pick a player that declares it. Empty when unknown.
+  // "application/x-mpegURL"), so the host can pick a player that declares it. Empty when unknown,
+  // which the host reads as `video/*`. The allowlist is in this message's header.
   string mime_type = 4;
 }
