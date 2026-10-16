@@ -80,6 +80,8 @@ Practical rules:
   `LocalizedMessage` in the device's locale. Host and integration share a device, and only the
   handshake carries `HostInfo.locale`, which an integration does not keep (#177). This applies to
   every contract, STREAM included; `request.proto` states it in full.
+- The host's own translated copy is the default line for every code. A non-empty
+  `LocalizedMessage` replaces it when the integration sends one.
 - Some codes come from the transport rather than from an integration, and a host has to handle
   them even though no integration ever chooses them. An integration that is **not installed**
   reads as `UNIMPLEMENTED`, not `UNAVAILABLE` — grpc-binder reports a `bindService()` that
@@ -400,7 +402,10 @@ surface and the largest policy exposure, so its first decision is a gate, not a 
 ### The gate
 
 A host ships no STREAM UI until a first-party companion exists that resolves licit sources, and
-the proto stays `Draft` until that companion has served it. Two reasons, both about Play:
+the proto stays `Draft` until that companion has served it. That companion is binge-archive
+(#141): public-domain and openly licensed films on the Internet Archive. It is being built, and
+Binge's STREAM host is being built beside it, behind the feature flag in point 7 below. Two
+reasons for the gate, both about Play:
 
 - An app whose screens list third-party stream links is the pattern that gets a media app removed,
   hand-off or not. The host cannot tell an infringing source from a licit one, so "the curated list
@@ -429,6 +434,24 @@ the proto stays `Draft` until that companion has served it. Two reasons, both ab
 - **Every source expires.** `expires_at` is required and the host drops a source without one.
   Players keep history, so a URL a player was given is a URL that is stored; the expiry bounds that.
 
+### What `Resolve` answers
+
+| Case | Answer | What the user sees |
+| --- | --- | --- |
+| A. The integration has sources. | The sources, then OK. | The sources. |
+| B. It knows the title and has no licit copy. | OK, with no sources. | A line, e.g. "On the Internet Archive, but not free to watch". |
+| C. The title is not in its catalogue. | `NOT_FOUND`. | A line, e.g. "Not on the Internet Archive". |
+| D. A bad request. | `INVALID_ARGUMENT`. | A line. |
+
+A bad request is `MEDIA_TYPE_UNSPECIFIED`, `tmdb_id <= 0`, an id the integration knows is not a
+film, an episode on a movie, or a `source_id` it never issued.
+
+- **`NOT_FOUND` is not a failure.** The host does not retry it, and it does not count toward
+  health or the kill switch. For binge-archive it is the common answer.
+- **The host never drops an integration silently.** B, C and every error each get a line, and B
+  and C read differently. The host's own translated copy is the default; a `LocalizedMessage`
+  replaces it when sent.
+
 ### Protecting the host
 
 The host is a courier for a source and never a consumer of it. In order of how much each buys:
@@ -438,19 +461,21 @@ The host is a courier for a source and never a consumer of it. In order of how m
    stance rests on, and it is not revisited casually: an app cannot be un-removed.
 2. **The host validates and drops; it never repairs.** Only https URLs. Only `Authorization`,
    `Cookie`, `Referer` and `User-Agent` headers, each at most 4 KiB. A source whose headers the
-   chosen player cannot carry is hidden for that player, not sent without them. Labels are
+   chosen player cannot carry is hidden for that player, not sent without them. `mime_type` is on
+   a video allowlist (`video/*`, HLS and DASH), and empty reads as `video/*`. Labels are
    truncated, never parsed. A source failing any rule is dropped silently; the integration learns
    nothing from the host about why, which keeps the rules from being probed.
 3. **The host fetches nothing.** No thumbnails from a source host, no HEAD requests, no metadata
    scraping, no following redirects. What the host knows about a source is what the message says.
-4. **Nothing persists.** Sources live in the Play sheet that showed them and are gone when it
-   closes, and never past `expires_at`. The host keeps no history of sources, no cache across
-   title pages, and nothing on disk.
+4. **Nothing persists.** Sources live only as long as the title page that resolved them, and
+   never past `expires_at`. The host keeps no history of sources, no cache across title pages,
+   and nothing on disk.
 5. **Attribution, not ranking.** Every source row names the integration that produced it, with
    the name from its manifest and its `provider_name`. Sources are grouped by integration. The host
    never badges one as best, never merges two integrations' lists into one ranking, and never
-   autoplays. Attributing a source is how the host says "this came from an app you installed",
-   which is not the same as listing or recommending a provider.
+   autoplays. That holds on TV too: the host shows the sources even when there is one source and
+   one player that can take it. Attributing a source is how the host says "this came from an app
+   you installed", which is not the same as listing or recommending a provider.
 6. **Consent says what the integration is.** A STREAM companion's consent text is its own: this
    app will give Binge links to video sources, and Binge does not check where they come from.
    Consent is per package with the certificate pinned, as everywhere.
@@ -460,10 +485,12 @@ The host is a courier for a source and never a consumer of it. In order of how m
    for any contract; a companion that turns out to be what the stance forbids is cut off on every
    device the same day, and the user is told why on its row. Both are host configuration, not
    contract.
-8. **Resolve on demand only.** The host resolves when the user opens the sources affordance, never
-   on a title page's appearance, never in a background sweep, never to build a row. `Probe` exists
-   so a title page can ask "is there anything here?" cheaply; an integration that would have to
-   resolve to answer it should not declare `CAPABILITY_PROBE`.
+8. **Resolve only for the title in front of the user.** The host resolves when a title page
+   opens, so it can sum up each integration's answer in one line ("2 sources, up to 1080p", "Not on
+   the Internet Archive"). It never resolves in a background sweep, never for a list or a row, and
+   never for a title the user has not opened. `Probe` lets a host ask "is there anything here?"
+   more cheaply; an integration that would have to resolve to answer it should not declare
+   `CAPABILITY_PROBE`.
 
 The companion side is unchanged from every other contract: `HostPolicy` on the Service, and no
 privileged path for any host.
@@ -480,13 +507,14 @@ detection never uses version numbers.
 The Service action is `com.binge.companion.STREAM`, with `com.binge.companion.majors.stream` for a
 Service that also names another action. Several STREAM companions may be consented at once; the
 host resolves against each under its own deadline and shows what arrives, grouped, with none
-preferred.
+preferred. The deadline is a placeholder until binge-archive's measurements set it (#148).
 
 ### Where STREAM stops
 
 - It never answers for the user's own server; that is LIBRARY, even when the same backend could.
 - It hands out playable sources and nothing else: no browsing, no search, no catalogue. A
   companion with a catalogue of its own is a different product, and the host does not render it.
+  binge-archive will have one in its own UI, opening titles in Binge, as a later phase (#149).
 - It does not record what was watched. A STREAM source has no viewer session to write back to.
 
 ## Versioning

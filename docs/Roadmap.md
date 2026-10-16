@@ -31,7 +31,9 @@ the journey these stages add up to.
    Hand-off only, through the same Play sheet, on the shared `PlaybackSource`. LIBRARY does not
    overlap this one: it answers for the server the user already runs, STREAM for everything else.
    The `.proto` is drafted; what moves it is a first-party companion that resolves licit sources,
-   and no host ships STREAM UI before one exists. See `Architecture.md` > STREAM.
+   and no host ships STREAM UI before one exists. That companion is binge-archive (#141), now being
+   built, with Binge's STREAM host behind a feature flag. LIBRARY stays deferred.
+   See `Architecture.md` > STREAM.
 
 **Deferred: PLAYER.** Handing playback to an external player with a live progress callback. The
 Play sheet and the players already installed cover the case for now. It comes back if users hit
