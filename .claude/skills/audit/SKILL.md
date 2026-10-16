@@ -22,8 +22,8 @@ Modules: `contracts/` (`.proto` + generated stubs, not checked in), `sdk/` (`com
 **Three disciplines make this useful rather than noisy:**
 
 1. **Exemptions first.** Check each hit against the exemption. Recurring ones: `src/test`, generated
-   code under `build/generated`, the four excluded Android-holder classes (`HostPolicy`,
-   `HandOffPolicy`, `IntegrationService`, the `PackageManager` extension — each already splits its
+   code under `build/generated`, the five excluded Android-holder classes (`HostPolicy`,
+   `HandOffPolicy`, `IntegrationService`, the `PackageManager` extension, `PlayTargetIntentKt` — each already splits its
    decision into a JVM-tested class), and `reserved` entries in protos (they are the right way to
    remove a field).
 2. **Verify before reporting.** Re-read every candidate in context; label it **confirmed**
@@ -82,7 +82,7 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - Capability handling: unknown enum values ignored; no behaviour keyed on a version number
   (the `Capability` enum in `request.proto` is the list; `Capabilities.kt` holds only `handshakeResponse()` and
   `requireDeclared()`; also `CompanionManifest.kt`); a gated rpc reachable when its capability is undeclared.
-- Coverage honesty: the four excluded classes' KDocs must still say where the decision was split out,
+- Coverage honesty: the five excluded classes' KDocs must still say where the decision was split out,
   and `AdvancedRequestKt` must stay **included** (it holds both halves). Check the exclusion list in
   `sdk/build.gradle.kts` has not grown to hide untested logic.
 

@@ -108,7 +108,7 @@ Practical rules:
 - The REQUEST stub spike validated the transport on real hardware. Bind-to-handshake p95 was
   119–128 ms on a phone (Android 16) and 22–37 ms on a SHIELD (Android 11), against a proposed
   ~300 ms bar — so the TV, the surface the spike existed to worry about, is the faster of the two
-  by roughly 4x. The APK cost after R8 is a separate build measurement and is not yet recorded.
+  by roughly 4x. The APK cost after R8 was +209 KB (1.5%).
 
 ## Media identity
 
