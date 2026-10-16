@@ -79,7 +79,7 @@ detektGate {
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
 // HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy and signerDigests,
 // IntegrationService to inboundParcelablePolicy (its per-service registration needs grpc-binder's
-// Android statics, so it has no JVM test). AdvancedRequestKt
+// Android statics, so it has no JVM test), PlayTargetIntentKt to resolveIntent. AdvancedRequestKt
 // is deliberately NOT excluded - it holds both halves, so excluding it would drop a tested function
 // from the measurement.
 kover {

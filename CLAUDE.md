@@ -91,8 +91,8 @@ and without it `UnsafeCallOnNullableType` — the `!!` ban — loads and silentl
 creating one.
 
 Coverage gates `:binge-companion-sdk` at **85% of lines**, measured after excluding the handful of classes
-that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`
-and the `PackageManager` extension. That is not a fudge: each of those already has its
+that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`,
+the `PackageManager` extension and `PlayTargetIntentKt` (the `PlayTarget.toIntent` wrapper). That is not a fudge: each of those already has its
 decision split out into a JVM-testable class the tests do cover, and the KDoc at each one
 says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both halves.
 `:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
@@ -151,3 +151,10 @@ carrying the `agent` label.
 this repository's secrets in scope. Do not apply it to a PR you have not read, and
 never to one from a fork — the workflows already refuse fork PRs, and that guard is
 the load-bearing control here rather than a formality.
+
+**Add `hold` only when a human must do the merging.** `hold` withholds the bot's merge: the PR is
+still reviewed and kept current, but a maintainer lands it. Add it alongside `agent` only when the PR
+changes how the bots review or merge (`.ai/agents/` or `.github/workflows/`), when it needs a check
+on a device first, or when it isn't ready to merge (a stack to land by hand, or a PR waiting on a
+decision or another repository). Everything else, including `CLAUDE.md`, skills and docs, takes
+`agent` alone and merges once reviewed and green.

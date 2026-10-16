@@ -2,7 +2,8 @@ package com.binge.companion.sdk
 
 /**
  * A host app a companion is willing to serve: its package name and the SHA-256 digests of the
- * signing certificates it may carry, as lowercase hex without separators.
+ * signing certificates it may carry, as lowercase hex without separators. List every digest for a
+ * package in one entry; two entries for one package are merged.
  *
  * Both halves are needed. A package name is re-claimable on a device that allows sideloading,
  * which is exactly the device this platform targets, so the certificate is what makes the

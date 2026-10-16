@@ -113,7 +113,14 @@ repository, [binge-seerr](https://github.com/ScottCooper92/binge-seerr).
 
 ## Building
 
-Run:
+The build includes Gradle plugins from the `binge-ci` submodule, so clone with it:
+
+```sh
+git clone --recurse-submodules https://github.com/ScottCooper92/binge-companions
+```
+
+In an existing clone, run `git submodule update --init` once. Without the submodule the build stops
+with "Included build … does not exist". Then run:
 
 ```sh
 ./gradlew build

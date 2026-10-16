@@ -17,12 +17,12 @@ const val MAX_LIST_PAGE_SIZE = 50
 
 /**
  * The page size to serve this request with. A `page_size` of 0 leaves the choice to the companion,
- * so it is [default]. Anything above [max] is cut to [max]; the contract lets a page be shorter
- * than asked. A negative size is `INVALID_ARGUMENT`.
+ * so it is [default]. Anything above [max] is cut to [max], [default] included; the contract lets a
+ * page be shorter than asked. A negative size is `INVALID_ARGUMENT`.
  */
 fun ListRequestsRequest.effectivePageSize(default: Int = DEFAULT_LIST_PAGE_SIZE, max: Int = MAX_LIST_PAGE_SIZE): Int {
     if (pageSize < 0) throw invalidArgument("page_size must not be negative, was $pageSize")
-    return if (pageSize == 0) default else pageSize.coerceAtMost(max)
+    return (if (pageSize == 0) default else pageSize).coerceAtMost(max)
 }
 
 /**
