@@ -21,14 +21,9 @@ potential-bugs:
   # without that classpath the rule loads and silently never fires.
   UnsafeCallOnNullableType:
     active: true
-  # Off, as in Binge. These two are type-resolution-only rules that come along for free with the
-  # classpath wired above, rather than anything asked for here - and UnreachableCode is measurably
-  # wrong on this module's dominant idiom. It marks the three statements after
-  # `runCatching { getPackageManager... }.getOrNull()` in HostPolicy.signerSha256s as unreachable:
-  # detekt cannot resolve the Android platform type the call returns, so it infers Nothing. The
-  # same shape with a Kotlin type is not flagged, which is how that was pinned down.
-  UnreachableCode:
-    active: false
+  # Off, as in Binge: a type-resolution-only rule that comes along for free with the classpath wired
+  # above, rather than anything asked for here. UnreachableCode, its pair, is on: the site that once
+  # misfired it moved behind signerDigests, which takes Kotlin types (#223).
   UnnecessarySafeCall:
     active: false
 
