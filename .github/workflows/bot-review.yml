@@ -65,10 +65,12 @@ jobs:
     uses: ScottCooper92/binge-ci/.github/workflows/bot-review.yml@789874fef2e1aca228f610d68617a30386d5a3d8 # v1
     with:
       dispatch_pr: ${{ inputs.pr }}
-      # This repo publishes a wire contract other people build against, so what lands
-      # on main is read and copied. A bot squash-merging on a green `buf` run is a
-      # sharper tool here than on a private app repo.
-      auto_merge: false
+      # On since 2026-10-16. A PR that needs a human still says so with `hold` (CLAUDE.md,
+      # "Agent workflows"), and buf breaking still gates the wire contract. Merge commits,
+      # not squash: binge-seerr pins this repository as a submodule, and a stacked child
+      # keeps its parent's SHAs.
+      auto_merge: true
+      merge_method: merge
       # This repo's whole gate is `./gradlew build` plus buf lint/breaking. There is no
       # linter, no coverage floor and no screenshot suite - so naming one here would tell
       # the reviewer not to report what nothing actually catches.
