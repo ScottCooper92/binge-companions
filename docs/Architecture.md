@@ -559,8 +559,9 @@ what it posted. A held-open `ObserveNotifications` stream looks more direct, and
 - **Battery.** The companion already polls its own server on its own schedule. A stream adds a
   second wakeful process on top. A poll costs one short bind on a schedule the system batches with
   other background work.
-- **Binding per operation.** Every other host call binds, calls and unbinds, and the companion keeps
-  no per-connection state. A poll fits that rule. A stream would be the one exception.
+- **How long the binding is held.** The existing streams (`ObserveStatus`, `ObserveAttention`, and
+  the two in LIBRARY) are held only while a host screen is watching. A notification stream would be
+  held all day, while the host is in the background. A poll binds, calls and unbinds.
 
 The cost is latency: a notification reaches the user on the host's next run rather than at once.
 The companion's own poll of its server is already minutes apart, so that is the same order.
@@ -576,7 +577,8 @@ changes it. The setting lives in the host and the companion must honour it, whic
 the rule above for a companion's own settings. So the host sends it, rather than the companion
 reporting it on a response. A host can be uninstalled without turning forwarding off. The
 companion may treat forwarding as lapsed when no host has polled for much longer than a poll
-interval, and show its own again, so a host that went away does not swallow them.
+interval, and show its own again, so a host that went away does not swallow them. A notification
+shown during a lapse is not queued, or the next `ListNotifications` would tell the user twice.
 
 ## Versioning
 

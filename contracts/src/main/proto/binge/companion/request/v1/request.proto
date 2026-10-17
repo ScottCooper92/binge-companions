@@ -657,7 +657,9 @@ message SetNotificationForwardingResponse {}
 
 message ListNotificationsRequest {
   // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
-  // A token is only valid with the `page_size` it was issued under.
+  // A token is only valid with the `page_size` it was issued under. It stays valid across
+  // `AcknowledgeNotifications` within one listing, and must not skip a notification that was not
+  // acknowledged.
   string page_token = 1;
   // At most this many notifications; 0 lets the integration choose. It may answer fewer, and keeps
   // every page well under the Binder transaction limit whatever is asked. The host must not read a
@@ -797,7 +799,8 @@ service RequestService {
   // The host may be uninstalled or stopped without turning it off. An integration may treat
   // forwarding as lapsed when no host has called `ListNotifications` for much longer than a
   // host's poll interval (a day, say), and show its own again until the next call, so a host that
-  // went away does not swallow them.
+  // went away does not swallow them. A notification shown during a lapse is not queued, or the
+  // next `ListNotifications` would tell the user twice.
   rpc SetNotificationForwarding(SetNotificationForwardingRequest) returns (SetNotificationForwardingResponse);
   // Requires CAPABILITY_FORWARD_NOTIFICATIONS. The notifications queued since forwarding was
   // turned on and not yet acknowledged, oldest first. Paged, as every list on this platform is;
