@@ -500,8 +500,9 @@ privileged path for any host.
 ### Capabilities
 
 `PROBE`, `SUBTITLES`, `REPORT_SOURCE`. The mandatory core is `Handshake` and `Resolve`. A STREAM
-companion with no backend session answers `Handshake` with `UNAUTHENTICATED`, as LIBRARY does, and
-the host handshakes again when the user returns from the companion app. As everywhere: feature
+companion whose backend needs a sign-in the user has not completed answers `Handshake` with
+`UNAUTHENTICATED`, as LIBRARY does, and the host handshakes again when the user returns from the
+companion app. One with nothing to sign in to answers OK. As everywhere: feature
 detection never uses version numbers.
 
 ### Discovery
@@ -509,7 +510,8 @@ detection never uses version numbers.
 The Service action is `com.binge.companion.STREAM`, with `com.binge.companion.majors.stream` for a
 Service that also names another action. Several STREAM companions may be consented at once; the
 host resolves against each under its own deadline and shows what arrives, grouped, with none
-preferred. The deadline is a placeholder until binge-archive's measurements set it (#148).
+preferred. The deadline is 10 s (#148). binge-archive measured a p95 of 5.5 s over 258 resolves
+from a data centre, and 10 s leaves room for a phone on a home network.
 
 ### Where STREAM stops
 
