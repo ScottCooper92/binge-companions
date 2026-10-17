@@ -21,8 +21,8 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
 
 ## How it works
 
-- **Discovery.** A companion app exports one bound Service for each capability. Binge matches the
-  Service by its intent action (`com.binge.companion.REQUEST`, `.LIBRARY`, `.STREAM`,
+- **Discovery.** A companion app exports a bound Service for the contracts it serves. Binge matches
+  the Service by its intent action (`com.binge.companion.REQUEST`, `.LIBRARY`, `.STREAM`,
   `.TRACKING`, `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the
   contract version. Binge can list installed companion apps without a start of their processes. A
   companion may serve more than one contract — REQUEST and LIBRARY, say — from the same exported

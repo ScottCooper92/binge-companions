@@ -5,8 +5,8 @@ companion app proves them with real traffic.
 
 ## Transport: companion APKs over Binder IPC
 
-A companion app exports one bound Service for each capability. Binge matches the Service by its
-intent action:
+A companion app exports a bound Service for the contracts it serves. Binge matches the Service by
+its intent action:
 
 | Action | Capability |
 | --- | --- |
