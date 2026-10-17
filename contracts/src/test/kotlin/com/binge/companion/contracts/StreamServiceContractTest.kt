@@ -94,7 +94,7 @@ class StreamServiceContractTest {
     }
 
     @Test
-    fun `a handshake with no session is UNAUTHENTICATED, as the header says`() =
+    fun `a handshake that needs a sign-in the user has not completed is UNAUTHENTICATED, as the header says`() =
         runBlocking {
             val channel =
                 serve(
