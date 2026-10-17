@@ -26,7 +26,8 @@ the journey these stages add up to.
    sign-in; browsing and playing the library stay with Jellyfin's own app.
 8. **Host playback in Binge** — LIBRARY discovery and consent, availability and watch state on
    title pages, and the Play sheet: the server's own app, or an installed player with progress
-   written back. TV first. See `Ecosystem.md` > Playback.
+   written back. TV first. See `Ecosystem.md` > Playback. **Deferred:** the LIBRARY contract is
+   drafted, but Binge's LIBRARY host waits until STREAM (9) ships.
 9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
    Hand-off only, through the same Play sheet, on the shared `PlaybackSource`. LIBRARY does not
    overlap this one: it answers for the server the user already runs, STREAM for everything else.
