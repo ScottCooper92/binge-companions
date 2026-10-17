@@ -1,6 +1,7 @@
 package com.binge.companion.contracts
 
 import com.binge.companion.contracts.stream.v1.DynamicRange
+import com.binge.companion.contracts.stream.v1.LicenceKind
 import com.binge.companion.contracts.stream.v1.Resolution
 import com.binge.companion.contracts.stream.v1.StreamSource
 import com.binge.companion.contracts.stream.v1.sourceQuality
@@ -83,6 +84,24 @@ class PlaybackSourceRoundTripTest {
         assertEquals(DynamicRange.DYNAMIC_RANGE_HDR, parsed.quality.dynamicRange)
         assertEquals(SIZE_BYTES, parsed.quality.sizeBytes)
         assertEquals("en", parsed.getSubtitles(0).language)
+    }
+
+    /** #247: the licence crosses as its own two fields, and an older integration's source reads as UNSPECIFIED. */
+    @Test
+    fun `a stream source round-trips its licence, and one without reads as unspecified`() {
+        val licensed = streamSource {
+            id = "abc"
+            licenceLabel = "Public domain (US)"
+            licenceKind = LicenceKind.LICENCE_KIND_OPEN
+        }
+
+        val parsed = StreamSource.parseFrom(licensed.toByteArray())
+
+        assertEquals("Public domain (US)", parsed.licenceLabel)
+        assertEquals(LicenceKind.LICENCE_KIND_OPEN, parsed.licenceKind)
+        val older = StreamSource.parseFrom(streamSource { id = "abc" }.toByteArray())
+        assertEquals("", older.licenceLabel)
+        assertEquals(LicenceKind.LICENCE_KIND_UNSPECIFIED, older.licenceKind)
     }
 
     private companion object {

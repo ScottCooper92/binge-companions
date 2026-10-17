@@ -425,6 +425,12 @@ reasons for the gate, both about Play:
   size) rather than labels, so the host can sort and a TV can pick without a screen. A label is
   at most 120 characters and a source carries at most ten subtitle tracks; the host truncates
   beyond either, so one message stays far under the Binder limit.
+- **The licence is structured too** (#247). `licence_label` is a short display string, at most 40
+  characters, shown as-is, and `licence_kind` says what it means: `OPEN` (public domain, CC0 or any
+  Creative Commons licence), `NONE_STATED`, `RESTRICTED` or `UNKNOWN`. The host shows the label on
+  a line of its own, so the title never truncates it away, and gives any kind but `OPEN` a visible
+  warning. `UNSPECIFIED` is an older integration and shows nothing extra. The licence no longer
+  travels in `label`.
 - **Resolution streams.** `Resolve` is server-streaming: one source per message, as found, and the
   stream ends when the integration is done. Partial results are normal. The host's deadline bounds
   it, cancellation abandons it, and an integration stops work when cancelled. The host reads at

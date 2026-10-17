@@ -127,6 +127,25 @@ enum DynamicRange {
   DYNAMIC_RANGE_HDR = 2;
 }
 
+// What a source's licence lets the user do with it, so a host can tell an open licence from a
+// restrictive one without parsing `StreamSource.licence_label`. A host shows any kind other than
+// LICENCE_KIND_OPEN with a visible warning, and shows nothing extra for UNSPECIFIED.
+//
+// Append-only: new values get new numbers; a receiver treats a value it does not know as
+// LICENCE_KIND_UNKNOWN, never as OPEN.
+enum LicenceKind {
+  // An integration that predates the field. The host shows nothing extra.
+  LICENCE_KIND_UNSPECIFIED = 0;
+  // Public domain, CC0 or any Creative Commons licence.
+  LICENCE_KIND_OPEN = 1;
+  // The source states no licence at all.
+  LICENCE_KIND_NONE_STATED = 2;
+  // Explicitly not open, such as "all rights reserved".
+  LICENCE_KIND_RESTRICTED = 3;
+  // A licence the integration found but could not classify.
+  LICENCE_KIND_UNKNOWN = 4;
+}
+
 // Why a user reported a source, in the host's words rather than the integration's.
 //
 // Append-only: new values get new numbers. Host to integration, so the integration is the
@@ -191,12 +210,21 @@ message StreamSource {
   binge.companion.v1.PlaybackSource source = 2;
   SourceQuality quality = 3;
   // A short label the host shows as-is on the row, e.g. a release name. At most 120 characters;
-  // the host truncates longer ones. Never the URL.
+  // the host truncates longer ones. Never the URL, and never the licence: that is
+  // `licence_label`.
   string label = 4;
   // Requires CAPABILITY_SUBTITLES; empty otherwise. At most ten tracks; the host keeps the
   // first ten in the order sent and drops the rest, so one source message never nears the
   // Binder transaction limit. An integration with more sends the ten it would offer first.
   repeated SubtitleTrack subtitles = 5;
+  // The source's licence as the user should read it, e.g. "Public domain (US)", "CC BY 4.0",
+  // "No licence stated" or "All rights reserved". Shown as-is. At most 40 characters; the host
+  // truncates longer ones. Never the URL. The host shows it on a line of its own, so the title
+  // never truncates it away. Empty with LICENCE_KIND_UNSPECIFIED from an older integration.
+  string licence_label = 6;
+  // How the host treats `licence_label`: any kind other than LICENCE_KIND_OPEN gets a visible
+  // warning, and UNSPECIFIED shows nothing extra.
+  LicenceKind licence_kind = 7;
 }
 
 message ResolveRequest {
