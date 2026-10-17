@@ -67,8 +67,8 @@ syntax = "proto3";
 //                    on (media, is_4k, season_numbers) within a short window itself.
 //
 // Codes the TRANSPORT produces, which no integration chooses and every host must
-// handle. Measured on a phone (Android 16) and a SHIELD (Android 11) in
-// ScottCooper92/Binge#2306; the first of these is the one that surprises:
+// handle. Measured on a phone (Android 16) and a SHIELD (Android 11); the spike
+// is tracked privately. The first of these is the one that surprises:
 //   UNIMPLEMENTED    — the integration is NOT INSTALLED. grpc-binder reports a
 //                      `bindService()` that returned false this way, with
 //                      "bindService(...) returned false" as the description,
