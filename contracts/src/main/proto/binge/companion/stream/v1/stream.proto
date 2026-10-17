@@ -236,11 +236,12 @@ message ReportSourceResponse {}
 // every connection: the host binds per operation, and keeps the handshake's answer for the
 // instance's life. So an integration keeps no per-connection state. Each call stands alone.
 service StreamService {
-  // Core. The host's first call on every new instance. With nothing signed in, or a broken
-  // backend session, it answers UNAUTHENTICATED, and the host directs the user to the
-  // integration app. The host handshakes again when the user returns from the integration
-  // app after it sent them there for an UNAUTHENTICATED, from this rpc or
-  // any other. An integration answers every Handshake from the session it holds now.
+  // Core. The host's first call on every new instance. If the backend needs a sign-in the
+  // user has not completed, or the session is broken, it answers UNAUTHENTICATED, and the host
+  // directs the user to the integration app. An integration with nothing to sign in to answers
+  // OK. The host handshakes again when the user returns from the integration app after it
+  // sent them there for an UNAUTHENTICATED, from this rpc or any other. An integration answers
+  // every Handshake from the session it holds now.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. Streams one `StreamSource` per message as the integration finds them and completes
   // when it has no more. Completing with no messages is OK: the title has no sources here.
