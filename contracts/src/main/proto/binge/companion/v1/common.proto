@@ -93,3 +93,37 @@ message PlaybackSource {
   // which the host reads as `video/*`. The allowlist is in this message's header.
   string mime_type = 4;
 }
+
+// A notification a companion would have shown itself, handed to the host to show instead. Shared
+// by every contract that forwards notifications (REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS`
+// first), so the host posts them with one piece of code whichever contract carried them.
+//
+// The companion decides what to notify about and how often, from its own settings. The host
+// decides nothing about the content: it posts what it is given, names the companion beside it,
+// and opens the title a tap names. The rules it applies, so a companion knows what will happen:
+//   - `id` is the dedupe key. Delivery is at least once, so the host may be handed the same
+//     notification twice, and posts it under the same key each time: a repeat replaces rather
+//     than stacks. Ids are opaque, unique per companion, and never reused for a different
+//     notification.
+//   - `title` and `text` are plain text in the device's locale, as a `LocalizedMessage` is (the
+//     companion resolves them as it resolves its own strings). The host never parses markup in
+//     them and may truncate either. Neither carries an email address or any part of one.
+//   - `media`, when set, is the title a tap opens on the host. Unset is a notification about no
+//     single title (a summary of three requests, a server needing sign-in), and a tap opens the
+//     host's page for the companion instead. A set `media` with MEDIA_TYPE_UNSPECIFIED or a
+//     `tmdb_id` <= 0 is treated as unset.
+//   - `kind` is the companion's own name for what kind of notification this is ("request_available",
+//     say). It is for the companion's use: the host never shows it and never branches on its value,
+//     though it may group notifications of one kind from one companion together.
+message ForwardedNotification {
+  string id = 1;
+  string title = 2;
+  string text = 3;
+  // Optional: the title a tap opens. See the message header for when it reads as unset.
+  MediaId media = 4;
+  string kind = 5;
+  // When the companion would have shown it. The host shows this as the notification's time, so a
+  // notification picked up on a later poll still says when it happened. Unset reads as the time
+  // the host posts it.
+  google.protobuf.Timestamp created_at = 6;
+}

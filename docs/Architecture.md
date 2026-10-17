@@ -527,6 +527,57 @@ from a data centre, and 10 s leaves room for a phone on a home network.
   binge-archive will have one in its own UI, opening titles in Binge, as a later phase (#149).
 - It does not record what was watched. A STREAM source has no viewer session to write back to.
 
+## Notifications: forwarded, and polled
+
+A companion that would notify the user itself can hand those notifications to the host instead.
+REQUEST declares this as `CAPABILITY_FORWARD_NOTIFICATIONS`, and the message it carries,
+`ForwardedNotification`, is in `common.proto` so another contract can forward the same way.
+
+### Who decides what
+
+The companion decides what to notify about. Its own settings choose the kinds, and it writes the
+title and the text. The host decides only whether it shows this companion's notifications at all:
+one switch per companion, all or nothing. The host never filters by kind and never rewrites the
+text. It names the companion beside each notification, and a tap opens the title the notification
+names, or the companion's page when it names none.
+
+While forwarding is on, the companion queues each notification instead of showing it. It does not
+show it as well, because the user would be told twice. When forwarding is off, the companion shows
+its own again, as its settings say.
+
+### Why the host polls
+
+The host reads the queue with `ListNotifications` on its own background schedule, then acknowledges
+what it posted. A held-open `ObserveNotifications` stream looks more direct, and was rejected:
+
+- **The host is not running.** A notification matters most when the host is closed. A stream only
+  delivers while the host's process is alive and holds the binding. Keeping it alive for that means
+  a foreground service and a permanent notification, which is worse than the problem.
+- **Process lifetime.** A bound Service keeps the companion's process at the binder's priority. A
+  stream held open all day keeps both apps resident, and Android reaps them anyway under memory
+  pressure. The stream then ends silently, and the host has to poll to notice.
+- **Battery.** The companion already polls its own server on its own schedule. A stream adds a
+  second wakeful process on top. A poll costs one short bind on a schedule the system batches with
+  other background work.
+- **Binding per operation.** Every other host call binds, calls and unbinds, and the companion keeps
+  no per-connection state. A poll fits that rule. A stream would be the one exception.
+
+The cost is latency: a notification reaches the user on the host's next run rather than at once.
+The companion's own poll of its server is already minutes apart, so that is the same order.
+
+### Delivery
+
+Delivery is at least once. The host may read a notification, post it, and fail before its
+acknowledgement lands, so it reads that notification again on the next run. The id is the dedupe
+key: the host posts each one under its companion and id, so a repeat replaces rather than stacks.
+
+The host tells the companion the switch's value with `SetNotificationForwarding` when the user
+changes it. The setting lives in the host and the companion must honour it, which is the reverse of
+the rule above for a companion's own settings. So the host sends it, rather than the companion
+reporting it on a response. A host can be uninstalled without turning forwarding off. The
+companion may treat forwarding as lapsed when no host has polled for much longer than a poll
+interval, and show its own again, so a host that went away does not swallow them.
+
 ## Versioning
 
 Capabilities answer "what can you do?". Versions answer "can we parse each other?".

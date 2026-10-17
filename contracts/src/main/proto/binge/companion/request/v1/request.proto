@@ -166,6 +166,14 @@ enum Capability {
   // `REQUEST_FILTER_RECENTLY_AVAILABLE` holds other users' requests too and a `RequestEntry`
   // names no requester to filter by. Declared only with CAPABILITY_LIST_REQUESTS.
   CAPABILITY_LIST_MINE_RECENTLY_AVAILABLE = 16;
+  // Forwards the notifications the integration would have shown itself, for the host to show
+  // instead: `SetNotificationForwarding`, `ListNotifications` and `AcknowledgeNotifications`. The
+  // host offers one switch per integration, all or nothing; which kinds the integration notifies
+  // about stays in the integration's own settings. Needs no session, so it is declared whenever
+  // the integration supports it: a notification the integration has queued is still the host's to
+  // show after the session breaks. See "Notifications" in docs/Architecture.md for why the host
+  // polls rather than holds a stream open.
+  CAPABILITY_FORWARD_NOTIFICATIONS = 17;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -639,6 +647,40 @@ message ObserveAttentionResponse {
   Attention attention = 1;
 }
 
+message SetNotificationForwardingRequest {
+  // True while the user wants the host to show this integration's notifications. The integration
+  // keeps the last value it was sent, across restarts, until it is sent another.
+  bool enabled = 1;
+}
+
+message SetNotificationForwardingResponse {}
+
+message ListNotificationsRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `page_size` it was issued under.
+  string page_token = 1;
+  // At most this many notifications; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked. The host must not read a
+  // short page as the end; only an empty `next_page_token` says that. Keep it the same on every
+  // page of one listing.
+  int32 page_size = 2;
+}
+
+message ListNotificationsResponse {
+  // The notifications waiting for the host, oldest first.
+  repeated binge.companion.v1.ForwardedNotification notifications = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+message AcknowledgeNotificationsRequest {
+  // The `ForwardedNotification.id`s the host has posted. At most 100 per call; more is
+  // INVALID_ARGUMENT.
+  repeated string ids = 1;
+}
+
+message AcknowledgeNotificationsResponse {}
+
 // Served by an integration app from a bound Service exported with the
 // `com.binge.companion.REQUEST` intent action, over gRPC's Android Binder
 // transport. `Handshake` is the host's first call on every new instance of the
@@ -743,4 +785,33 @@ service RequestService {
   // `GetAttention`: the stream fails UNAUTHENTICATED when nothing is connected, and
   // carries a broken session as `needs_reconnect`.
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
+  // Requires CAPABILITY_FORWARD_NOTIFICATIONS. The host calls it when the user turns this
+  // integration's notifications on or off on the host, and again with the stored value whenever
+  // it may have been lost (a new instance of the integration after it was reinstalled or its data
+  // was cleared). While it is on, the integration queues each notification it would have shown
+  // for `ListNotifications`, and does not also show it itself, so the user is not told twice.
+  // Turning it off drops the queue, and the integration goes back to showing its own, as its
+  // settings say. Needs no session, so never UNAUTHENTICATED. Setting the value it already holds
+  // is OK and changes nothing.
+  //
+  // The host may be uninstalled or stopped without turning it off. An integration may treat
+  // forwarding as lapsed when no host has called `ListNotifications` for much longer than a
+  // host's poll interval (a day, say), and show its own again until the next call, so a host that
+  // went away does not swallow them.
+  rpc SetNotificationForwarding(SetNotificationForwardingRequest) returns (SetNotificationForwardingResponse);
+  // Requires CAPABILITY_FORWARD_NOTIFICATIONS. The notifications queued since forwarding was
+  // turned on and not yet acknowledged, oldest first. Paged, as every list on this platform is;
+  // INVALID_ARGUMENT for a `page_token` this integration did not issue, or one that comes back with
+  // a different `page_size` than it was issued under. Empty, not an error, while forwarding is off.
+  // Needs no session: what is queued is answered after the session breaks, so never
+  // UNAUTHENTICATED. Reading does not remove anything; `AcknowledgeNotifications` does.
+  //
+  // The host calls it on its own background schedule, not from a held-open stream: see
+  // "Notifications" in docs/Architecture.md. The integration bounds its own queue: it may drop the
+  // oldest beyond a few hundred, or any older than a week, rather than grow without limit.
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  // Requires CAPABILITY_FORWARD_NOTIFICATIONS. Removes the named notifications from the queue once
+  // the host has posted them. An id the integration does not hold (already acknowledged, dropped,
+  // or never issued) is ignored, so a retried call is OK. INVALID_ARGUMENT for more than 100 ids.
+  rpc AcknowledgeNotifications(AcknowledgeNotificationsRequest) returns (AcknowledgeNotificationsResponse);
 }

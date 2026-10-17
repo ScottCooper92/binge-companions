@@ -1,22 +1,33 @@
 package com.binge.companion.contracts
 
+import com.binge.companion.contracts.request.v1.AcknowledgeNotificationsRequest
+import com.binge.companion.contracts.request.v1.AcknowledgeNotificationsResponse
 import com.binge.companion.contracts.request.v1.Availability
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeRequest
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.ListNotificationsRequest
+import com.binge.companion.contracts.request.v1.ListNotificationsResponse
 import com.binge.companion.contracts.request.v1.ObserveStatusRequest
 import com.binge.companion.contracts.request.v1.ObserveStatusResponse
 import com.binge.companion.contracts.request.v1.RequestServiceGrpc
 import com.binge.companion.contracts.request.v1.RequestServiceGrpcKt
+import com.binge.companion.contracts.request.v1.SetNotificationForwardingRequest
+import com.binge.companion.contracts.request.v1.SetNotificationForwardingResponse
 import com.binge.companion.contracts.request.v1.SubmitRequestRequest
 import com.binge.companion.contracts.request.v1.SubmitRequestResponse
+import com.binge.companion.contracts.request.v1.acknowledgeNotificationsRequest
 import com.binge.companion.contracts.request.v1.handshakeResponse
+import com.binge.companion.contracts.request.v1.listNotificationsResponse
 import com.binge.companion.contracts.request.v1.observeStatusResponse
 import com.binge.companion.contracts.request.v1.requestStatus
+import com.binge.companion.contracts.request.v1.setNotificationForwardingRequest
 import com.binge.companion.contracts.request.v1.submitRequestRequest
 import com.binge.companion.contracts.request.v1.submitRequestResponse
 import com.binge.companion.contracts.request.v1.versionStatus
+import com.binge.companion.contracts.v1.ForwardedNotification
 import com.binge.companion.contracts.v1.MediaType
+import com.binge.companion.contracts.v1.forwardedNotification
 import com.binge.companion.contracts.v1.mediaId
 import io.grpc.CallOptions
 import io.grpc.ManagedChannel
@@ -59,6 +70,9 @@ private val RPC_SHAPES =
         "UnblockTitle" to MethodType.UNARY,
         "GetAttention" to MethodType.UNARY,
         "ObserveAttention" to MethodType.SERVER_STREAMING,
+        "SetNotificationForwarding" to MethodType.UNARY,
+        "ListNotifications" to MethodType.UNARY,
+        "AcknowledgeNotifications" to MethodType.UNARY,
     )
 
 /**
@@ -188,6 +202,67 @@ class RequestServiceContractTest {
                         .availability
                 },
             )
+        }
+
+    @Test
+    fun `forwarding turns on, queued notifications list oldest first, and an acknowledgement removes them`() =
+        runBlocking {
+            val queue = mutableListOf<ForwardedNotification>()
+            var forwarding = false
+            val channel =
+                serve(
+                    object : RequestServiceGrpcKt.RequestServiceCoroutineImplBase() {
+                        override suspend fun setNotificationForwarding(
+                            request: SetNotificationForwardingRequest,
+                        ): SetNotificationForwardingResponse {
+                            forwarding = request.enabled
+                            if (forwarding) {
+                                queue += forwardedNotification {
+                                    id = "a"
+                                    title = "Nosferatu is available"
+                                    text = "Your request is ready to watch"
+                                    media = mediaId {
+                                        mediaType = MediaType.MEDIA_TYPE_MOVIE
+                                        tmdbId = TMDB_ID
+                                    }
+                                    kind = "request_available"
+                                }
+                                queue += forwardedNotification {
+                                    id = "b"
+                                    title = "3 requests approved"
+                                    kind = "request_approved"
+                                }
+                            } else {
+                                queue.clear()
+                            }
+                            return SetNotificationForwardingResponse.getDefaultInstance()
+                        }
+
+                        override suspend fun listNotifications(request: ListNotificationsRequest): ListNotificationsResponse =
+                            listNotificationsResponse { notifications += queue }
+
+                        override suspend fun acknowledgeNotifications(
+                            request: AcknowledgeNotificationsRequest,
+                        ): AcknowledgeNotificationsResponse {
+                            queue.removeAll { it.id in request.idsList }
+                            return AcknowledgeNotificationsResponse.getDefaultInstance()
+                        }
+                    },
+                )
+            val stub = RequestServiceGrpcKt.RequestServiceCoroutineStub(channel)
+
+            stub.setNotificationForwarding(setNotificationForwardingRequest { enabled = true })
+            val listed = stub.listNotifications(ListNotificationsRequest.getDefaultInstance())
+            stub.acknowledgeNotifications(acknowledgeNotificationsRequest { ids += "a" })
+            val afterAck = stub.listNotifications(ListNotificationsRequest.getDefaultInstance())
+
+            assertEquals(true, forwarding)
+            assertEquals(listOf("a", "b"), listed.notificationsList.map { it.id })
+            val first = listed.notificationsList.first()
+            assertEquals(TMDB_ID, first.media.tmdbId)
+            assertEquals("request_available", first.kind)
+            assertEquals(false, listed.notificationsList.last().hasMedia())
+            assertEquals(listOf("b"), afterAck.notificationsList.map { it.id })
         }
 
     /** Builds the empty request the method's own marshaller parses, so the call needs no hand-written message. */
