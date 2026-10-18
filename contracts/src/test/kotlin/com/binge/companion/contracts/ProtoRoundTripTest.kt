@@ -2,12 +2,16 @@ package com.binge.companion.contracts
 
 import com.binge.companion.contracts.request.v1.Availability
 import com.binge.companion.contracts.request.v1.Capability
+import com.binge.companion.contracts.request.v1.DeclineRequestRequest
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.ReportIssueRequest
 import com.binge.companion.contracts.request.v1.RequestEntry
 import com.binge.companion.contracts.request.v1.RequestInfo
 import com.binge.companion.contracts.request.v1.RequestStatus
 import com.binge.companion.contracts.request.v1.VersionStatus
+import com.binge.companion.contracts.request.v1.declineRequestRequest
 import com.binge.companion.contracts.request.v1.mediaFileInfo
+import com.binge.companion.contracts.request.v1.reportIssueRequest
 import com.binge.companion.contracts.request.v1.requestEntry
 import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.request.v1.requestStatus
@@ -41,19 +45,19 @@ class ProtoRoundTripTest {
         val fromNewerPeer = HandshakeResponse
             .newBuilder()
             .addCapabilitiesValue(9999)
-            .addCapabilities(Capability.CAPABILITY_REQUEST_4K)
+            .addCapabilities(Capability.CAPABILITY_RETRY)
             .build()
 
         val parsed = HandshakeResponse.parseFrom(fromNewerPeer.toByteArray())
 
         assertEquals(2, parsed.capabilitiesValueList.size)
-        assertEquals(Capability.CAPABILITY_REQUEST_4K, parsed.capabilitiesList[1])
+        assertEquals(Capability.CAPABILITY_RETRY, parsed.capabilitiesList[1])
     }
 
     @Test
     fun `a version carries a movie's file info and reads as absent when unset`() {
         val withFile = versionStatus {
-            is4K = true
+            versionId = "uhd"
             fileInfo = mediaFileInfo {
                 fileName = "Movie.Title.2026.2160p.WEB-DL.mkv"
                 sizeBytes = 42_000_000_000L
@@ -73,15 +77,15 @@ class ProtoRoundTripTest {
         val status = requestStatus {
             versions += versionStatus { availability = Availability.AVAILABILITY_PENDING }
             versions += versionStatus {
-                is4K = true
+                versionId = "uhd"
                 availability = Availability.AVAILABILITY_AVAILABLE
                 watchUrl = "https://media.example/4k/603"
             }
         }
 
         val parsed = RequestStatus.parseFrom(status.toByteArray())
-        val standard = parsed.versionsList.single { !it.is4K }
-        val fourK = parsed.versionsList.single { it.is4K }
+        val standard = parsed.versionsList.single { it.versionId.isEmpty() }
+        val fourK = parsed.versionsList.single { it.versionId == "uhd" }
         assertEquals(Availability.AVAILABILITY_PENDING, standard.availability)
         assertEquals("", standard.watchUrl)
         assertEquals(Availability.AVAILABILITY_AVAILABLE, fourK.availability)
@@ -89,14 +93,14 @@ class ProtoRoundTripTest {
     }
 
     @Test
-    fun `RequestInfo carries is_4k and reads false when the field is absent`() {
-        val fourK = requestInfo {
+    fun `RequestInfo carries a version id and reads empty when the field is absent`() {
+        val uhd = requestInfo {
             id = "7"
-            is4K = true
+            versionId = "uhd"
         }
 
-        assertEquals(true, RequestInfo.parseFrom(fourK.toByteArray()).is4K)
-        assertEquals(false, RequestInfo.parseFrom(requestInfo { id = "7" }.toByteArray()).is4K)
+        assertEquals("uhd", RequestInfo.parseFrom(uhd.toByteArray()).versionId)
+        assertEquals("", RequestInfo.parseFrom(requestInfo { id = "7" }.toByteArray()).versionId)
     }
 
     @Test
@@ -143,5 +147,35 @@ class ProtoRoundTripTest {
         assertEquals(true, parsed.hasMedia())
         assertEquals(false, parsedSummary.hasMedia())
         assertEquals(false, parsedSummary.hasCreatedAt())
+    }
+
+    @Test
+    fun `a report names its version, season, episode and category, each optional`() {
+        val report = reportIssueRequest {
+            versionId = "uhd"
+            seasonNumber = 0
+            episodeNumber = 3
+            categoryId = "audio-sync"
+        }
+
+        val parsed = ReportIssueRequest.parseFrom(report.toByteArray())
+        assertEquals("uhd", parsed.versionId)
+        assertEquals(true, parsed.hasSeasonNumber())
+        assertEquals(0, parsed.seasonNumber)
+        assertEquals(3, parsed.episodeNumber)
+        assertEquals("audio-sync", parsed.categoryId)
+
+        val bare = ReportIssueRequest.parseFrom(reportIssueRequest { }.toByteArray())
+        assertEquals(false, bare.hasSeasonNumber())
+        assertEquals(false, bare.hasEpisodeNumber())
+        assertEquals("", bare.versionId)
+    }
+
+    @Test
+    fun `a decline reason is optional and a set empty one is kept apart from unset`() {
+        assertEquals(false, DeclineRequestRequest.parseFrom(declineRequestRequest { requestId = "7" }.toByteArray()).hasReason())
+        val parsed = DeclineRequestRequest.parseFrom(declineRequestRequest { reason = "Already on disc" }.toByteArray())
+        assertEquals(true, parsed.hasReason())
+        assertEquals("Already on disc", parsed.reason)
     }
 }

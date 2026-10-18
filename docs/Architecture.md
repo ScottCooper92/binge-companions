@@ -262,11 +262,17 @@ in its manifest.
 
 ## REQUEST: one status per version
 
-A title can exist on the provider twice, as a standard and a 4K version, and the two can differ
-in everything: whether it is requested or available, which seasons, how far a download has got,
+A title can exist on the provider more than once, as a standard version and another such as 4K,
+and the versions can differ in everything: whether it is requested or available, which seasons, how far a download has got,
 where to watch it, and what the file is. `RequestStatus` holds that per-version state in
-`repeated VersionStatus versions`, one entry per version, told apart by `is_4k` (#166). It does
+`repeated VersionStatus versions`, one entry per version, told apart by `version_id` (#166). It does
 not use parallel `_4k` fields.
+
+A version is an opaque string id, not a flag. The integration declares its versions in the
+handshake, as `HandshakeResponse.versions`: an id, a label the host shows as given and an optional
+`high_resolution` hint. That list replaced `CAPABILITY_REQUEST_4K`. A flag named one axis, 4K, and
+only Seerr has exactly that axis: Ombi has 4K for movies only, and a direct Radarr or Sonarr setup
+has quality profiles, not a second copy. The empty id is the standard version.
 
 The parallel form was the first shape, and it did not scale. Every per-version field needed a
 `_4k` sibling, and the ones that had none were pinned to one version by a comment: no 4K watch
@@ -276,16 +282,36 @@ Once v1 is published, moving from one shape to the other means keeping both fore
 
 The rules:
 
-- An integration always sends the standard entry, and sends a 4K entry only when it declared
-  `CAPABILITY_REQUEST_4K` and its provider tracks 4K apart. A missing entry reads as an entry
-  with every field unset.
-- The versions are never folded together. A user who cannot request or play 4K must not read a
-  4K-only title as available, nor be handed a link into a 4K server they may not reach.
+- An integration always sends the standard entry (empty `version_id`), and sends another entry
+  only when the handshake listed that version and its provider tracks it apart. A missing entry
+  reads as an entry with every field unset.
+- A companion that lists no versions, which is what an older one sends, has the standard version
+  only. The host offers no choice and every `version_id` it reads or writes is empty, so an older
+  companion's handshake still reads sensibly.
+- The versions are never folded together. A user who cannot request or play a version must not read
+  a title that has only that version as available, nor be handed a link into a server they may
+  not reach.
+- A request names a version with `SubmitRequestRequest.version_id`, and a host never sends an id
+  the handshake did not list. A `ReportIssue` may name one too, but it is advisory: no provider
+  checked stores a version on an issue, so the integration maps it where it can, or ignores it
+  or folds it into the message.
 - What belongs to the title as a whole stays on `RequestStatus`: its requests, the title-level
   capabilities and `observed_at_epoch_ms`. Each `RequestInfo` already says which version it
-  asks for with its own `is_4k`.
-- A new per-version field goes on `VersionStatus`, additively. A third version, if one ever
-  appears, needs a new key beside `is_4k`, not a new set of fields.
+  asks for with its own `version_id`.
+- A new per-version field goes on `VersionStatus`, additively. A further version needs a new entry
+  in the handshake's list, not a new set of fields.
+
+## REQUEST: issues, declines and cancels
+
+Issues are reported under a category. The fixed `IssueType` set (video, audio, subtitle, other) is
+the fallback. A provider that defines its own categories declares `CAPABILITY_ISSUE_CATEGORIES`,
+the host lists them with `ListIssueCategories` (id and label, paged) and reports with
+`category_id`, which then replaces `type`. A report may also carry a season and an episode for a
+TV title.
+
+`DeclineRequest` takes an optional `reason`. A provider with no place for one ignores it and the
+decline still succeeds. `CancelRequest` withdraws the request and never deletes media files, even
+for a provider where adding the title and downloading it are one step.
 
 ## LIBRARY: the user's own media server
 

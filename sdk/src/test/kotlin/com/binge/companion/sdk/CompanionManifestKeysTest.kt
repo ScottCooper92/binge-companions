@@ -26,7 +26,7 @@ class CompanionManifestKeysTest {
         assertEquals("com.binge.companion.extra.MEDIA_TYPE", CompanionManifest.EXTRA_MEDIA_TYPE)
         assertEquals("com.binge.companion.extra.TMDB_ID", CompanionManifest.EXTRA_TMDB_ID)
         assertEquals("com.binge.companion.extra.SEASON_NUMBERS", CompanionManifest.EXTRA_SEASON_NUMBERS)
-        assertEquals("com.binge.companion.extra.IS_4K", CompanionManifest.EXTRA_IS_4K)
+        assertEquals("com.binge.companion.extra.VERSION_ID", CompanionManifest.EXTRA_VERSION_ID)
         assertEquals("com.binge.companion.extra.REQUEST_ID", CompanionManifest.EXTRA_REQUEST_ID)
         assertEquals("binge", CompanionManifest.HOST_TITLE_SCHEME)
     }

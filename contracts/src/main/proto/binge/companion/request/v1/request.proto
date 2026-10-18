@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-// The REQUEST contract: submitting titles to a media-request server (Seerr-like
-// providers) and tracking what happens to them.
+// The REQUEST contract: submitting titles to a media-request service and tracking what
+// happens to them.
 //
 // Mandatory core: `Handshake`, `SubmitRequest`, `GetStatus`. A service that cannot
 // serve the core must not export the `com.binge.companion.REQUEST` action.
@@ -65,7 +65,7 @@ syntax = "proto3";
 //   Retries        — a host may retry `SubmitRequest` after DEADLINE_EXCEEDED, so a submit
 //                    must not double-request. For a provider with one request per title,
 //                    `already_requested` is the dedupe; a provider without that rule dedupes
-//                    on (media, is_4k, season_numbers) within a short window itself.
+//                    on (media, version_id, season_numbers) within a short window itself.
 //
 // Codes the TRANSPORT produces, which no integration chooses and every host must
 // handle. Measured on a phone (Android 16) and a SHIELD (Android 11); the spike
@@ -102,13 +102,15 @@ option java_multiple_files = true;
 // Append-only: new capabilities get new numbers; hosts ignore values they don't know.
 enum Capability {
   CAPABILITY_UNSPECIFIED = 0;
-  // May request the 4K version of a title (`SubmitRequestRequest.is_4k`).
-  CAPABILITY_REQUEST_4K = 1;
+  // Replaced by `HandshakeResponse.versions`: an integration that offers more than one
+  // version of a title lists them there, and that list is the declaration.
+  reserved 1;
+  reserved "CAPABILITY_REQUEST_4K";
   // Offers an advanced-options flow (destination/profile/folder) in the
   // integration app; the host offers a hand-off instead of a plain request.
   // The hand-off is an exported Activity on the
   // `com.binge.companion.ADVANCED_REQUEST` action, started for a result with
-  // the title as extras (media type number, TMDB id, season numbers, 4K). The
+  // the title as extras (media type number, TMDB id, season numbers, version id). The
   // integration owns the picker and the submit and answers RESULT_OK once it
   // has submitted; the host re-reads status whatever the result. The SDK's
   // `CompanionManifest` names the keys. No option schema crosses the boundary.
@@ -143,16 +145,18 @@ enum Capability {
   // as data instead of a hand-off screen: `GetAdvancedRequestOptions`,
   // `GetDestinationOptions` and `SubmitAdvancedRequest`. Each axis comes back
   // as a choice list the host renders itself (a picker bottom sheet, say), with
-  // the integration's own default preselected. 4K has no toggle of its own
-  // here: a 4K instance is just another `ServerChoice` with `is_4k` set, so
-  // picking one is how an advanced request asks for 4K — see `ServerChoice`.
+  // the integration's own default preselected. A version has no toggle of
+  // its own here: an instance that serves another version is just a `ServerChoice` with a
+  // `version_id`, so picking one is how an advanced request asks for that version — see
+  // `ServerChoice`.
   // See "Hand-offs" in docs/Architecture.md for how this capability relates to
   // CAPABILITY_ADVANCED_OPTIONS.
   CAPABILITY_ADVANCED_REQUEST_OPTIONS = 12;
   // Answers a movie's resulting file on an available title (`VersionStatus.file_info`).
-  // Its own capability because it costs an extra fetch: Seerr's media details never
-  // carry the file, so answering means asking the *arr directly, and an integration
-  // that would rather not pay that on every status check simply doesn't declare it.
+  // Its own capability because it can cost an extra fetch: a provider whose title details
+  // never carry the file means the integration must ask the download manager directly, and
+  // an integration that would rather not pay that on every status check simply doesn't
+  // declare it.
   CAPABILITY_MEDIA_FILE_INFO = 13;
   // Answers `ListRequests`: the requests the provider holds, paged and filtered, which is
   // what a host's "now available" row is built from. Notifications need
@@ -176,6 +180,10 @@ enum Capability {
   // polls rather than holds a stream open. What every host does with a notification, and what it
   // refuses (its attribution, tap target, text and rate limits), is on `ForwardedNotification`.
   CAPABILITY_FORWARD_NOTIFICATIONS = 17;
+  // The provider defines its own issue categories, listed by `ListIssueCategories` and chosen
+  // by `ReportIssueRequest.category_id`. Declared only with CAPABILITY_REPORT_ISSUE. Without
+  // it the host reports with the fixed `IssueType` set.
+  CAPABILITY_ISSUE_CATEGORIES = 18;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -240,6 +248,22 @@ message HandshakeRequest {
   binge.companion.v1.HostInfo host = 1;
 }
 
+// One version of a title the provider can hold: the standard one, or another such as a
+// high-resolution copy kept apart from it. The integration declares the list in the handshake
+// and the host renders it as it is given; nothing is inferred from an id or a label.
+message Version {
+  // The integration's own id for this version, echoed back verbatim wherever a request or a
+  // report names one. Empty is the standard version, which is how a message that sets no id
+  // reads. Unique within one handshake.
+  string id = 1;
+  // What the host shows for this version, e.g. "Standard" or "4K". Already in the user's
+  // language where the integration has one; the host shows it as is.
+  string label = 2;
+  // A hint that this version is a higher resolution than the standard one, so a host may badge
+  // it. Advisory: a host that ignores it loses nothing the label does not say.
+  bool high_resolution = 3;
+}
+
 message HandshakeResponse {
   // What the integration can do for this provider and this signed-in user, with the
   // session it holds when it answers; see `Handshake` for when the host asks again.
@@ -251,21 +275,36 @@ message HandshakeResponse {
   string provider_name = 2;
   // Version of the companion app, for the host's companion apps screen.
   string companion_version_name = 3;
+  // The versions of a title this integration can request and track, in the order the host
+  // offers them. Each is a `Version.id` a request, a status entry and an issue report may
+  // name.
+  //
+  // Empty, which is what an older integration sends, means the standard version only: the host
+  // offers no choice, and every `version_id` it reads or writes is the empty one. A non-empty
+  // list lists the standard version too, with the empty id, so the host has a label for it.
+  // An integration that lists no entry with the empty id is read as having a standard version
+  // anyway. At most 8 entries; the host ignores any beyond that.
+  //
+  // The versions are never folded together; see `RequestStatus.versions`.
+  repeated Version versions = 4;
 }
 
 message SubmitRequestRequest {
   binge.companion.v1.MediaId media = 1;
   // TV only: the seasons to request. Empty means the provider's default scope.
   repeated int32 season_numbers = 2;
-  // Requires CAPABILITY_REQUEST_4K; INVALID_ARGUMENT when set without it.
-  bool is_4k = 3;
+  // A `Version.id` from the handshake; empty is the standard version. INVALID_ARGUMENT for an
+  // id the handshake did not list.
+  string version_id = 4;
+  reserved 3;
+  reserved "is_4k";
 }
 
 message SubmitRequestResponse {
   // The request this call created or, when `already_requested` is true, the one
   // request the integration can name. Empty means unset: it is empty whenever
   // `already_requested` is true and the integration cannot name one request.
-  // A title can hold a standard and a 4K request, so the host reads `status.requests`
+  // A title can hold a request per version, so the host reads `status.requests`
   // for the full list rather than relying on this id. Opaque, as every request id is:
   // see `RequestInfo.id`.
   string request_id = 1;
@@ -357,9 +396,9 @@ message ObserveStatusResponse {
 // The request/availability state of one title on the provider.
 //
 // Per-version state lives in `versions`, one entry per version the provider tracks, rather
-// than in parallel `_4k` fields (#166). Everything that differs between the standard and the
-// 4K version (availability, seasons, download progress, the watch link, the file) is on
-// `VersionStatus`, so a 4K watch link or per-version download needs no new field here.
+// than in parallel `_4k` fields (#166). Everything that differs between one version
+// and another (availability, seasons, download progress, the watch link, the file) is on
+// `VersionStatus`, so a per-version watch link or download needs no new field here.
 // What is about the title as a whole (its requests, the title-level capabilities and how
 // fresh the answer is) stays on this message.
 message RequestStatus {
@@ -372,7 +411,7 @@ message RequestStatus {
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
   // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
   // (`SubmitRequest` is core): the host infers it from the standard version's
-  // `availability` for a standard request and from the 4K version's for a 4K one. A
+  // `availability` for a standard request and from that version's entry for a request of another. A
   // capability that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
   // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
   // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
@@ -387,25 +426,29 @@ message RequestStatus {
   // not old. An integration that cannot reach its provider but holds an earlier
   // status may return it with the time it was observed, rather than an error.
   int64 observed_at_epoch_ms = 7;
-  // The title's state per version, at most one entry per `VersionStatus.is_4k` value.
+  // The title's state per version, at most one entry per `VersionStatus.version_id`.
   //
-  // An integration always sends the standard version's entry (`is_4k` false). It sends a
-  // 4K entry only when it declared CAPABILITY_REQUEST_4K and its provider tracks the 4K
-  // version apart from the standard one. A missing entry reads exactly as an entry whose
+  // An integration always sends the standard version's entry (empty `version_id`). It sends
+  // another version's entry only when the handshake listed that version and its provider
+  // tracks it apart from the standard one. A missing entry reads exactly as an entry whose
   // every field is unset: AVAILABILITY_UNSPECIFIED, which a host reads as "no state for
   // this version", not as "not requested". A host must not rely on the entries' order,
   // and if a peer sends two entries for one version the host reads the first.
   //
-  // The versions are never folded together: a user who cannot request or play 4K must not
-  // read a 4K-only title as available, nor be handed a link into a 4K server they may not
-  // reach. A host deciding whether to offer a 4K request reads the 4K entry.
+  // The versions are never folded together: a user who cannot request or play a version
+  // must not read a title that has only that version as available, nor be handed a link into a
+  // server they may not reach. A host deciding whether to offer a request for a version reads
+  // that version's entry.
   repeated VersionStatus versions = 11;
 }
 
-// One version of a title, standard or 4K, on the provider.
+// One version of a title on the provider.
 message VersionStatus {
-  // Which version this is. False is the standard version.
-  bool is_4k = 1;
+  reserved 1;
+  reserved "is_4k";
+
+  // Which version this is: a `Version.id` from the handshake. Empty is the standard version.
+  string version_id = 7;
   // This version's availability. A blocklisted title is AVAILABILITY_BLOCKLISTED in every
   // entry the integration sends.
   Availability availability = 2;
@@ -415,7 +458,7 @@ message VersionStatus {
   DownloadProgress download = 4;
   // Deep link to this version of the title in the media server's web client, when the
   // provider has one. http or https only; the host refuses any other scheme (see the
-  // header). A provider that keeps the 4K version on a separate server links into that
+  // header). A provider that keeps this version on a separate server links into that
   // server here only when the connected user may reach it; otherwise this is empty.
   string watch_url = 5;
   // The movie's file for this version, once available. Absent means not offered or not
@@ -478,10 +521,14 @@ message RequestInfo {
   // whatever authorization its real server actually enforces per request, rather
   // than the host guessing from state and requested_by alone.
   repeated Capability allowed_actions = 6;
-  // Whether this is the 4K request. A title can carry a standard and a 4K request at
-  // once, and without this a host listing them cannot tell which is which. False when
-  // the provider doesn't say, so an older companion reads as a standard request.
-  bool is_4k = 7;
+  reserved 7;
+  reserved "is_4k";
+
+  // The version this request is for: a `Version.id` from the handshake. A title can carry a
+  // request per version at once, and without this a host listing them cannot tell which is
+  // which. Empty when the provider doesn't say, so an older companion reads as a standard
+  // request.
+  string version_id = 8;
 }
 
 message EditRequestRequest {
@@ -507,22 +554,25 @@ message Choice {
 }
 
 // One entry in the server/destination picker. Its own message, not `Choice`,
-// because the server axis is where 4K lives: an integration that offers both a
-// regular and a 4K instance for a title lists both here, and `is_4k` is how the
-// host tells them apart — there is no separate 4K toggle in the advanced flow.
-// Picking a 4K entry is how an advanced request asks for 4K; a plain request's
-// `SubmitRequestRequest.is_4k` (gated by CAPABILITY_REQUEST_4K) is the unrelated,
-// simpler path for a host that never opens the destination picker at all.
+// because the server axis is where a version lives: an integration that offers
+// both a regular and a high-resolution instance for a title lists both here, and
+// `version_id` is how the host tells them apart — there is no separate version toggle in
+// the advanced flow. Picking an entry is how an advanced request asks for its version; a
+// plain request's `SubmitRequestRequest.version_id` is the unrelated, simpler path for a
+// host that never opens the destination picker at all.
 message ServerChoice {
   string id = 1;
   string label = 2;
-  bool is_4k = 3;
+  // The `Version.id` a request to this server is for; empty is the standard version.
+  string version_id = 4;
+  reserved 3;
+  reserved "is_4k";
 }
 
 // The advanced-request destination for one title: the server / quality-profile /
 // root-folder axes this integration offers, and which choice is preselected on
-// each — the same destination a plain `SubmitRequest` (no override, so never a 4K
-// one) would use. An axis this integration doesn't have (a single-server setup
+// each — the same destination a plain `SubmitRequest` (no override, so always the
+// standard version) would use. An axis this integration doesn't have (a single-server setup
 // with no root-folder concept, say) comes back with an empty `choices` list; the
 // host omits that picker row rather than assuming every axis is always present.
 message DestinationChoices {
@@ -546,8 +596,8 @@ message GetAdvancedRequestOptionsResponse {
 // picker moves off the preselected one. `destination.servers` and
 // `destination.selected_server_id` are unset on the response —
 // `GetAdvancedRequestOptions` owns the server axis, this rpc only the two that
-// depend on it. `server_id` alone decides whether this is a 4K destination; there
-// is no separate `is_4k` field to keep in sync with it.
+// depend on it. `server_id` alone decides which version this is a destination
+// for; there is no separate version field to keep in sync with it.
 message GetDestinationOptionsRequest {
   binge.companion.v1.MediaId media = 1;
   string server_id = 2;
@@ -564,7 +614,7 @@ message SubmitAdvancedRequestRequest {
   // Empty means "the integration's own default for this axis" — the same default
   // `GetAdvancedRequestOptions` preselected, so a host that never touched a
   // picker submits identically to a plain `SubmitRequest`. `server_id` alone
-  // decides 4K-ness, per `ServerChoice.is_4k` — there is no `is_4k` field here.
+  // decides the version, per `ServerChoice.version_id` — there is no version field here.
   string server_id = 3;
   string profile_id = 4;
   string root_folder_id = 5;
@@ -574,6 +624,10 @@ message SubmitAdvancedRequestResponse {
   SubmitRequestResponse result = 1;
 }
 
+// Withdraws the request on the provider. It never deletes media files: whatever the
+// provider has already downloaded stays where it is, and removing it is the provider's own
+// job. A provider whose "request" is the download itself (a download manager adding a title
+// directly) still only stops the request: the integration does not delete files for it.
 message CancelRequestRequest {
   // A `RequestInfo.id`.
   string request_id = 1;
@@ -591,6 +645,11 @@ message ApproveRequestResponse {}
 message DeclineRequestRequest {
   // A `RequestInfo.id`.
   string request_id = 1;
+  // Why the request was declined, for the requester to read where the provider shows one.
+  // Optional: unset or empty declines without a reason. A provider that has no place for it
+  // ignores it, and the decline still succeeds. Free text in the moderator's own words,
+  // so the integration passes it on as given; at most 1000 characters, more is INVALID_ARGUMENT.
+  optional string reason = 2;
 }
 
 message DeclineRequestResponse {}
@@ -604,11 +663,52 @@ message RetryRequestResponse {}
 
 message ReportIssueRequest {
   binge.companion.v1.MediaId media = 1;
+  // The fixed category, used when the integration did not declare CAPABILITY_ISSUE_CATEGORIES.
+  // Ignored when `category_id` is set. Unspecified is INVALID_ARGUMENT only when `category_id`
+  // is empty too.
   IssueType type = 2;
   string message = 3;
+  // The version the problem is with: a `Version.id` from the handshake; empty means unsaid or
+  // the standard version. Advisory. The provider maps it where it can; one that stores no
+  // version on an issue may ignore it or fold it into the message, and the report still
+  // succeeds.
+  string version_id = 4;
+  // TV only: the season the problem is in. Unset means the show as a whole. Advisory, as
+  // `version_id`. INVALID_ARGUMENT for a number below 0 or for a movie.
+  optional int32 season_number = 5;
+  // TV only: the episode the problem is in, within `season_number`. Unset means the season
+  // as a whole. INVALID_ARGUMENT when set without `season_number`.
+  optional int32 episode_number = 6;
+  // A `IssueCategory.id` from `ListIssueCategories`. Requires CAPABILITY_ISSUE_CATEGORIES;
+  // INVALID_ARGUMENT when set without it or for an id the provider did not list. When set it
+  // replaces `type`.
+  string category_id = 7;
 }
 
 message ReportIssueResponse {}
+
+message ListIssueCategoriesRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  string page_token = 1;
+  // At most this many categories; 0 lets the integration choose. It may answer fewer, and
+  // only an empty `next_page_token` says there are no more. Keep it the same on every page.
+  int32 page_size = 2;
+}
+
+message ListIssueCategoriesResponse {
+  repeated IssueCategory categories = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+// One category the provider lets a user report an issue under. A provider defines its own, so
+// the set is data, not an enum.
+message IssueCategory {
+  // The provider's own id, echoed back as `ReportIssueRequest.category_id`. Never empty.
+  string id = 1;
+  // What the host shows, as the provider names it.
+  string label = 2;
+}
 
 message BlockTitleRequest {
   binge.companion.v1.MediaId media = 1;
@@ -706,8 +806,8 @@ service RequestService {
   // integration answers every Handshake from the session it holds now, not from an
   // earlier one.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
-  // Core. INVALID_ARGUMENT for an unspecified `media` or `is_4k` without
-  // CAPABILITY_REQUEST_4K; FAILED_PRECONDITION for a blocklisted title;
+  // Core. INVALID_ARGUMENT for an unspecified `media` or a `version_id` the handshake did
+  // not list; FAILED_PRECONDITION for a blocklisted title;
   // RESOURCE_EXHAUSTED when the quota is spent. A title that is already requested is
   // not an error: it answers OK with `already_requested` set. Safe to retry after
   // DEADLINE_EXCEEDED: see the header's retry rule.
@@ -752,7 +852,7 @@ service RequestService {
   rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
   // Requires CAPABILITY_CANCEL. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
-  // PERMISSION_DENIED when the user may not cancel this one.
+  // PERMISSION_DENIED when the user may not cancel this one. Never deletes media files.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
   // Requires CAPABILITY_APPROVE. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
@@ -760,18 +860,24 @@ service RequestService {
   rpc ApproveRequest(ApproveRequestRequest) returns (ApproveRequestResponse);
   // Requires CAPABILITY_DECLINE. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
-  // PERMISSION_DENIED when the user may not decline this one.
+  // PERMISSION_DENIED when the user may not decline this one. An over-long `reason` is
+  // INVALID_ARGUMENT.
   rpc DeclineRequest(DeclineRequestRequest) returns (DeclineRequestResponse);
   // Requires CAPABILITY_RETRY. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
   // PERMISSION_DENIED when the user may not retry this one.
   rpc RetryRequest(RetryRequestRequest) returns (RetryRequestResponse);
   // Requires CAPABILITY_REPORT_ISSUE, and a version with something to report
-  // against (available or partially available, standard or 4K): FAILED_PRECONDITION
+  // against (available or partially available, in any version): FAILED_PRECONDITION
   // when no version has one, for any other availability, including AVAILABILITY_NOT_REQUESTED, which is also how a
   // title the provider has no record of reads. INVALID_ARGUMENT for an unspecified
-  // `media` or issue type.
+  // `media`, for neither an issue type nor a `category_id`, or for a `category_id`,
+  // `season_number` or `episode_number` it cannot accept (see `ReportIssueRequest`).
   rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse);
+  // Requires CAPABILITY_ISSUE_CATEGORIES. The categories a user may report an issue under,
+  // paged. INVALID_ARGUMENT for a `page_token` this integration did not issue or that comes
+  // back with a different `page_size`.
+  rpc ListIssueCategories(ListIssueCategoriesRequest) returns (ListIssueCategoriesResponse);
   // Requires CAPABILITY_BLOCK. In `allowed_actions`, CAPABILITY_BLOCK on a title
   // that is not AVAILABILITY_BLOCKLISTED offers this rpc. Blocking a title that is
   // already blocklisted is OK and changes nothing; INVALID_ARGUMENT for an unspecified
