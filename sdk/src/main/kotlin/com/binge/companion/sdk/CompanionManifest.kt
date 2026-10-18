@@ -8,10 +8,9 @@ import com.binge.companion.contracts.v1.MediaType
  * without binding — a typo here is silent, since the Service still exists and is reported as
  * declaring no contract at all.
  *
- * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving several of REQUEST, LIBRARY, STREAM and
- * NOTIFICATIONS scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM] /
- * [META_MAJORS_NOTIFICATIONS], and > Hand-offs for the
- * Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_VIEW_REQUEST] / [ACTION_SETTINGS].
+ * See `docs/Architecture.md` > Transport for the manifest XML shape and the per-contract `META_MAJORS_*` keys a Service
+ * serving several contracts uses, and > Hand-offs for the Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_VIEW_REQUEST] /
+ * [ACTION_SETTINGS].
  */
 object CompanionManifest {
     /** The intent action a REQUEST companion's Service filters on. */
@@ -37,14 +36,13 @@ object CompanionManifest {
     const val META_ICON = "com.binge.companion.icon"
 
     /**
-     * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming one
-     * of [ACTION_REQUEST] / [ACTION_LIBRARY] / [ACTION_STREAM] / [ACTION_NOTIFICATIONS], whatever private
-     * actions it adds; one naming several uses [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] /
-     * [META_MAJORS_STREAM] / [META_MAJORS_NOTIFICATIONS], since
-     * a bare key can't say which contract's majors it names.
+     * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming one contract
+     * action ([ACTION_REQUEST], [ACTION_LIBRARY], [ACTION_STREAM] or [ACTION_NOTIFICATIONS]), whatever private
+     * actions it adds; one naming several uses the scoped `META_MAJORS_*` keys, since a bare key can't say which
+     * contract's majors it names.
      *
      * Read as either a String or an Int: aapt types a bare number as an Int, so `"1"` never
-     * arrives as a String while `"1,2"` does — same for the three scoped keys above.
+     * arrives as a String while `"1,2"` does — same for the scoped keys.
      */
     const val META_MAJORS = "com.binge.companion.majors"
 
