@@ -678,7 +678,8 @@ message ListNotificationsResponse {
 }
 
 message AcknowledgeNotificationsRequest {
-  // The `ForwardedNotification.id`s the host has posted. At most 100 per call; more is
+  // The `ForwardedNotification.id`s the host has read, whether it posted, collapsed or dropped each
+  // one (see the limits on `ForwardedNotification`). At most 100 per call; more is
   // INVALID_ARGUMENT.
   repeated string ids = 1;
 }

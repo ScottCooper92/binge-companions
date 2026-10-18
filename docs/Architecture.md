@@ -537,8 +537,8 @@ REQUEST declares this as `CAPABILITY_FORWARD_NOTIFICATIONS`, and the message it 
 
 The companion decides what to notify about. Its own settings choose the kinds, and it writes the
 title and the text. The host decides only whether it shows this companion's notifications at all:
-one switch per companion, all or nothing. The host never filters by kind and never rewrites the
-text. It names the companion beside each notification, and a tap opens the title the notification
+one switch per companion, all or nothing. The host never filters by kind and never edits what the
+text says. It only applies the limits in Protecting the host. It names the companion beside each notification, and a tap opens the title the notification
 names, or the companion's page when it names none.
 
 While forwarding is on, the companion queues each notification instead of showing it. It does not
@@ -587,16 +587,17 @@ applies the same limits, whatever a companion sends. `ForwardedNotification` in 
 states them in full, so a companion knows what will be refused.
 
 - **Attribution is the host's.** Each notification names the companion by the name the user
-  consented to at discovery, never by text in the notification. Each companion posts on its own
-  channel. A notification cannot pass as the host's, and the user can mute one companion.
+  consented to at discovery, never by text in the notification. The host posts each companion's
+  notifications on a channel of its own. A notification cannot pass as the host's, and the user can mute one companion.
 - **A tap opens the host, nothing else.** It opens the host's page for a valid `MediaId` (a known
   type and a positive TMDB id), or the host's page for the companion. Never a URL and never an
   arbitrary intent.
 - **Plain text.** No links and no markup. The host strips control and bidi-override characters,
-  then cuts the title to 60 characters and the text to 200. An empty title after that drops the
-  notification.
+  then cuts the title to 60 characters and the text to 200, counted in Unicode code points and never
+  splitting one. An empty title after that drops the notification.
 - **Rate.** At most 5 per companion per poll, with the rest collapsed into one summary. At most 20
   per companion per day. Anything older than 7 days is dropped. Dedupe is on companion and id.
+  The host acknowledges every notification it read, whether it posted, collapsed or dropped it.
 - **Reads are bounded.** The host caps the page size and the pages it reads per poll, so a long
   queue cannot keep it reading.
 - **The host can stop it.** It can turn off all forwarding at once, and any one companion's.
