@@ -467,7 +467,9 @@ The host is a courier for a source and never a consumer of it. In order of how m
 1. **Hand-off only, no in-app player, no web view.** A source goes to a player the user chose,
    through Android's standard video intents, or it goes nowhere. This is the decision the whole
    stance rests on, and it is not revisited casually: an app cannot be un-removed.
-2. **The host validates and drops; it never repairs.** Only https URLs. Only `Authorization`,
+2. **The host validates and drops; it never repairs.** The URL scheme is each contract's own rule:
+   STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` will also take http to an address that
+   resolves to a private one. Only `Authorization`,
    `Cookie`, `Referer` and `User-Agent` headers, each at most 4 KiB. A source whose headers the
    chosen player cannot carry is hidden for that player, not sent without them. `mime_type` is on
    a video allowlist (`video/*`, HLS and DASH), and empty reads as `video/*`. Labels are

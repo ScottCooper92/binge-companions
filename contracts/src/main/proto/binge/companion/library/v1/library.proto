@@ -42,6 +42,12 @@ syntax = "proto3";
 // `WebUrl.url`) is http or https, and the host refuses any other scheme; an rpc whose
 // capability the handshake did not declare is answered PERMISSION_DENIED.
 //
+// Playback sources: v1 carries none. When `PLAYBACK_SOURCE` arrives it will take `PlaybackSource`
+// with its own scheme rule, which differs from STREAM's: https for any address, and http only
+// when the RESOLVED address of the URL's host is private (LAN, loopback or link-local), not
+// merely a hostname that looks local. The server is the user's own, so cleartext on their
+// network is a fair trade. The exact definition lands with that PR.
+//
 // The transport codes are the same ones REQUEST documents at length, and for the same
 // reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
 // `bindService()` that returned false this way, not as UNAVAILABLE), and UNAVAILABLE
