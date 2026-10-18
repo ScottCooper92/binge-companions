@@ -22,6 +22,13 @@ syntax = "proto3";
 // third-party links is the pattern that gets a media app removed from Play, and an app cannot be
 // un-removed.
 //
+// URLs are https only. The `url` of a source and every subtitle or artwork URL beside it must be
+// https, and the host drops anything else. The source comes from a third party the user does not
+// run, the player is another app the host does not control, and cleartext credentials in
+// `PlaybackSource.headers` or in the URL would travel in the clear on its behalf. The other
+// rules the host applies to a `PlaybackSource` (expiry, headers, `mime_type`) are in that
+// message's header.
+//
 // Resolution is slow and partial by nature, so `Resolve` is a SERVER-STREAMING rpc: one
 // `StreamSource` per message, in the order the integration finds them, and the stream ends when
 // the integration has nothing more. Partial results are the normal case, not an error. The time
@@ -192,7 +199,7 @@ message SourceQuality {
 }
 
 // One subtitle file a player may load beside the source. Requires CAPABILITY_SUBTITLES. The
-// same URL rules as `PlaybackSource.url` apply, and the host hands it only to a player that
+// same URL rule as `PlaybackSource.url` applies (https only; see this file's header), and the host hands it only to a player that
 // takes a subtitle URL.
 message SubtitleTrack {
   string url = 1;

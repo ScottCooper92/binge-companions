@@ -111,6 +111,11 @@ the server's own app only.
 
 A sketch, not locked:
 
+- The URL scheme rule is LIBRARY's own and is looser than STREAM's: https for any address, and
+  http only when the resolved address is private (LAN, loopback, link-local), so a hostname alone
+  does not qualify. The user's own server on their own network may be cleartext. The shared
+  `PlaybackSource` message no longer states a scheme rule; STREAM states https only. The detail
+  is settled in the `PLAYBACK_SOURCE` PR.
 - `GetPlaybackSource` takes the media identity and the player's package, and returns a URL, any
   headers the request needs, and an expiry.
 - The companion mints the URL for the **signed-in viewer**, never with an administrator's
