@@ -5,6 +5,7 @@ import com.binge.companion.contracts.request.v1.HandshakeResponse
 import com.binge.companion.contracts.request.v1.Version
 import io.grpc.Status
 import io.grpc.StatusException
+import com.binge.companion.contracts.library.v1.Capability as LibraryCapability
 import com.binge.companion.contracts.stream.v1.Capability as StreamCapability
 
 /**
@@ -47,6 +48,18 @@ fun Set<Capability>.requireDeclared(capability: Capability) {
  */
 @JvmName("requireStreamDeclared")
 fun Set<StreamCapability>.requireDeclared(capability: StreamCapability) {
+    if (capability !in this) {
+        throw StatusException(Status.PERMISSION_DENIED.withDescription("$capability was not declared in the handshake"))
+    }
+}
+
+/**
+ * [requireDeclared] for a LIBRARY companion: refuses a gated LIBRARY rpc whose capability the
+ * handshake did not declare, as the same `PERMISSION_DENIED` (`library.proto` documents it). It has
+ * its own JVM name for the same reason as the STREAM one.
+ */
+@JvmName("requireLibraryDeclared")
+fun Set<LibraryCapability>.requireDeclared(capability: LibraryCapability) {
     if (capability !in this) {
         throw StatusException(Status.PERMISSION_DENIED.withDescription("$capability was not declared in the handshake"))
     }
