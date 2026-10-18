@@ -99,22 +99,48 @@ message PlaybackSource {
 // first), so the host posts them with one piece of code whichever contract carried them.
 //
 // The companion decides what to notify about and how often, from its own settings. The host
-// decides nothing about the content: it posts what it is given, names the companion beside it,
-// and opens the title a tap names. The rules it applies, so a companion knows what will happen:
+// decides nothing about the content: it posts what it is given and names the companion beside it.
+// The fields mean:
 //   - `id` is the dedupe key. Delivery is at least once, so the host may be handed the same
-//     notification twice, and posts it under the same key each time: a repeat replaces rather
-//     than stacks. Ids are opaque, unique per companion, and never reused for a different
+//     notification twice. Ids are opaque, unique per companion, and never reused for a different
 //     notification.
 //   - `title` and `text` are plain text in the device's locale, as a `LocalizedMessage` is (the
-//     companion resolves them as it resolves its own strings). The host never parses markup in
-//     them and may truncate either. Neither carries an email address or any part of one.
+//     companion resolves them as it resolves its own strings). Neither carries an email address or
+//     any part of one.
 //   - `media`, when set, is the title a tap opens on the host. Unset is a notification about no
 //     single title (a summary of three requests, a server needing sign-in), and a tap opens the
-//     host's page for the companion instead. A set `media` with MEDIA_TYPE_UNSPECIFIED or a
-//     `tmdb_id` <= 0 is treated as unset.
+//     host's page for the companion instead.
 //   - `kind` is the companion's own name for what kind of notification this is ("request_available",
 //     say). It is for the companion's use: the host never shows it and never branches on its value,
 //     though it may group notifications of one kind from one companion together.
+//
+// The host is a courier for this message, and a companion is a third party it does not control. So
+// every host applies the same rules whatever a companion sends, and a companion knows what will be
+// refused:
+//   - Attribution is the host's. Every notification names the companion by the name the user
+//     consented to at discovery, never by anything in this message, and posts on a channel of its
+//     own per companion. A notification cannot pass as the host's own, and the user can mute one
+//     companion without the others.
+//   - The tap opens only the host's own page for a valid `media` (a known `MediaType` and a
+//     `tmdb_id` > 0), or the host's page for the companion. Never a URL and never an arbitrary
+//     intent. A `media` with MEDIA_TYPE_UNSPECIFIED, an unknown type or a `tmdb_id` <= 0 reads as
+//     unset.
+//   - Plain text only. The host renders no links and no markup. It strips control characters and
+//     bidi-override characters (U+202A–U+202E, U+2066–U+2069) from `title` and `text`, then cuts
+//     `title` to 60 characters and `text` to 200. A notification whose `title` is empty after that
+//     is dropped; an empty `text` is posted without a body.
+//   - Rate. The host posts at most 5 notifications per companion per poll, and collapses the rest
+//     into one summary notification that names the companion and a count. It posts at most 20 per
+//     companion per day, and drops the rest. It drops a notification whose `created_at` is more than
+//     7 days old. It dedupes on (companion, `id`), and posts a repeat under the same key, so it
+//     replaces rather than stacks.
+//   - Reads. The host caps `page_size` and the number of pages it reads per poll, so a long queue,
+//     or a companion that never ends its pages, cannot keep it reading. What it did not read waits
+//     for the next poll.
+//   - The host may stop all forwarding at once (a kill switch), and stop one companion's, whatever
+//     the companion holds.
+//   - Content never leaves the device. The host posts it and keeps the ids it needs to dedupe, and
+//     sends neither the text nor the ids to a server, analytics included.
 message ForwardedNotification {
   string id = 1;
   string title = 2;

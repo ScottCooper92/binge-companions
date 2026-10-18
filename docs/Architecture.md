@@ -580,6 +580,29 @@ companion may treat forwarding as lapsed when no host has polled for much longer
 interval, and show its own again, so a host that went away does not swallow them. A notification
 shown during a lapse is not queued, or the next `ListNotifications` would tell the user twice.
 
+### Protecting the host
+
+A companion is a third party, and a notification appears as if the host sent it. So every host
+applies the same limits, whatever a companion sends. `ForwardedNotification` in `common.proto`
+states them in full, so a companion knows what will be refused.
+
+- **Attribution is the host's.** Each notification names the companion by the name the user
+  consented to at discovery, never by text in the notification. Each companion posts on its own
+  channel. A notification cannot pass as the host's, and the user can mute one companion.
+- **A tap opens the host, nothing else.** It opens the host's page for a valid `MediaId` (a known
+  type and a positive TMDB id), or the host's page for the companion. Never a URL and never an
+  arbitrary intent.
+- **Plain text.** No links and no markup. The host strips control and bidi-override characters,
+  then cuts the title to 60 characters and the text to 200. An empty title after that drops the
+  notification.
+- **Rate.** At most 5 per companion per poll, with the rest collapsed into one summary. At most 20
+  per companion per day. Anything older than 7 days is dropped. Dedupe is on companion and id.
+- **Reads are bounded.** The host caps the page size and the pages it reads per poll, so a long
+  queue cannot keep it reading.
+- **The host can stop it.** It can turn off all forwarding at once, and any one companion's.
+- **Content stays on the device.** The host sends neither the text nor the ids to a server,
+  analytics included.
+
 ## Versioning
 
 Capabilities answer "what can you do?". Versions answer "can we parse each other?".

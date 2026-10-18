@@ -16,9 +16,10 @@ syntax = "proto3";
 //   UNAUTHENTICATED                 — the integration has no working provider session:
 //                                     nothing is connected, or the session is broken.
 //                                     The host directs the user to the integration app
-//                                     to connect or reconnect. `Handshake` never answers
-//                                     it, and `GetAttention` reports a broken session as
-//                                     data; see each rpc.
+//                                     to connect or reconnect. `Handshake` and the three
+//                                     notification-forwarding rpcs never answer it, and
+//                                     `GetAttention` reports a broken session as data; see
+//                                     each rpc.
 //   PERMISSION_DENIED               — the provider user may not perform this action.
 //   RESOURCE_EXHAUSTED              — the user's request quota on the provider is spent.
 //   NOT_FOUND                       — an id, title or entry the call names does not
@@ -172,7 +173,8 @@ enum Capability {
   // about stays in the integration's own settings. Needs no session, so it is declared whenever
   // the integration supports it: a notification the integration has queued is still the host's to
   // show after the session breaks. See "Notifications" in docs/Architecture.md for why the host
-  // polls rather than holds a stream open.
+  // polls rather than holds a stream open. What every host does with a notification, and what it
+  // refuses (its attribution, tap target, text and rate limits), is on `ForwardedNotification`.
   CAPABILITY_FORWARD_NOTIFICATIONS = 17;
 }
 
