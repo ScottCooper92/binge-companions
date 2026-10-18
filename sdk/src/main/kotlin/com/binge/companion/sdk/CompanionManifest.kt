@@ -86,8 +86,8 @@ object CompanionManifest {
     /** `IntArray`, TV only: the seasons the user picked in the host. Absent or empty means the companion's default. */
     const val EXTRA_SEASON_NUMBERS = "com.binge.companion.extra.SEASON_NUMBERS"
 
-    /** `Boolean`: whether the user asked for the 4K version. */
-    const val EXTRA_IS_4K = "com.binge.companion.extra.IS_4K"
+    /** `String`: the `Version.id` the user asked for, from the handshake's version list. Absent or empty is the standard version. */
+    const val EXTRA_VERSION_ID = "com.binge.companion.extra.VERSION_ID"
 
     /**
      * `String`: the id of the request to show on [ACTION_VIEW_REQUEST] — the `RequestInfo.id` the request

@@ -1,6 +1,7 @@
 package com.binge.companion.sdk
 
 import com.binge.companion.contracts.request.v1.Capability
+import com.binge.companion.contracts.request.v1.version
 import io.grpc.Status
 import io.grpc.StatusException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,19 +14,28 @@ class CapabilitiesTest {
     fun `a handshake carries the declared set in number order`() {
         val response =
             handshakeResponse(
-                capabilities = setOf(Capability.CAPABILITY_BLOCK, Capability.CAPABILITY_REQUEST_4K),
+                capabilities = setOf(Capability.CAPABILITY_BLOCK, Capability.CAPABILITY_RETRY),
                 providerName = "Example",
                 companionVersionName = "1.2.3",
             )
 
-        assertEquals(listOf(Capability.CAPABILITY_REQUEST_4K, Capability.CAPABILITY_BLOCK), response.capabilitiesList)
+        assertEquals(listOf(Capability.CAPABILITY_RETRY, Capability.CAPABILITY_BLOCK), response.capabilitiesList)
         assertEquals("Example", response.providerName)
         assertEquals("1.2.3", response.companionVersionName)
     }
 
     @Test
+    fun `a handshake carries the version list, and an empty one means the standard version only`() {
+        val uhd = version { id = "uhd" }
+        val withVersions = handshakeResponse(emptySet(), "Example", "1.2.3", versions = listOf(version { label = "Standard" }, uhd))
+
+        assertEquals(listOf("", "uhd"), withVersions.versionsList.map { it.id })
+        assertEquals(0, handshakeResponse(emptySet(), "Example", "1.2.3").versionsCount)
+    }
+
+    @Test
     fun `an undeclared capability is refused as permission denied`() {
-        val declared = setOf(Capability.CAPABILITY_REQUEST_4K)
+        val declared = setOf(Capability.CAPABILITY_RETRY)
 
         val thrown = assertThrows(StatusException::class.java) { declared.requireDeclared(Capability.CAPABILITY_CANCEL) }
 

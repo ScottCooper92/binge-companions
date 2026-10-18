@@ -16,7 +16,8 @@ data class AdvancedRequest(
      * Never negative, never repeated, at most [MAX_SEASON_NUMBERS], and always empty for a movie.
      */
     val seasonNumbers: List<Int>,
-    val is4k: Boolean,
+    /** The `Version.id` the user asked for; empty is the standard version. */
+    val versionId: String,
 )
 
 /**
@@ -28,7 +29,7 @@ fun Intent.toAdvancedRequest(): AdvancedRequest? =
         mediaTypeNumber = getIntExtra(CompanionManifest.EXTRA_MEDIA_TYPE, MediaType.MEDIA_TYPE_UNSPECIFIED_VALUE),
         tmdbId = getIntExtra(CompanionManifest.EXTRA_TMDB_ID, 0),
         seasonNumbers = getIntArrayExtra(CompanionManifest.EXTRA_SEASON_NUMBERS),
-        is4k = getBooleanExtra(CompanionManifest.EXTRA_IS_4K, false),
+        versionId = getStringExtra(CompanionManifest.EXTRA_VERSION_ID).orEmpty(),
     )
 
 /**
@@ -47,12 +48,12 @@ fun advancedRequestOf(
     mediaTypeNumber: Int,
     tmdbId: Int,
     seasonNumbers: IntArray?,
-    is4k: Boolean,
+    versionId: String,
 ): AdvancedRequest? {
     val mediaType = MediaType.forNumber(mediaTypeNumber)?.takeIf { it != MediaType.MEDIA_TYPE_UNSPECIFIED } ?: return null
     if (tmdbId <= 0) return null
     val seasons = if (mediaType == MediaType.MEDIA_TYPE_TV) cleanSeasons(seasonNumbers) else emptyList()
-    return AdvancedRequest(mediaType, tmdbId, seasons, is4k)
+    return AdvancedRequest(mediaType, tmdbId, seasons, versionId)
 }
 
 private fun cleanSeasons(seasonNumbers: IntArray?): List<Int> =

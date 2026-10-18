@@ -2,12 +2,13 @@ package com.binge.companion.sdk
 
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeResponse
+import com.binge.companion.contracts.request.v1.Version
 import io.grpc.Status
 import io.grpc.StatusException
 import com.binge.companion.contracts.stream.v1.Capability as StreamCapability
 
 /**
- * The handshake a REQUEST companion answers with, from the three things it has to say.
+ * The handshake a REQUEST companion answers with, from what it has to say.
  *
  * Declare only what this integration can honour for THIS signed-in user. The host hides UI for
  * anything undeclared and never calls a gated rpc without its capability, so an over-declared set
@@ -17,12 +18,14 @@ fun handshakeResponse(
     capabilities: Set<Capability>,
     providerName: String,
     companionVersionName: String,
+    versions: List<Version> = emptyList(),
 ): HandshakeResponse =
     HandshakeResponse
         .newBuilder()
         .addAllCapabilities(capabilities.sortedBy(Capability::getNumber))
         .setProviderName(providerName)
         .setCompanionVersionName(companionVersionName)
+        .addAllVersions(versions)
         .build()
 
 /**

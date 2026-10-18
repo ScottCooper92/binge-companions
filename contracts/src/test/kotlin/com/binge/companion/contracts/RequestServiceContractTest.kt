@@ -3,7 +3,6 @@ package com.binge.companion.contracts
 import com.binge.companion.contracts.request.v1.AcknowledgeNotificationsRequest
 import com.binge.companion.contracts.request.v1.AcknowledgeNotificationsResponse
 import com.binge.companion.contracts.request.v1.Availability
-import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.HandshakeRequest
 import com.binge.companion.contracts.request.v1.HandshakeResponse
 import com.binge.companion.contracts.request.v1.ListNotificationsRequest
@@ -24,6 +23,7 @@ import com.binge.companion.contracts.request.v1.requestStatus
 import com.binge.companion.contracts.request.v1.setNotificationForwardingRequest
 import com.binge.companion.contracts.request.v1.submitRequestRequest
 import com.binge.companion.contracts.request.v1.submitRequestResponse
+import com.binge.companion.contracts.request.v1.version
 import com.binge.companion.contracts.request.v1.versionStatus
 import com.binge.companion.contracts.v1.ForwardedNotification
 import com.binge.companion.contracts.v1.MediaType
@@ -66,6 +66,7 @@ private val RPC_SHAPES =
         "DeclineRequest" to MethodType.UNARY,
         "RetryRequest" to MethodType.UNARY,
         "ReportIssue" to MethodType.UNARY,
+        "ListIssueCategories" to MethodType.UNARY,
         "BlockTitle" to MethodType.UNARY,
         "UnblockTitle" to MethodType.UNARY,
         "GetAttention" to MethodType.UNARY,
@@ -133,7 +134,12 @@ class RequestServiceContractTest {
                     object : RequestServiceGrpcKt.RequestServiceCoroutineImplBase() {
                         override suspend fun handshake(request: HandshakeRequest): HandshakeResponse =
                             handshakeResponse {
-                                capabilities += Capability.CAPABILITY_REQUEST_4K
+                                versions += version { label = "Standard" }
+                                versions += version {
+                                    id = "uhd"
+                                    label = "4K"
+                                    highResolution = true
+                                }
                                 providerName = "Stubbarr"
                             }
 
@@ -154,18 +160,19 @@ class RequestServiceContractTest {
                             tmdbId = TMDB_ID
                         }
                         seasonNumbers += listOf(1, 2)
-                        is4K = true
+                        versionId = "uhd"
                     },
                 )
 
-            assertEquals(listOf(Capability.CAPABILITY_REQUEST_4K), handshake.capabilitiesList)
+            assertEquals(listOf("", "uhd"), handshake.versionsList.map { it.id })
+            assertEquals(true, handshake.versionsList[1].highResolution)
             assertEquals("Stubbarr", handshake.providerName)
             assertEquals(REQUEST_ID, submit.requestId)
             val received = checkNotNull(seen)
             assertEquals(MediaType.MEDIA_TYPE_TV, received.media.mediaType)
             assertEquals(TMDB_ID, received.media.tmdbId)
             assertEquals(listOf(1, 2), received.seasonNumbersList)
-            assertEquals(true, received.is4K)
+            assertEquals("uhd", received.versionId)
         }
 
     @Test
