@@ -172,7 +172,7 @@ class ProtoRoundTripTest {
     }
 
     @Test
-    fun `a decline reason is optional and a set empty one is kept apart from unset`() {
+    fun `a decline reason is optional and reads as unset until it is given`() {
         assertEquals(false, DeclineRequestRequest.parseFrom(declineRequestRequest { requestId = "7" }.toByteArray()).hasReason())
         val parsed = DeclineRequestRequest.parseFrom(declineRequestRequest { reason = "Already on disc" }.toByteArray())
         assertEquals(true, parsed.hasReason())

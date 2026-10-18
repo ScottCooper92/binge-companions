@@ -2,6 +2,8 @@ package com.binge.companion.contracts
 
 import com.binge.companion.contracts.notifications.v1.AcknowledgeNotificationsRequest
 import com.binge.companion.contracts.notifications.v1.AcknowledgeNotificationsResponse
+import com.binge.companion.contracts.notifications.v1.HandshakeRequest
+import com.binge.companion.contracts.notifications.v1.HandshakeResponse
 import com.binge.companion.contracts.notifications.v1.ListNotificationsRequest
 import com.binge.companion.contracts.notifications.v1.ListNotificationsResponse
 import com.binge.companion.contracts.notifications.v1.NotificationsServiceGrpc
@@ -9,6 +11,7 @@ import com.binge.companion.contracts.notifications.v1.NotificationsServiceGrpcKt
 import com.binge.companion.contracts.notifications.v1.SetNotificationForwardingRequest
 import com.binge.companion.contracts.notifications.v1.SetNotificationForwardingResponse
 import com.binge.companion.contracts.notifications.v1.acknowledgeNotificationsRequest
+import com.binge.companion.contracts.notifications.v1.handshakeResponse
 import com.binge.companion.contracts.notifications.v1.listNotificationsResponse
 import com.binge.companion.contracts.notifications.v1.setNotificationForwardingRequest
 import com.binge.companion.contracts.v1.ForwardedNotification
@@ -34,6 +37,7 @@ import java.io.ByteArrayInputStream
 
 private val RPC_SHAPES =
     mapOf(
+        "Handshake" to MethodType.UNARY,
         "SetNotificationForwarding" to MethodType.UNARY,
         "ListNotifications" to MethodType.UNARY,
         "AcknowledgeNotifications" to MethodType.UNARY,
@@ -82,6 +86,26 @@ class NotificationsServiceContractTest {
             assertEquals(Status.Code.UNIMPLEMENTED, thrown.status.code, method.fullMethodName)
         }
     }
+
+    @Test
+    fun `a handshake answers with no session and an empty capability set`() =
+        runBlocking {
+            val channel =
+                serve(
+                    object : NotificationsServiceGrpcKt.NotificationsServiceCoroutineImplBase() {
+                        override suspend fun handshake(request: HandshakeRequest): HandshakeResponse =
+                            handshakeResponse { companionVersionName = "1.0.0" }
+                    },
+                )
+
+            val response = NotificationsServiceGrpcKt
+                .NotificationsServiceCoroutineStub(
+                    channel,
+                ).handshake(HandshakeRequest.getDefaultInstance())
+
+            assertEquals(0, response.capabilitiesCount)
+            assertEquals("1.0.0", response.companionVersionName)
+        }
 
     @Test
     fun `forwarding turns on, queued notifications list oldest first, and an acknowledgement removes them`() =

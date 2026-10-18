@@ -558,7 +558,9 @@ message Choice {
 message ServerChoice {
   string id = 1;
   string label = 2;
-  // The `Version.id` a request to this server is for; empty is the standard version.
+  // The `Version.id` a request to this server is for; empty is the standard version. An id the
+  // handshake listed, like every `version_id`; a host that meets one it has no label for treats it
+  // as an entry it cannot name rather than failing.
   string version_id = 4;
   reserved 3;
   reserved "is_4k";
@@ -668,11 +670,12 @@ message ReportIssueRequest {
   // version on an issue may ignore it or fold it into the message, and the report still
   // succeeds.
   string version_id = 4;
-  // TV only: the season the problem is in. Unset means the show as a whole. Advisory, as
-  // `version_id`. INVALID_ARGUMENT for a number below 0 or for a movie.
+  // TV only: the season the problem is in. Unset means the show as a whole. A provider that cannot
+  // scope an issue to a season may ignore it, as with `version_id`. INVALID_ARGUMENT for a number
+  // below 0 or for a movie.
   optional int32 season_number = 5;
   // TV only: the episode the problem is in, within `season_number`. Unset means the season
-  // as a whole. INVALID_ARGUMENT when set without `season_number`.
+  // as a whole. INVALID_ARGUMENT when set without `season_number`, or below 0.
   optional int32 episode_number = 6;
   // A `IssueCategory.id` from `ListIssueCategories`. Requires CAPABILITY_ISSUE_CATEGORIES;
   // INVALID_ARGUMENT when set without it or for an id the provider did not list. When set it
