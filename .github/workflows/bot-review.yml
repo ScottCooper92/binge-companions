@@ -71,10 +71,10 @@ jobs:
       # keeps its parent's SHAs.
       auto_merge: true
       merge_method: merge
-      # This repo's whole gate is `./gradlew build` plus buf lint/breaking. There is no
-      # linter, no coverage floor and no screenshot suite - so naming one here would tell
-      # the reviewer not to report what nothing actually catches.
-      gated_checks: buf lint, buf breaking, or the Gradle build and its tests
+      # This repo's gate is `./gradlew build` plus buf lint/breaking. `build` runs the tests,
+      # ktlint, detekt, Android lint and the kover floor. There is no screenshot suite, so
+      # naming one here would tell the reviewer not to report what nothing actually catches.
+      gated_checks: buf lint, buf breaking, ktlint, detekt, Android lint, the coverage floor, or the Gradle build and its tests
       # ci.yml here declares no paths-ignore, so every PR produces a run and
       # unbuilt_paths stays unset. The `labeled` trigger above is for the door's other
       # case: a PR labelled after its run already finished (#8, #11 both were).
