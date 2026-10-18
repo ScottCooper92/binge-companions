@@ -23,7 +23,7 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
 
 - **Discovery.** A companion app exports a bound Service for the contracts it serves. Binge matches
   the Service by its intent action (`com.binge.companion.REQUEST`, `.LIBRARY`, `.STREAM`,
-  `.TRACKING`, `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the
+  `.NOTIFICATIONS`, `.TRACKING`, `.PLAYER`). The manifest `<meta-data>` carries the display name, the icon, and the
   contract version. Binge can list installed companion apps without a start of their processes. A
   companion may serve more than one contract — REQUEST and LIBRARY, say — from the same exported
   Service, since `IntegrationService` takes a list of service implementations, or from a Service of
@@ -70,6 +70,7 @@ Verification is mutual. It is part of the contract:
 | `com.binge.companion.REQUEST` | Request movies and shows on a media-request server; track and manage request status |
 | `com.binge.companion.LIBRARY` | The user's own media server: availability, a play hand-off, watch state both ways, continue watching |
 | `com.binge.companion.STREAM` | Resolve a title to playable sources (hand-off first) |
+| `com.binge.companion.NOTIFICATIONS` | Hand the host the notifications the companion would have shown itself |
 | `com.binge.companion.TRACKING` | Sync watch state with an external tracker |
 | `com.binge.companion.PLAYER` | Hand off playback to an external player, with a progress callback |
 

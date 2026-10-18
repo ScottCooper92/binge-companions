@@ -96,8 +96,8 @@ message PlaybackSource {
 }
 
 // A notification a companion would have shown itself, handed to the host to show instead. Shared
-// by every contract that forwards notifications (REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS`
-// first), so the host posts them with one piece of code whichever contract carried them.
+// by every contract that forwards notifications (NOTIFICATIONS first), so the host posts them
+// with one piece of code whichever contract carried them.
 //
 // The companion decides what to notify about and how often, from its own settings. The host
 // never edits what the content says: it posts what it is given, within the limits below, and names

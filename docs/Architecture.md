@@ -12,6 +12,7 @@ its intent action:
 | --- | --- |
 | `com.binge.companion.REQUEST` | Media-request servers (request, track, manage) |
 | `com.binge.companion.STREAM` | Resolve a title to playable sources |
+| `com.binge.companion.NOTIFICATIONS` | Hand the host the notifications the companion would have shown |
 | `com.binge.companion.TRACKING` | Sync watch state with an external tracker |
 | `com.binge.companion.PLAYER` | External playback with a progress callback |
 | `com.binge.companion.LIBRARY` | The user's own media server (availability, play, watch state) |
@@ -43,8 +44,8 @@ its intent action:
   multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
   and so on, one key per contract action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
-  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY` and
-  `STREAM` count: a Service filtering on REQUEST and an app-internal action of its own is a
+  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY`,
+  `STREAM` and `NOTIFICATIONS` count: a Service filtering on REQUEST and an app-internal action of its own is a
   single-action Service, and keeps the bare key. The bare key can only be ambiguous between
   contracts, so only contracts decide. Both forms follow the same String-or-Int reading rule.
   A host that includes the SDK reads them with `Bundle.readServedMajors(action, filteredActions)`.
@@ -558,8 +559,19 @@ from a data centre, and 10 s leaves room for a phone on a home network.
 ## Notifications: forwarded, and polled
 
 A companion that would notify the user itself can hand those notifications to the host instead.
-REQUEST declares this as `CAPABILITY_FORWARD_NOTIFICATIONS`, and the message it carries,
-`ForwardedNotification`, is in `common.proto` so another contract can forward the same way.
+This is its own contract, NOTIFICATIONS: the action is `com.binge.companion.NOTIFICATIONS`, scoped
+majors use `com.binge.companion.majors.notifications`, and the service has a core
+`Handshake` with an empty capability set, plus three rpcs (`SetNotificationForwarding`,
+`ListNotifications`, `AcknowledgeNotifications`).
+It began as REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS` and moved out so that a companion has one
+switch, one queue and one id space by construction, whichever other contracts it serves. A
+companion that serves REQUEST and NOTIFICATIONS exports one Service with both actions. The host
+learns that it forwards from the exported action, not from a capability, and shows the switch for
+that action. The message it carries, `ForwardedNotification`, stays in `common.proto` so another
+contract can forward the same way.
+
+The service needs no provider session, so no rpc in it answers `UNAUTHENTICATED`: what is queued is
+still the host's to show after the session breaks.
 
 ### Who decides what
 
