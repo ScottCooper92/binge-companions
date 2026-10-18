@@ -527,6 +527,85 @@ from a data centre, and 10 s leaves room for a phone on a home network.
   binge-archive will have one in its own UI, opening titles in Binge, as a later phase (#149).
 - It does not record what was watched. A STREAM source has no viewer session to write back to.
 
+## Notifications: forwarded, and polled
+
+A companion that would notify the user itself can hand those notifications to the host instead.
+REQUEST declares this as `CAPABILITY_FORWARD_NOTIFICATIONS`, and the message it carries,
+`ForwardedNotification`, is in `common.proto` so another contract can forward the same way.
+
+### Who decides what
+
+The companion decides what to notify about. Its own settings choose the kinds, and it writes the
+title and the text. The host decides only whether it shows this companion's notifications at all:
+one switch per companion, all or nothing. The host never filters by kind and never edits what the
+text says. It only applies the limits in Protecting the host. It names the companion beside each
+notification, and a tap opens the title the notification names, or the companion's page when it
+names none.
+
+While forwarding is on, the companion queues each notification instead of showing it. It does not
+show it as well, because the user would be told twice. When forwarding is off, the companion shows
+its own again, as its settings say.
+
+### Why the host polls
+
+The host reads the queue with `ListNotifications` on its own background schedule, then acknowledges
+what it posted. A held-open `ObserveNotifications` stream looks more direct, and was rejected:
+
+- **The host is not running.** A notification matters most when the host is closed. A stream only
+  delivers while the host's process is alive and holds the binding. Keeping it alive for that means
+  a foreground service and a permanent notification, which is worse than the problem.
+- **Process lifetime.** A bound Service keeps the companion's process at the binder's priority. A
+  stream held open all day keeps both apps resident, and Android reaps them anyway under memory
+  pressure. The stream then ends silently, and the host has to poll to notice.
+- **Battery.** The companion already polls its own server on its own schedule. A stream adds a
+  second wakeful process on top. A poll costs one short bind on a schedule the system batches with
+  other background work.
+- **How long the binding is held.** The existing streams (`ObserveStatus`, `ObserveAttention`, and
+  the two in LIBRARY) are held only while a host screen is watching. A notification stream would be
+  held all day, while the host is in the background. A poll binds, calls and unbinds.
+
+The cost is latency: a notification reaches the user on the host's next run rather than at once.
+The companion's own poll of its server is already minutes apart, so that is the same order.
+
+### Delivery
+
+Delivery is at least once. The host may read a notification, post it, and fail before its
+acknowledgement lands, so it reads that notification again on the next run. The id is the dedupe
+key: the host posts each one under its companion and id, so a repeat replaces rather than stacks.
+
+The host tells the companion the switch's value with `SetNotificationForwarding` when the user
+changes it. The setting lives in the host and the companion must honour it, which is the reverse of
+the rule above for a companion's own settings. So the host sends it, rather than the companion
+reporting it on a response. A host can be uninstalled without turning forwarding off. The
+companion may treat forwarding as lapsed when no host has polled for much longer than a poll
+interval, and show its own again, so a host that went away does not swallow them. A notification
+shown during a lapse is not queued, or the next `ListNotifications` would tell the user twice.
+
+### Protecting the host
+
+A companion is a third party, and a notification appears as if the host sent it. So every host
+applies the same limits, whatever a companion sends. `ForwardedNotification` in `common.proto`
+states them in full, so a companion knows what will be refused.
+
+- **Attribution is the host's.** Each notification names the companion by the name the user
+  consented to at discovery, never by text in the notification. The host posts each companion's
+  notifications on a channel of its own. A notification cannot pass as the host's, and the user can
+  mute one companion.
+- **A tap opens the host, nothing else.** It opens the host's page for a valid `MediaId` (a known
+  type and a positive TMDB id), or the host's page for the companion. Never a URL and never an
+  arbitrary intent.
+- **Plain text.** No links and no markup. The host strips control and bidi-override characters,
+  then cuts the title to 60 characters and the text to 200, counted in Unicode code points and never
+  splitting one. An empty title after that drops the notification.
+- **Rate.** At most 5 per companion per poll, with the rest collapsed into one summary. At most 20
+  per companion per day. Anything older than 7 days is dropped. Dedupe is on companion and id.
+  The host acknowledges every notification it read, whether it posted, collapsed or dropped it.
+- **Reads are bounded.** The host caps the page size and the pages it reads per poll, so a long
+  queue cannot keep it reading.
+- **The host can stop it.** It can turn off all forwarding at once, and any one companion's.
+- **Content stays on the device.** The host sends neither the text nor the ids to a server,
+  analytics included.
+
 ## Versioning
 
 Capabilities answer "what can you do?". Versions answer "can we parse each other?".

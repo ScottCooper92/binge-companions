@@ -12,9 +12,12 @@ import com.binge.companion.contracts.request.v1.requestEntry
 import com.binge.companion.contracts.request.v1.requestInfo
 import com.binge.companion.contracts.request.v1.requestStatus
 import com.binge.companion.contracts.request.v1.versionStatus
+import com.binge.companion.contracts.v1.ForwardedNotification
 import com.binge.companion.contracts.v1.MediaId
 import com.binge.companion.contracts.v1.MediaType
+import com.binge.companion.contracts.v1.forwardedNotification
 import com.binge.companion.contracts.v1.mediaId
+import com.google.protobuf.timestamp
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -112,5 +115,33 @@ class ProtoRoundTripTest {
             }
 
         assertEquals(entry, RequestEntry.parseFrom(entry.toByteArray()))
+    }
+
+    @Test
+    fun `a forwarded notification round-trips every field, and reads no title when media is unset`() {
+        val aboutATitle = forwardedNotification {
+            id = "seerr:available:42"
+            title = "Nosferatu is available"
+            text = "Your request is ready to watch"
+            media = mediaId {
+                mediaType = MediaType.MEDIA_TYPE_MOVIE
+                tmdbId = 426063
+            }
+            kind = "request_available"
+            createdAt = timestamp { seconds = 1_792_000_000 }
+        }
+        val summary = forwardedNotification {
+            id = "seerr:approved:7"
+            title = "3 requests approved"
+            kind = "request_approved"
+        }
+
+        val parsed = ForwardedNotification.parseFrom(aboutATitle.toByteArray())
+        val parsedSummary = ForwardedNotification.parseFrom(summary.toByteArray())
+
+        assertEquals(aboutATitle, parsed)
+        assertEquals(true, parsed.hasMedia())
+        assertEquals(false, parsedSummary.hasMedia())
+        assertEquals(false, parsedSummary.hasCreatedAt())
     }
 }
