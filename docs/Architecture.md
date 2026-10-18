@@ -605,8 +605,10 @@ states them in full, so a companion knows what will be refused.
 - **Reads are bounded.** The host caps the page size and the pages it reads per poll, so a long
   queue cannot keep it reading.
 - **The host can stop it.** It can turn off all forwarding at once, and any one companion's.
-- **Content stays on the device.** The host sends neither the text nor the ids to a server,
-  analytics included.
+- **Content stays on the device.** The host sends neither the text nor the notification ids to a
+  server, analytics included. The one lookup it may make is a title's TMDB id, to fetch a poster for
+  the large icon. It goes through the host's own TMDB client, as for any title. A failed lookup
+  posts the notification without the icon, and never delays or drops it.
 
 ## Versioning
 

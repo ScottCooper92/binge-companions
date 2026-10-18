@@ -142,7 +142,9 @@ message PlaybackSource {
 //   - The host may stop all forwarding at once (a kill switch), and stop one companion's, whatever
 //     the companion holds.
 //   - Content never leaves the device. The host posts it and keeps the ids it needs to dedupe, and
-//     sends neither the text nor the ids to a server, analytics included.
+//     sends neither the text nor the notification ids to a server, analytics included. The one
+//     lookup it may make is a title's TMDB id, to fetch the poster for the notification's large
+//     icon, through its own TMDB client as for any title. A failed lookup posts without the icon.
 message ForwardedNotification {
   string id = 1;
   string title = 2;
