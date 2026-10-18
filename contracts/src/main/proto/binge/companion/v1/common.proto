@@ -128,8 +128,8 @@ message PlaybackSource {
 //     unset.
 //   - Plain text only. The host renders no links and no markup. It strips control characters and
 //     bidi-override characters (U+202A–U+202E, U+2066–U+2069) from `title` and `text`, then cuts
-//     `title` to 60 characters and `text` to 200, counted in Unicode code points. A notification whose `title` is empty after that
-//     is dropped; an empty `text` is posted without a body.
+//     `title` to 60 characters and `text` to 200, counted in Unicode code points. A notification
+//     whose `title` is empty after that is dropped; an empty `text` is posted without a body.
 //   - Rate. The host posts at most 5 notifications per companion per poll, and collapses the rest
 //     into one summary notification that names the companion and a count. It posts at most 20 per
 //     companion per day, and drops the rest. It drops a notification whose `created_at` is more than

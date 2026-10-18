@@ -538,8 +538,9 @@ REQUEST declares this as `CAPABILITY_FORWARD_NOTIFICATIONS`, and the message it 
 The companion decides what to notify about. Its own settings choose the kinds, and it writes the
 title and the text. The host decides only whether it shows this companion's notifications at all:
 one switch per companion, all or nothing. The host never filters by kind and never edits what the
-text says. It only applies the limits in Protecting the host. It names the companion beside each notification, and a tap opens the title the notification
-names, or the companion's page when it names none.
+text says. It only applies the limits in Protecting the host. It names the companion beside each
+notification, and a tap opens the title the notification names, or the companion's page when it
+names none.
 
 While forwarding is on, the companion queues each notification instead of showing it. It does not
 show it as well, because the user would be told twice. When forwarding is off, the companion shows
@@ -588,7 +589,8 @@ states them in full, so a companion knows what will be refused.
 
 - **Attribution is the host's.** Each notification names the companion by the name the user
   consented to at discovery, never by text in the notification. The host posts each companion's
-  notifications on a channel of its own. A notification cannot pass as the host's, and the user can mute one companion.
+  notifications on a channel of its own. A notification cannot pass as the host's, and the user can
+  mute one companion.
 - **A tap opens the host, nothing else.** It opens the host's page for a valid `MediaId` (a known
   type and a positive TMDB id), or the host's page for the companion. Never a URL and never an
   arbitrary intent.

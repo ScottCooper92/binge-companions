@@ -817,7 +817,7 @@ service RequestService {
   // oldest beyond a few hundred, or any older than a week, rather than grow without limit.
   rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
   // Requires CAPABILITY_FORWARD_NOTIFICATIONS. Removes the named notifications from the queue once
-  // the host has posted them. An id the integration does not hold (already acknowledged, dropped,
+  // the host is done with them: posted, collapsed or dropped. An id the integration does not hold (already acknowledged, dropped,
   // or never issued) is ignored, so a retried call is OK. INVALID_ARGUMENT for more than 100 ids.
   rpc AcknowledgeNotifications(AcknowledgeNotificationsRequest) returns (AcknowledgeNotificationsResponse);
 }
