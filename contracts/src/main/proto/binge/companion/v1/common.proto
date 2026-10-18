@@ -68,9 +68,10 @@ message HttpHeader {
 // chose with the URL and the headers, renders nothing itself, and keeps nothing once the
 // player has it. The rules it applies before handing one on, so an integration knows what will
 // be refused:
-//   - `url` and every subtitle or artwork URL beside it is https. Anything else is dropped.
-//     The player is a third app the host does not control, and cleartext credentials in
-//     `headers` or in the URL would travel in the clear on its behalf.
+//   - The URL scheme is the CONTRACT's rule, not this message's: each contract that carries a
+//     `PlaybackSource` states which schemes (and, for cleartext, which addresses) it accepts, and
+//     the host drops a source whose `url` breaks it. STREAM allows https only. LIBRARY will
+//     allow http to a private address, once it carries one.
 //   - `expires_at` is REQUIRED. A source with none is dropped: players keep history, so a URL
 //     a player was given is a URL that gets stored, and the expiry is what bounds that. The
 //     host never caches a source past it and never past the title page that resolved it.
