@@ -560,10 +560,9 @@ from a data centre, and 10 s leaves room for a phone on a home network.
 
 A companion that would notify the user itself can hand those notifications to the host instead.
 This is its own contract, NOTIFICATIONS: the action is `com.binge.companion.NOTIFICATIONS`, scoped
-majors use `com.binge.companion.majors.notifications`, and the service has a core `Handshake`
-whose capability set is empty today, then three rpcs (`SetNotificationForwarding`,
-`ListNotifications`, `AcknowledgeNotifications`). The handshake is there so a later optional rpc is gated by a
-capability, additively, rather than discovered through an `UNIMPLEMENTED` that reads as "not installed".
+majors use `com.binge.companion.majors.notifications`, and the service has a core
+`Handshake` with an empty capability set, plus three rpcs (`SetNotificationForwarding`,
+`ListNotifications`, `AcknowledgeNotifications`).
 It began as REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS` and moved out so that a companion has one
 switch, one queue and one id space by construction, whichever other contracts it serves. A
 companion that serves REQUEST and NOTIFICATIONS exports one Service with both actions. The host

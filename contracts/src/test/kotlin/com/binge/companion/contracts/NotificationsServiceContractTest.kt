@@ -93,8 +93,7 @@ class NotificationsServiceContractTest {
             val channel =
                 serve(
                     object : NotificationsServiceGrpcKt.NotificationsServiceCoroutineImplBase() {
-                        override suspend fun handshake(request: HandshakeRequest): HandshakeResponse =
-                            handshakeResponse { companionVersionName = "1.0.0" }
+                        override suspend fun handshake(request: HandshakeRequest): HandshakeResponse = handshakeResponse { }
                     },
                 )
 
@@ -104,7 +103,6 @@ class NotificationsServiceContractTest {
                 ).handshake(HandshakeRequest.getDefaultInstance())
 
             assertEquals(0, response.capabilitiesCount)
-            assertEquals("1.0.0", response.companionVersionName)
         }
 
     @Test
