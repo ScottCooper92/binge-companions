@@ -34,6 +34,7 @@ import java.io.ByteArrayInputStream
 
 private val RPC_SHAPES =
     mapOf(
+        "Handshake" to MethodType.UNARY,
         "SetNotificationForwarding" to MethodType.UNARY,
         "ListNotifications" to MethodType.UNARY,
         "AcknowledgeNotifications" to MethodType.UNARY,

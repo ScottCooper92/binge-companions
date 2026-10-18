@@ -44,8 +44,8 @@ its intent action:
   multi-action Service: `com.binge.companion.majors.request`, `com.binge.companion.majors.library`,
   and so on, one key per contract action the Service filters on. A single-action Service keeps using the
   bare `com.binge.companion.majors` key exactly as above; the per-contract keys only apply once a
-  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY` and
-  `STREAM` count: a Service filtering on REQUEST and an app-internal action of its own is a
+  Service names more than one **contract** action. Only `com.binge.companion.REQUEST`, `LIBRARY`,
+  `STREAM` and `NOTIFICATIONS` count: a Service filtering on REQUEST and an app-internal action of its own is a
   single-action Service, and keeps the bare key. The bare key can only be ambiguous between
   contracts, so only contracts decide. Both forms follow the same String-or-Int reading rule.
   A host that includes the SDK reads them with `Bundle.readServedMajors(action, filteredActions)`.
@@ -560,8 +560,9 @@ from a data centre, and 10 s leaves room for a phone on a home network.
 
 A companion that would notify the user itself can hand those notifications to the host instead.
 This is its own contract, NOTIFICATIONS: the action is `com.binge.companion.NOTIFICATIONS`, scoped
-majors use `com.binge.companion.majors.notifications`, and the service has three rpcs
-(`SetNotificationForwarding`, `ListNotifications`, `AcknowledgeNotifications`) and no handshake.
+majors use `com.binge.companion.majors.notifications`, and the service has a core
+`Handshake` with an empty capability set, plus three rpcs (`SetNotificationForwarding`,
+`ListNotifications`, `AcknowledgeNotifications`).
 It began as REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS` and moved out so that a companion has one
 switch, one queue and one id space by construction, whichever other contracts it serves. A
 companion that serves REQUEST and NOTIFICATIONS exports one Service with both actions. The host

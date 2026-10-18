@@ -10,13 +10,15 @@ syntax = "proto3";
 // notifies about stays in its own settings. See "Notifications" in docs/Architecture.md for
 // why the host polls rather than holds a stream open.
 //
-// There is no `Handshake` and no capability set: the contract is three rpcs, all of them core.
-// A host learns that a companion serves it from the exported `com.binge.companion.NOTIFICATIONS`
-// action, as for the other contracts. A service that cannot serve all three must not export the
-// action. A later optional rpc would arrive with a handshake, additively.
+// Mandatory core: `Handshake`, `SetNotificationForwarding`, `ListNotifications` and
+// `AcknowledgeNotifications`. A service that cannot serve all four must not export the
+// `com.binge.companion.NOTIFICATIONS` action. The `Capability` set returned from `Handshake` is
+// empty for now. It is there so a later optional rpc can be gated by a capability, additively,
+// rather than by a version check or by an UNIMPLEMENTED that reads as "not installed".
 //
 // The service needs no provider session. A notification the companion has queued is still the
-// host's to show after the session breaks, so no rpc here answers UNAUTHENTICATED.
+// host's to show after the session breaks, so no rpc here answers UNAUTHENTICATED, `Handshake`
+// included.
 //
 // What every host does with a notification, and what it refuses (its attribution, tap target,
 // text and rate limits), is on `binge.companion.v1.ForwardedNotification`.
@@ -33,6 +35,23 @@ import "binge/companion/v1/common.proto";
 
 option java_package = "com.binge.companion.contracts.notifications.v1";
 option java_multiple_files = true;
+
+// What a NOTIFICATIONS companion can do beyond the mandatory core. Declared in
+// `HandshakeResponse.capabilities`.
+//
+// Append-only: new capabilities get new numbers; hosts ignore values they don't know.
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+}
+
+message HandshakeRequest {
+  binge.companion.v1.HostInfo host = 1;
+}
+
+message HandshakeResponse {
+  // What the companion can do beyond the core. Empty for now.
+  repeated Capability capabilities = 1;
+}
 
 message SetNotificationForwardingRequest {
   // True while the user wants the host to show this companion's notifications. The companion
@@ -76,6 +95,9 @@ message AcknowledgeNotificationsResponse {}
 // companion that also serves another contract exports one Service with both actions. It keeps no
 // per-connection state: each call stands alone.
 service NotificationsService {
+  // Core. The host's first call on every new instance of the companion, as for the other
+  // contracts. It never answers UNAUTHENTICATED: this contract needs no provider session.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // The host calls it when the user turns this companion's notifications on or off on the host,
   // and again with the stored value whenever it may have been lost (a new instance of the
   // companion after it was reinstalled or its data was cleared). While it is on, the companion
