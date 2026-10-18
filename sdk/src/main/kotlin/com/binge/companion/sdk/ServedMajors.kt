@@ -42,5 +42,6 @@ private fun scopedMajorsKey(action: String): String? =
         CompanionManifest.ACTION_REQUEST -> CompanionManifest.META_MAJORS_REQUEST
         CompanionManifest.ACTION_LIBRARY -> CompanionManifest.META_MAJORS_LIBRARY
         CompanionManifest.ACTION_STREAM -> CompanionManifest.META_MAJORS_STREAM
+        CompanionManifest.ACTION_NOTIFICATIONS -> CompanionManifest.META_MAJORS_NOTIFICATIONS
         else -> null
     }

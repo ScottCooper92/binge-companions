@@ -8,8 +8,9 @@ import com.binge.companion.contracts.v1.MediaType
  * without binding — a typo here is silent, since the Service still exists and is reported as
  * declaring no contract at all.
  *
- * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving several of REQUEST, LIBRARY and STREAM
- * scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM], and > Hand-offs for the
+ * See `docs/Architecture.md` > Transport for the manifest XML shape and how a Service serving several of REQUEST, LIBRARY, STREAM and
+ * NOTIFICATIONS scopes its majors per contract with [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM] /
+ * [META_MAJORS_NOTIFICATIONS], and > Hand-offs for the
  * Activities on [ACTION_ADVANCED_REQUEST] / [ACTION_VIEW_REQUEST] / [ACTION_SETTINGS].
  */
 object CompanionManifest {
@@ -22,6 +23,13 @@ object CompanionManifest {
     /** The intent action a STREAM companion's Service filters on. */
     const val ACTION_STREAM = "com.binge.companion.STREAM"
 
+    /**
+     * The intent action a NOTIFICATIONS companion's Service filters on. A companion that also serves
+     * REQUEST exports one Service with both actions, and the host learns it forwards notifications from
+     * this action, not from a capability.
+     */
+    const val ACTION_NOTIFICATIONS = "com.binge.companion.NOTIFICATIONS"
+
     /** Display name: a literal, or a string resource in the companion's own package. */
     const val META_NAME = "com.binge.companion.name"
 
@@ -30,8 +38,9 @@ object CompanionManifest {
 
     /**
      * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming one
-     * of [ACTION_REQUEST] / [ACTION_LIBRARY] / [ACTION_STREAM], whatever private actions it adds; one
-     * naming several uses [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] / [META_MAJORS_STREAM], since
+     * of [ACTION_REQUEST] / [ACTION_LIBRARY] / [ACTION_STREAM] / [ACTION_NOTIFICATIONS], whatever private
+     * actions it adds; one naming several uses [META_MAJORS_REQUEST] / [META_MAJORS_LIBRARY] /
+     * [META_MAJORS_STREAM] / [META_MAJORS_NOTIFICATIONS], since
      * a bare key can't say which contract's majors it names.
      *
      * Read as either a String or an Int: aapt types a bare number as an Int, so `"1"` never
@@ -47,6 +56,9 @@ object CompanionManifest {
 
     /** [META_MAJORS], scoped to [ACTION_STREAM], for a Service that also filters on another contract action. */
     const val META_MAJORS_STREAM = "com.binge.companion.majors.stream"
+
+    /** [META_MAJORS], scoped to [ACTION_NOTIFICATIONS], for a Service that also filters on another contract action. */
+    const val META_MAJORS_NOTIFICATIONS = "com.binge.companion.majors.notifications"
 
     /**
      * The action of the Activity behind `CAPABILITY_ADVANCED_OPTIONS`. The host starts it for a

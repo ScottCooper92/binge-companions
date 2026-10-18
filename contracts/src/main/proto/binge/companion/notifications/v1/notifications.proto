@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+// The NOTIFICATIONS contract: a companion hands the host the notifications it would have shown
+// itself, for the host to show instead.
+//
+// Status: DRAFT; see docs/Status.md. It began as REQUEST's `CAPABILITY_FORWARD_NOTIFICATIONS`
+// and became its own contract so a companion has one switch, one queue and one id space by
+// construction, whichever other contracts (REQUEST, LIBRARY, STREAM) it also serves. The host
+// shows one switch per companion for this contract, all or nothing; which kinds the companion
+// notifies about stays in its own settings. See "Notifications" in docs/Architecture.md for
+// why the host polls rather than holds a stream open.
+//
+// There is no `Handshake` and no capability set: the contract is three rpcs, all of them core.
+// A host learns that a companion serves it from the exported `com.binge.companion.NOTIFICATIONS`
+// action, as for the other contracts. A service that cannot serve all three must not export the
+// action. A later optional rpc would arrive with a handshake, additively.
+//
+// The service needs no provider session. A notification the companion has queued is still the
+// host's to show after the session breaks, so no rpc here answers UNAUTHENTICATED.
+//
+// What every host does with a notification, and what it refuses (its attribution, tap target,
+// text and rate limits), is on `binge.companion.v1.ForwardedNotification`.
+//
+// Error model: failures travel as gRPC status codes, not response fields, with the codes and
+// the transport behaviour REQUEST documents in its header (see request.proto):
+//   UNAVAILABLE / DEADLINE_EXCEEDED — transient; the host may retry.
+//   INVALID_ARGUMENT                — a rejection on the merits; not retried as-is.
+//   UNIMPLEMENTED                   — from the transport: the companion is NOT INSTALLED.
+// Unknown and unspecified enum values and unknown fields are ignored, never an error.
+package binge.companion.notifications.v1;
+
+import "binge/companion/v1/common.proto";
+
+option java_package = "com.binge.companion.contracts.notifications.v1";
+option java_multiple_files = true;
+
+message SetNotificationForwardingRequest {
+  // True while the user wants the host to show this companion's notifications. The companion
+  // keeps the last value it was sent, across restarts, until it is sent another.
+  bool enabled = 1;
+}
+
+message SetNotificationForwardingResponse {}
+
+message ListNotificationsRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `page_size` it was issued under. It stays valid across
+  // `AcknowledgeNotifications` within one listing, and must not skip a notification that was not
+  // acknowledged.
+  string page_token = 1;
+  // At most this many notifications; 0 lets the companion choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked. The host must not read a
+  // short page as the end; only an empty `next_page_token` says that. Keep it the same on every
+  // page of one listing.
+  int32 page_size = 2;
+}
+
+message ListNotificationsResponse {
+  // The notifications waiting for the host, oldest first.
+  repeated binge.companion.v1.ForwardedNotification notifications = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+message AcknowledgeNotificationsRequest {
+  // The `ForwardedNotification.id`s the host has read, whether it posted, collapsed or dropped each
+  // one (see the limits on `ForwardedNotification`). At most 100 per call; more is
+  // INVALID_ARGUMENT.
+  repeated string ids = 1;
+}
+
+message AcknowledgeNotificationsResponse {}
+
+// Served by a companion app from a bound Service exported with the
+// `com.binge.companion.NOTIFICATIONS` intent action, over gRPC's Android Binder transport. A
+// companion that also serves another contract exports one Service with both actions. It keeps no
+// per-connection state: each call stands alone.
+service NotificationsService {
+  // The host calls it when the user turns this companion's notifications on or off on the host,
+  // and again with the stored value whenever it may have been lost (a new instance of the
+  // companion after it was reinstalled or its data was cleared). While it is on, the companion
+  // queues each notification it would have shown for `ListNotifications`, and does not also show
+  // it itself, so the user is not told twice. Turning it off drops the queue, and the companion
+  // goes back to showing its own, as its settings say. Setting the value it already holds is OK
+  // and changes nothing.
+  //
+  // The host may be uninstalled or stopped without turning it off. A companion may treat
+  // forwarding as lapsed when no host has called `ListNotifications` for much longer than a
+  // host's poll interval (a day, say), and show its own again until the next call, so a host that
+  // went away does not swallow them. A notification shown during a lapse is not queued, or the
+  // next `ListNotifications` would tell the user twice.
+  rpc SetNotificationForwarding(SetNotificationForwardingRequest) returns (SetNotificationForwardingResponse);
+  // The notifications queued since forwarding was turned on and not yet acknowledged, oldest
+  // first. Paged, as every list on this platform is; INVALID_ARGUMENT for a `page_token` this
+  // companion did not issue, or one that comes back with a different `page_size` than it was
+  // issued under. Empty, not an error, while forwarding is off. Reading does not remove anything;
+  // `AcknowledgeNotifications` does.
+  //
+  // The host calls it on its own background schedule, not from a held-open stream: see
+  // "Notifications" in docs/Architecture.md. The companion bounds its own queue: it may drop the
+  // oldest beyond a few hundred, or any older than a week, rather than grow without limit.
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  // Removes the named notifications from the queue once the host is done with them: posted,
+  // collapsed or dropped. An id the companion does not hold (already acknowledged, dropped, or
+  // never issued) is ignored, so a retried call is OK. INVALID_ARGUMENT for more than 100 ids.
+  rpc AcknowledgeNotifications(AcknowledgeNotificationsRequest) returns (AcknowledgeNotificationsResponse);
+}

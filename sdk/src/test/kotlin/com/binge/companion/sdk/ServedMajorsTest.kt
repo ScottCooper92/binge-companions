@@ -41,6 +41,18 @@ class ServedMajorsTest {
     }
 
     @Test
+    fun `a Service serving REQUEST and NOTIFICATIONS reads each scoped key`() {
+        val both = setOf(CompanionManifest.ACTION_REQUEST, CompanionManifest.ACTION_NOTIFICATIONS)
+        val meta =
+            arrayOf(
+                CompanionManifest.META_MAJORS_REQUEST to "1",
+                CompanionManifest.META_MAJORS_NOTIFICATIONS to "1,2",
+            )
+        assertEquals(setOf(1), majors(CompanionManifest.ACTION_REQUEST, both, *meta))
+        assertEquals(setOf(1, 2), majors(CompanionManifest.ACTION_NOTIFICATIONS, both, *meta))
+    }
+
+    @Test
     fun `a multi-action Service with only a bare key declares nothing`() {
         assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_REQUEST, multi, CompanionManifest.META_MAJORS to "1"))
         assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_LIBRARY, multi, CompanionManifest.META_MAJORS to "1"))
