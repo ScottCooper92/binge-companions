@@ -18,7 +18,7 @@ ktlint = "14.2.0"
 # binge-ci's gate applies dev.detekt at its own catalog's version, so this follows it.
 # tools/check-binge-ci-lockstep.sh fails CI when the two differ.
 detekt = "2.0.0-alpha.6"
-kover = "0.9.9"
+kover = "0.9.11"
 
 [libraries]
 paging-common = { module = "androidx.paging:paging-common", version.ref = "paging" }
