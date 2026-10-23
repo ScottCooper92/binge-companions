@@ -257,9 +257,11 @@ in its manifest.
   This mirrors §8 of Binge's companion-platform architecture, which is the authority for it.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
   render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
-- Binge never renders video. LIBRARY's opt-in `PLAYBACK_SOURCE` (planned; v1 ships without it) will
-  hand a short-lived source to a player the user chose, and that player renders it. See
-  `Ecosystem.md` > Playback.
+- Binge renders video for one thing: a source from the user's own media server, handed over by a
+  LIBRARY companion that declares `PLAYBACK_SOURCE`. That is the user's own server, the user's own
+  account and a companion the user installed and allowed, so it is not the pattern the STREAM gate
+  guards against. Binge renders nothing from any other contract, and never a web view of a source.
+  See `Ecosystem.md` > Playback.
 
 ## REQUEST: one status per version
 
@@ -351,14 +353,18 @@ data and never bytes, which is the same rule the Play stance above states for ST
 A companion with nothing installed to hand to answers with the web URL rather than an error. That is
 a worse experience, not a failure, and the host should not have to tell the two apart.
 
-**One opt-in exception: `PLAYBACK_SOURCE`.** It is planned, not in v1: the `Capability` enum does not
-have it yet, and it arrives later as an additive change. Once it exists, a companion may also hand
-the host a playback source for an installed player the user chose: a URL minted for the signed-in
-viewer, short-lived and for one title, with any headers it needs and an expiry. The host starts the
-player and renders nothing, so the bytes still never cross Binder and the transcoding problem stays
-the server's and the player's. It is a capability, so a companion that does not want it declares
-nothing and its titles play through the server's own app only. The flow, the players and their
-limits are in `Ecosystem.md` > Playback.
+**One opt-in exception: `PLAYBACK_SOURCE`.** A companion that declares it also hands the host a
+playback source: a URL minted for the signed-in viewer, short-lived and for one title, with any
+headers it needs and an expiry. The host renders it in a player of its own, or starts an installed
+player the user chose with it. The bytes still never cross Binder: the player fetches them from the
+server. What changed from the first sketch is who the player may be. Binge's own player takes on
+the three things the hand-off could not. It tells the server what it decodes
+(`PlaybackDeviceProfile`, so the server direct-plays rather than transcodes), it reports progress
+as it plays (`ReportPlayback`, behind `PLAYBACK_PROGRESS`, which an integration declares only
+beside `WATCH_STATE_WRITE` because it is the same consent), and it lets the viewer pick tracks.
+The server still does the transcoding, and still owns the watch state. Both are capabilities, so a
+companion that wants none of it declares neither and its titles play through the server's own app
+only. The flow is in `Ecosystem.md` > Playback.
 
 ### Watch state flows both ways, on consent
 
@@ -381,9 +387,10 @@ update for thirty seconds" means nothing in common between two companions.
 
 ### Capabilities
 
-`AVAILABILITY`, `PLAY`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`. `PLAYBACK_SOURCE` joins
-them later, additively. A companion declares the set from what its server supports **and** what the
-signed-in user may do, and the host hides UI for what is undeclared.
+`AVAILABILITY`, `PLAY`, `WATCH_STATE`, `WATCH_STATE_WRITE`, `CONTINUE_WATCHING`, `PLAYBACK_SOURCE`,
+`PLAYBACK_PROGRESS`. The last two joined additively, after v1's first draft. A companion declares the
+set from what its server supports **and** what the signed-in user may do, and the host hides UI for
+what is undeclared.
 
 The mandatory core is the handshake alone — smaller than REQUEST's, which also requires submit and
 status. REQUEST's core is what every request server does by definition. The servers LIBRARY has to
@@ -414,10 +421,10 @@ LIBRARY's play hand-off overlaps PLAYER's territory, and its watch state overlap
 overlap is deliberate: a media server plays its own media and knows what you watched, and splitting
 that across three contracts would make one companion serve three actions to do one job.
 
-PLAYER is deferred rather than built. The host's Play sheet offers the players already installed,
-through Android's standard video intents, and `PLAYBACK_SOURCE`, once it exists, feeds them. What would
-bring PLAYER back — live progress, decoding negotiation, track selection — is listed in
-`Ecosystem.md` > Players.
+PLAYER is deferred rather than built. For a LIBRARY title the host's own player, fed by
+`PLAYBACK_SOURCE`, already does what PLAYER was for (live progress, decoding negotiation, track
+selection), and the installed players stay on offer through Android's standard video intents. What
+would still bring PLAYER back is listed in `Ecosystem.md` > Players.
 Whether TRACKING survives LIBRARY is still a decision for when it is actually built.
 
 ## STREAM: sources outside the library

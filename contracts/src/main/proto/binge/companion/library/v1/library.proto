@@ -9,12 +9,21 @@ syntax = "proto3";
 // have continue-watching rows and no way to mark anything played. Gating every rpc on
 // a capability is what lets those be the same contract.
 //
-// Play is a HAND-OFF, never a stream. `GetPlayTarget` returns what the host should
-// start — the server's own app where it is installed, a web URL where it is not. The
-// alternative, handing back a stream URL, would make the host a player for someone
-// else's server: transcoding, codec negotiation, subtitle selection and whatever DRM
-// the server applies would all become its problem. The platform moves data and never
-// bytes. See docs/Architecture.md > LIBRARY.
+// Play is a HAND-OFF by default. `GetPlayTarget` returns what the host should start — the
+// server's own app where it is installed, a web URL where it is not — and the server's own
+// app handles transcoding, codecs, subtitles and its own account. The platform moves data
+// and never bytes. See docs/Architecture.md > LIBRARY.
+//
+// `PLAYBACK_SOURCE` is the opt-in exception: an integration that declares it also hands the
+// host a short-lived `binge.companion.v1.PlaybackSource` for the signed-in viewer, minted
+// for one title and one sitting, and the host renders it in a player of its own or starts an
+// installed player with it. The bytes still never cross Binder: the player fetches the URL
+// from the server directly. The host tells the integration what its player decodes
+// (`PlaybackDeviceProfile`) so the server can direct-play rather than transcode, and reports
+// progress back as it plays (`ReportPlayback`, behind `PLAYBACK_PROGRESS`). A companion that
+// does not want any of this declares neither capability and its titles play through the
+// server's own app only. This is LIBRARY's exception and no other contract's: STREAM stays
+// hand-off only, for the reasons its own header gives.
 //
 // Error model: failures travel as gRPC status codes, not response fields.
 //
@@ -42,11 +51,15 @@ syntax = "proto3";
 // `WebUrl.url`) is http or https, and the host refuses any other scheme; an rpc whose
 // capability the handshake did not declare is answered PERMISSION_DENIED.
 //
-// Playback sources: v1 carries none. When `PLAYBACK_SOURCE` arrives it will take `PlaybackSource`
-// with its own scheme rule, which differs from STREAM's: https for any address, and http only
-// when the RESOLVED address of the URL's host is private (LAN, loopback or link-local), not
-// merely a hostname that looks local. The server is the user's own, so cleartext on their
-// network is a fair trade. The exact definition lands with that PR.
+// Playback sources: the URL scheme rule is LIBRARY's own, and looser than STREAM's. The `url`
+// of a `PlaybackSource` and every `SubtitleTrack.url` beside it is https for any address, or
+// http only when EVERY address the URL's host RESOLVES to is private: loopback (127/8, ::1),
+// link-local (169.254/16, fe80::/10), RFC 1918 (10/8, 172.16/12, 192.168/16), IPv6 unique
+// local (fc00::/7) or the shared address space (100.64/10) that overlay networks hand out. A
+// hostname that merely looks local does not qualify, and a host that resolves to nothing is
+// refused. The server is the user's own, so cleartext on their network is a fair trade; the
+// rest of the rules the host applies to a `PlaybackSource` (expiry, headers, `mime_type`) are
+// in that message's header. A source failing any rule is dropped silently.
 //
 // The transport codes are the same ones REQUEST documents at length, and for the same
 // reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
@@ -84,6 +97,63 @@ enum Capability {
   CAPABILITY_WATCH_STATE_WRITE = 4;
   // Answers `ListContinueWatching` and `ListNextUp`.
   CAPABILITY_CONTINUE_WATCHING = 5;
+  // Answers `GetPlaybackSource`: a `PlaybackSource` the host's own player renders, or an
+  // installed player the user chose is started with. Opt-in, as this file's header says; a
+  // companion whose server cannot mint a per-viewer URL declares nothing and keeps `PLAY`.
+  CAPABILITY_PLAYBACK_SOURCE = 6;
+  // Answers `ReportPlayback`: the host's player tells the server where it is as it plays.
+  // Progress changes data on the user's own server, so this is the same consent
+  // CAPABILITY_WATCH_STATE_WRITE represents, and an integration declares it only beside that
+  // one. Its own capability rather than a reading of WATCH_STATE_WRITE because an older
+  // integration that writes `SetPlayed` has no `ReportPlayback` to answer, and the host must
+  // never call an rpc it cannot tell is served.
+  CAPABILITY_PLAYBACK_PROGRESS = 7;
+}
+
+// How the server prepared a playback source. Display only: the host shows a transcode so the
+// user knows why the picture is what it is, and decides nothing on it.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum PlaybackMethod {
+  PLAYBACK_METHOD_UNSPECIFIED = 0;
+  // The file as stored, remuxed at most.
+  PLAYBACK_METHOD_DIRECT_PLAY = 1;
+  // Re-encoded for this device, so quality and seeking are the server's.
+  PLAYBACK_METHOD_TRANSCODE = 2;
+}
+
+// A stretch of a title the host offers to skip. Which stretches a server knows is the
+// server's business; the host renders a "Skip" for each kind it understands and nothing for
+// a kind it does not.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know.
+enum PlaybackSegmentKind {
+  PLAYBACK_SEGMENT_KIND_UNSPECIFIED = 0;
+  PLAYBACK_SEGMENT_KIND_INTRO = 1;
+  PLAYBACK_SEGMENT_KIND_RECAP = 2;
+  PLAYBACK_SEGMENT_KIND_CREDITS = 3;
+  // A preview of what follows, after the credits of an episode.
+  PLAYBACK_SEGMENT_KIND_PREVIEW = 4;
+}
+
+// What the host's player did, so the server keeps the position it would keep for its own app.
+//
+// Append-only: new values get new numbers. Host to integration, so the integration is the
+// receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT.
+enum PlaybackEvent {
+  PLAYBACK_EVENT_UNSPECIFIED = 0;
+  // Playback began, at `position_millis`. Once per session.
+  PLAYBACK_EVENT_STARTED = 1;
+  // A periodic position while playing. The host sends one about every ten seconds, and never
+  // more often than every five.
+  PLAYBACK_EVENT_PROGRESS = 2;
+  PLAYBACK_EVENT_PAUSED = 3;
+  PLAYBACK_EVENT_RESUMED = 4;
+  // The user left before the end. The session is over; `position_millis` is the resume point.
+  PLAYBACK_EVENT_STOPPED = 5;
+  // Playback reached the end, or near enough that the host counts it played (within the
+  // credits, or past 90% where the server gave no credits segment). The session is over.
+  PLAYBACK_EVENT_FINISHED = 6;
 }
 
 // Whether the user's server holds a title.
@@ -293,6 +363,117 @@ message ListNextUpResponse {
   string next_page_token = 2;
 }
 
+// What the host's player decodes, so the server can direct-play what it can and transcode
+// only what it cannot. Every field is a hint: an integration that ignores it answers as it
+// would for an unknown device, and a host that does not know sends the field empty or 0.
+message PlaybackDeviceProfile {
+  // Video codecs the player decodes in hardware or software, as MIME types ("video/avc",
+  // "video/hevc", "video/av01"). Empty when the host does not say.
+  repeated string video_codecs = 1;
+  // Audio codecs the player decodes or the device passes through ("audio/mp4a-latm",
+  // "audio/eac3", "audio/true-hd"). Empty when the host does not say.
+  repeated string audio_codecs = 2;
+  // The largest frame worth sending, in pixels; 0 when unknown. A 4K source for a 1080p
+  // display is a transcode the server need not make.
+  int32 max_width = 3;
+  int32 max_height = 4;
+  // Whether the display and the decoder take HDR (any flavour). False means SDR only.
+  bool supports_hdr = 5;
+  // A ceiling the host would like the stream to stay under, in bits per second; 0 for none.
+  // A host on a metered or slow link sets it, and the server picks a transcode bitrate below.
+  int64 max_bitrate_bps = 6;
+  // The containers and manifests the player opens: the `PlaybackSource.mime_type` allowlist,
+  // narrowed ("application/x-mpegURL", "video/mp4"). Empty means any on the allowlist.
+  repeated string container_mime_types = 7;
+}
+
+// One subtitle file the host's player loads beside the source. The same URL rule as
+// `PlaybackSource.url` applies (this file's header), and the host drops a track that breaks it
+// rather than the source it came with.
+message SubtitleTrack {
+  string url = 1;
+  // BCP 47 language tag, e.g. "en" or "pt-BR".
+  string language = 2;
+  // What to call it when `language` is not enough ("English (SDH)"). Empty when the language is.
+  string label = 3;
+  // The file's type, so the player picks the right parser: "text/vtt", "application/x-subrip",
+  // "application/ttml+xml" or "text/x-ssa". Empty reads as "text/vtt".
+  string mime_type = 4;
+  // Shown whenever the audio is not in the viewer's language (signs and songs). The player
+  // selects it on its own when the viewer picked no track.
+  bool forced = 5;
+  // Carries sound descriptions for viewers who are deaf or hard of hearing.
+  bool hearing_impaired = 6;
+}
+
+// A named point in a title, for the player's chapter list. In order of `start_millis`.
+message PlaybackChapter {
+  int64 start_millis = 1;
+  // The server's own title for it, shown as-is; empty for a numbered chapter.
+  string title = 2;
+}
+
+// A stretch of a title the player offers to skip. `end_millis` is exclusive and after
+// `start_millis`; the host drops a segment that is not.
+message PlaybackSegment {
+  PlaybackSegmentKind kind = 1;
+  int64 start_millis = 2;
+  int64 end_millis = 3;
+}
+
+message GetPlaybackSourceRequest {
+  binge.companion.v1.MediaId media = 1;
+  // For a series, the episode to play. Required for a series: a source plays one thing, and
+  // a season is not one. INVALID_ARGUMENT when absent for a series or present for a movie.
+  EpisodeRef episode = 2;
+  // Empty when the host's own player renders the source. Otherwise the package of the
+  // installed player the user chose, so the integration can mint for what that player takes
+  // (one that takes no headers needs the credential in the URL, which is why the expiry
+  // matters) and the server can log who played.
+  string player_package = 3;
+  // What the player decodes. Absent when the host does not know, which the integration
+  // reads as an unknown device.
+  PlaybackDeviceProfile device = 4;
+}
+
+message GetPlaybackSourceResponse {
+  binge.companion.v1.PlaybackSource source = 1;
+  // The integration's own id for this sitting, opaque to the host and echoed verbatim on
+  // every `ReportPlayback` for it. Empty from a server that has no such thing.
+  string playback_session_id = 2;
+  // Where the server would resume, as `WatchState.position_millis` would say at this moment;
+  // 0 to start from the beginning. Carried here so the host asks once, not twice, when the user
+  // presses Play.
+  int64 resume_position_millis = 3;
+  // The item's length as the server measures it; 0 when it does not say. A transcoded HLS
+  // stream may not carry its own duration, so the host draws the bar from this.
+  int64 runtime_millis = 4;
+  PlaybackMethod method = 5;
+  // At most ten tracks; the host keeps the first ten in the order sent and drops the rest.
+  // Tracks muxed into the stream itself are not listed here: the player finds those.
+  repeated SubtitleTrack subtitles = 6;
+  // At most two hundred, in order; the host drops the rest.
+  repeated PlaybackChapter chapters = 7;
+  // At most twenty; the host drops the rest.
+  repeated PlaybackSegment segments = 8;
+}
+
+message ReportPlaybackRequest {
+  binge.companion.v1.MediaId media = 1;
+  // The episode the source was minted for, as on the `GetPlaybackSourceRequest`.
+  EpisodeRef episode = 2;
+  // The `playback_session_id` the source came with, or empty when it came with none.
+  string playback_session_id = 3;
+  PlaybackEvent event = 4;
+  // The player's position when the event happened.
+  int64 position_millis = 5;
+  // The item's length as the player measures it; 0 when it cannot say. A server that gave
+  // no `runtime_millis` may take this one.
+  int64 runtime_millis = 6;
+}
+
+message ReportPlaybackResponse {}
+
 // Served by an integration app from a bound Service exported with the
 // `com.binge.companion.LIBRARY` intent action, over gRPC's Android Binder transport.
 // `Handshake` is the host's first call on every new instance of the integration, not on
@@ -338,4 +519,17 @@ service LibraryService {
   // INVALID_ARGUMENT for a `page_token` this integration did not issue, or that comes back
   // with a different `page_size` than it was issued under.
   rpc ListNextUp(ListNextUpRequest) returns (ListNextUpResponse);
+  // Requires CAPABILITY_PLAYBACK_SOURCE. NOT_FOUND when the server does not hold the title or
+  // the episode; INVALID_ARGUMENT for an episode on a movie, or a series with no episode.
+  // Minted for the signed-in viewer, never with an administrator's credentials. The host calls
+  // it when the user presses Play and not before, and never twice for one sitting: a source
+  // that expired mid-play is asked for again, and the integration treats that as a new sitting
+  // at the position the host last reported.
+  rpc GetPlaybackSource(GetPlaybackSourceRequest) returns (GetPlaybackSourceResponse);
+  // Requires CAPABILITY_PLAYBACK_PROGRESS. PERMISSION_DENIED when the signed-in user may not
+  // write watch state, NOT_FOUND when the server does not hold the title, INVALID_ARGUMENT for
+  // a `playback_session_id` this integration did not issue or an unknown `event`. A failure
+  // is not retried by the host beyond the transient codes: the next report carries the
+  // position anyway.
+  rpc ReportPlayback(ReportPlaybackRequest) returns (ReportPlaybackResponse);
 }
