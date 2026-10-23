@@ -20,13 +20,13 @@ the journey these stages add up to.
    Companion authors run it in their own CI. It needs no emulator.
 6. **LIBRARY contract** — the user's own media server: whether a title is in their library, a way
    to play it, and what they have played. The shape has to fit Emby and Plex without a `v2`. Play
-   is a hand-off; `PLAYBACK_SOURCE` is the one opt-in exception, for an installed player the user
-   chose. See `Architecture.md` > LIBRARY.
+   is a hand-off; `PLAYBACK_SOURCE` is the one opt-in exception, for Binge's own player or an
+   installed player the user chose. See `Architecture.md` > LIBRARY.
 7. **Jellyfin companion** — the first LIBRARY companion, serving `PLAYBACK_SOURCE`. Its own UI is
    sign-in; browsing and playing the library stay with Jellyfin's own app.
 8. **Host playback in Binge** — LIBRARY discovery and consent, availability and watch state on
-   title pages, and the Play sheet: the server's own app, or an installed player with progress
-   written back. TV first. See `Ecosystem.md` > Playback. **Deferred:** the LIBRARY contract is
+   title pages, and the Play sheet: Binge's own player with progress written back live, the
+   server's own app, or an installed player. TV first. See `Ecosystem.md` > Playback. **Deferred:** the LIBRARY contract is
    drafted, but Binge's LIBRARY host waits until STREAM (9) ships.
 9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
    Hand-off only, through the same Play sheet, on the shared `PlaybackSource`. LIBRARY does not
