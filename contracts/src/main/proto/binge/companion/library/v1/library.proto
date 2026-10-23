@@ -9,7 +9,8 @@ syntax = "proto3";
 // have continue-watching rows and no way to mark anything played. Gating every rpc on
 // a capability is what lets those be the same contract.
 //
-// Play is a HAND-OFF by default. `GetPlayTarget` returns what the host should start — the
+// Play is a HAND-OFF by default, meaning whenever the integration does not declare
+// `PLAYBACK_SOURCE`. `GetPlayTarget` returns what the host should start — the
 // server's own app where it is installed, a web URL where it is not — and the server's own
 // app handles transcoding, codecs, subtitles and its own account. The platform moves data
 // and never bytes. See docs/Architecture.md > LIBRARY.
@@ -139,7 +140,8 @@ enum PlaybackSegmentKind {
 // What the host's player did, so the server keeps the position it would keep for its own app.
 //
 // Append-only: new values get new numbers. Host to integration, so the integration is the
-// receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT.
+// receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT. So a future event, a SEEKED
+// say, needs its own capability before a host may send it.
 enum PlaybackEvent {
   PLAYBACK_EVENT_UNSPECIFIED = 0;
   // Playback began, at `position_millis`. Once per session.
@@ -528,7 +530,8 @@ service LibraryService {
   rpc GetPlaybackSource(GetPlaybackSourceRequest) returns (GetPlaybackSourceResponse);
   // Requires CAPABILITY_PLAYBACK_PROGRESS. PERMISSION_DENIED when the signed-in user may not
   // write watch state, NOT_FOUND when the server does not hold the title, INVALID_ARGUMENT for
-  // a `playback_session_id` this integration did not issue or an unknown `event`. A failure
+  // a `playback_session_id` this integration did not issue, an unknown `event`, or an episode on
+  // a movie or a series with no episode. A failure
   // is not retried by the host beyond the transient codes: the next report carries the
   // position anyway.
   rpc ReportPlayback(ReportPlaybackRequest) returns (ReportPlaybackResponse);

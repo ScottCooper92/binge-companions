@@ -60,18 +60,21 @@ message HttpHeader {
 }
 
 // A URL a player can fetch and play, minted for one title and one sitting. Shared by every
-// contract that hands the host something playable (STREAM's `StreamSource`, LIBRARY's planned
+// contract that hands the host something playable (STREAM's `StreamSource`, LIBRARY's
 // `PLAYBACK_SOURCE`), so the host's Play sheet and its per-player Intent handling are written
 // once.
 //
 // The host is a courier for this message and never a consumer: it starts a player the user
 // chose with the URL and the headers, renders nothing itself, and keeps nothing once the
-// player has it. The rules it applies before handing one on, so an integration knows what will
+// player has it. The one exception is LIBRARY's `PLAYBACK_SOURCE`, where the host may also play
+// the source in a player of its own; that source is still held no longer than the title page
+// that resolved it, and a source that expires mid-play is asked for again rather than kept. The
+// rules it applies before handing one on, so an integration knows what will
 // be refused:
 //   - The URL scheme is the CONTRACT's rule, not this message's: each contract that carries a
 //     `PlaybackSource` states which schemes (and, for cleartext, which addresses) it accepts, and
-//     the host drops a source whose `url` breaks it. STREAM allows https only. LIBRARY will
-//     allow http to a private address, once it carries one.
+//     the host drops a source whose `url` breaks it. STREAM allows https only. LIBRARY allows
+//     http to a private address as well; library.proto states the rule.
 //   - `expires_at` is REQUIRED. A source with none is dropped: players keep history, so a URL
 //     a player was given is a URL that gets stored, and the expiry is what bounds that. The
 //     host never caches a source past it and never past the title page that resolved it.

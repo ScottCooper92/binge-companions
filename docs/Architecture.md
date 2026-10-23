@@ -255,8 +255,9 @@ in its manifest.
   against is pointing users at infringing companions, not linking to legitimate Play apps, and a short
   curated list of Play-reviewed, vetted companions stays on the right side of that line.
   This mirrors §8 of Binge's companion-platform architecture, which is the authority for it.
-- STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. Each contract makes its own
-  render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
+- STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. LIBRARY prefers it until the
+  companion declares `PLAYBACK_SOURCE`, and then Binge's own player is the default. Each contract
+  makes its own render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
 - Binge renders video for one thing: a source from the user's own media server, handed over by a
   LIBRARY companion that declares `PLAYBACK_SOURCE`. That is the user's own server, the user's own
   account and a companion the user installed and allowed, so it is not the pattern the STREAM gate
@@ -344,11 +345,13 @@ names a server's own concepts.
 `GetPlayTarget` returns what the host should start: an Intent description — package, action, data
 URI — for the server's own app where it is installed, and a web URL where it is not.
 
-The alternative, handing back a stream URL, is the one this contract refuses. It would make Binge a
-player for someone else's server: the bytes would cross, and transcoding, codec negotiation,
+The alternative, handing back a stream URL, is refused by default. Without `PLAYBACK_SOURCE` it
+would make Binge a player for someone else's server: the bytes would cross, and transcoding, codec negotiation,
 subtitle selection and whatever DRM the server applies would all become the host's problem. The
-server's own app already does that work, on the device, with its own account. So the platform moves
-data and never bytes, which is the same rule the Play stance above states for STREAM and PLAYER.
+server's own app already does that work, on the device, with its own account. So by default the
+platform moves data and never bytes, which is the same rule the Play stance above states for STREAM
+and PLAYER. `PLAYBACK_SOURCE`, below, is the one exception to it, and the reason the refusal is not
+absolute.
 
 A companion with nothing installed to hand to answers with the web URL rather than an error. That is
 a worse experience, not a failure, and the host should not have to tell the two apart.
@@ -502,8 +505,8 @@ The host is a courier for a source and never a consumer of it. In order of how m
    through Android's standard video intents, or it goes nowhere. This is the decision the whole
    stance rests on, and it is not revisited casually: an app cannot be un-removed.
 2. **The host validates and drops; it never repairs.** The URL scheme is each contract's own rule:
-   STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` will also take http to an address that
-   resolves to a private one. Only `Authorization`,
+   STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` also takes http, but only when every
+   address the host resolves to is private. `library.proto` lists the ranges. Only `Authorization`,
    `Cookie`, `Referer` and `User-Agent` headers, each at most 4 KiB. A source whose headers the
    chosen player cannot carry is hidden for that player, not sent without them. `mime_type` is on
    a video allowlist (`video/*`, HLS and DASH), and empty reads as `video/*`. Labels are
