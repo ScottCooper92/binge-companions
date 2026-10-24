@@ -24,8 +24,12 @@ of those is possible. A page with no next step is a bug in the loop.
 ## Who does what
 
 - **Binge is the host.** It finds titles, shows where they are, and routes each action to the app
-  that owns it. It bundles no provider and holds no provider credentials. It plays media from one
-  place only: the user's own media server, through a LIBRARY companion that hands it a source.
+  that owns it. It bundles no provider and holds no provider credentials. It plays only what a
+  companion handed it: a source from the user's own media server, through LIBRARY, or a STREAM
+  source, beside the hand-off to the user's own player. Inside Binge both go through one player
+  seam, shaped as a PLAYER contract would be: a source, a title, a resume position, tracks and a
+  session id in; progress, the chosen tracks and finished or stopped out. That seam is the planned
+  basis for PLAYER, which stays deferred (see Players below).
 - **A companion serves one backend.** It signs in to that backend and serves the contracts that
   backend can answer. One companion may serve several contracts from one APK; a backend that is a
   request server and a media server at once can be one app.
@@ -95,9 +99,18 @@ does something.
 4. Finished is the credits segment where the server gave one, or 90% of the runtime where it did
    not. A finished episode offers the next one the library holds.
 
-What Binge never does: play a STREAM source itself (that contract is hand-off only, for the reasons
-its header gives), follow or inspect a URL it was not handed to play, or keep a source past its
+What Binge never does: follow or inspect a URL it was not handed to play, or keep a source past its
 expiry or past the player closing.
+
+### Playing a STREAM source in Binge
+
+A STREAM source gets the same Play in Binge, beside "Open in" for VLC and the other installed
+players, behind a flag of its own so it can be switched off remotely. STREAM's own rule is https
+only, and the host applies it when it ingests the source; the player's URL check (https anywhere,
+http only to a private address, as for LIBRARY) is a backstop behind it and refuses nothing today.
+The player loads any subtitle files the companion sent beside the source, and reports nothing back:
+STREAM has no watch state to keep. The host protections under STREAM in `Architecture.md` still
+hold: the source is never fetched by anything but a player, and never kept.
 
 ### Playing in an installed player
 
