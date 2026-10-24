@@ -104,6 +104,17 @@ class ProtoRoundTripTest {
     }
 
     @Test
+    fun `RequestInfo carries a quality label and reads empty when the field is absent`() {
+        val hd = requestInfo {
+            id = "7"
+            qualityLabel = "HD-720p"
+        }
+
+        assertEquals("HD-720p", RequestInfo.parseFrom(hd.toByteArray()).qualityLabel)
+        assertEquals("", RequestInfo.parseFrom(requestInfo { id = "7" }.toByteArray()).qualityLabel)
+    }
+
+    @Test
     fun `a RequestEntry round-trips its title, status and request`() {
         val entry =
             requestEntry {
