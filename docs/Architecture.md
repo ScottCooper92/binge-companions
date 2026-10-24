@@ -511,10 +511,11 @@ The host is a courier for a source and never a consumer of it. In order of how m
 1. **A player or nowhere, and never a web view.** A source goes to a player the user chose, through
    Android's standard video intents, or to the host's own player beside that choice, or it goes
    nowhere. The host's player is held to the same rules as any other: it fetches the source as VLC
-   would, keeps nothing past the sitting, and never renders a page. The no-web-view line is the decision the
-   whole stance rests on. The host's own player for a STREAM source was added after this contract
-   was first written hand-off only (ScottCooper92/Binge#3968); a web view is what an app cannot be
-   un-removed for.
+   would, keeps nothing past the sitting, and never renders a page. The no-web-view line is the
+   decision the whole stance rests on; a web view is what an app cannot be un-removed for. The
+   host's own player for a STREAM source was added on 2026-10-24, on the maintainer's decision
+   (ScottCooper92/Binge#3968): anything that opens in VLC today should play in Binge's own player,
+   which already exists for LIBRARY and is held to these rules, with the hand-off kept beside it.
 2. **The host validates and drops; it never repairs.** The URL scheme is each contract's own rule:
    STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` also takes http, but only when every
    address the host resolves to is private. `library.proto` lists the ranges. Only `Authorization`,
