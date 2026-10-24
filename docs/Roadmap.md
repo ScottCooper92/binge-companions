@@ -29,7 +29,7 @@ the journey these stages add up to.
    server's own app, or an installed player. TV first. See `Ecosystem.md` > Playback. **Deferred:** the LIBRARY contract is
    drafted, but Binge's LIBRARY host waits until STREAM (9) ships.
 9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
-   Hand-off only, through the same Play sheet, on the shared `PlaybackSource`. LIBRARY does not
+   Hand-off through the same Play sheet, and the host's own player beside it, on the shared `PlaybackSource`. LIBRARY does not
    overlap this one: it answers for the server the user already runs, STREAM for everything else.
    The `.proto` is drafted; what moves it is a first-party companion that resolves licit sources,
    and no host ships STREAM UI before one exists. That companion is binge-archive (#141), now being

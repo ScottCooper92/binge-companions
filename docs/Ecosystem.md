@@ -105,9 +105,9 @@ expiry or past the player closing.
 ### Playing a STREAM source in Binge
 
 A STREAM source gets the same Play in Binge, beside "Open in" for VLC and the other installed
-players, behind a flag of its own so it can be switched off remotely. Binge holds the source to the
-same URL rule as LIBRARY's (https anywhere, http only to a private address; STREAM's own rule is
-https only, so today that refuses nothing), loads any subtitle files the companion sent beside it,
+players, behind a flag of its own so it can be switched off remotely. STREAM's own rule is https only, and the host
+applies it when it ingests the source. The player's URL check (https anywhere, http only to a
+private address, as for LIBRARY) is a backstop behind it and refuses nothing today, loads any subtitle files the companion sent beside it,
 and reports nothing back: STREAM has no watch state to keep. The host protections under STREAM in
 `Architecture.md` still hold: the source is never fetched by anything but a player, and never kept.
 

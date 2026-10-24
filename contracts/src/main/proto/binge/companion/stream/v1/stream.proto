@@ -14,13 +14,14 @@ syntax = "proto3";
 // set returned from `Handshake`; the host never calls a gated rpc whose capability was not
 // declared, and an integration that receives one anyway answers PERMISSION_DENIED.
 //
-// Playback is a HAND-OFF. A source is a `binge.companion.v1.PlaybackSource`, the shared message
-// whose header lists what the host does and refuses before it hands one to a player. The host
-// renders no video and no web view of a source, fetches nothing from a source URL, and keeps
-// nothing once the title page that resolved it closes. There is no in-app player for a source
-// from this contract and there will not be one: an in-app surface that plays arbitrary
-// third-party links is the pattern that gets a media app removed from Play, and an app cannot be
-// un-removed.
+// Playback is a HAND-OFF, and the host's own player may play it too. A source is a
+// `binge.companion.v1.PlaybackSource`, the shared message whose header lists what the host does
+// and refuses before it hands one on. The host may start a player the user chose, or play the
+// source in a player of its own, behind a flag of its own. That player fetches the URL as any
+// other player would, and nothing else in the host does. The host renders no web view of a
+// source, and keeps nothing once the title page that resolved it closes. A page that plays
+// arbitrary third-party links is the pattern that gets a media app removed from Play, and an app
+// cannot be un-removed, so a web view is not on offer under any flag.
 //
 // URLs are https only. The `url` of a source and every subtitle or artwork URL beside it must be
 // https, and the host drops anything else. The source comes from a third party the user does not

@@ -23,8 +23,8 @@ syntax = "proto3";
 // (`PlaybackDeviceProfile`) so the server can direct-play rather than transcode, and reports
 // progress back as it plays (`ReportPlayback`, behind `PLAYBACK_PROGRESS`). A companion that
 // does not want any of this declares neither capability and its titles play through the
-// server's own app only. This is LIBRARY's exception and no other contract's: STREAM stays
-// hand-off only, for the reasons its own header gives.
+// server's own app only. LIBRARY is not the only contract whose source the host's own player
+// may play: STREAM's header says what it holds that player to.
 //
 // Error model: failures travel as gRPC status codes, not response fields.
 //
