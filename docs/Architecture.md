@@ -352,8 +352,8 @@ would make Binge a player for someone else's server: the bytes would cross, and 
 subtitle selection and whatever DRM the server applies would all become the host's problem. The
 server's own app already does that work, on the device, with its own account. So by default the
 platform moves data and never bytes, which is the same rule the Play stance above states for STREAM
-and PLAYER. `PLAYBACK_SOURCE`, below, is the one exception to it, and the reason the refusal is not
-absolute.
+and PLAYER. `PLAYBACK_SOURCE`, below, is LIBRARY's exception to it, and the reason the refusal is not
+absolute; the host's own player for a STREAM source (Protecting the host, under STREAM) is the other.
 
 A companion with nothing installed to hand to answers with the web URL rather than an error. That is
 a worse experience, not a failure, and the host should not have to tell the two apart.
