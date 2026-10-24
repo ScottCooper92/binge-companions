@@ -304,6 +304,9 @@ The rules:
 - What belongs to the title as a whole stays on `RequestStatus`: its requests, the title-level
   capabilities and `observed_at_epoch_ms`. Each `RequestInfo` already says which version it
   asks for with its own `version_id`.
+  It also carries `quality_label`, the quality profile's name as the provider shows it, so two
+  requests for one title can be told apart. It is display only: never an id, never sent back, and
+  empty when the provider doesn't say.
 - A new per-version field goes on `VersionStatus`, additively. A further version needs a new entry
   in the handshake's list, not a new set of fields.
 

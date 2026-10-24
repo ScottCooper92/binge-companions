@@ -524,6 +524,12 @@ message RequestInfo {
   // which. Empty when the provider doesn't say, so an older companion reads as a standard
   // request.
   string version_id = 8;
+
+  // The quality profile the request is for, as the provider names it for people (e.g. "HD-720p").
+  // Display only: the host shows it beside the requester so two requests for one title can be
+  // told apart, and never parses it, matches on it or sends it back. Never an id. Empty when
+  // the provider doesn't say.
+  string quality_label = 9;
 }
 
 message EditRequestRequest {
