@@ -257,12 +257,14 @@ in its manifest.
   This mirrors §8 of Binge's companion-platform architecture, which is the authority for it.
 - STREAM, PLAYER and LIBRARY prefer hand-off over in-app playback. LIBRARY prefers it until the
   companion declares `PLAYBACK_SOURCE`, and then Binge's own player is the default. Each contract
-  makes its own render-surface decision; STREAM's is hand-off only, with the host protections under STREAM below.
-- Binge renders video for one thing: a source from the user's own media server, handed over by a
-  LIBRARY companion that declares `PLAYBACK_SOURCE`. That is the user's own server, the user's own
-  account and a companion the user installed and allowed, so it is not the pattern the STREAM gate
-  guards against. Binge renders nothing from any other contract, and never a web view of a source.
-  See `Ecosystem.md` > Playback.
+  makes its own render-surface decision; STREAM's was hand-off only, and is now hand-off plus the
+  host's own player beside it, with the host protections under STREAM below holding for both.
+- Binge renders video only for a source a companion handed it: one from the user's own media
+  server, through a LIBRARY companion that declares `PLAYBACK_SOURCE`, or a STREAM source, beside
+  its hand-off. The first is the user's own server, the user's own account and a companion the user
+  installed and allowed; the second has already passed the STREAM gate below, and the host's player
+  fetches it as any other player would. Binge renders nothing from any other contract, and never a
+  web view of a source. See `Ecosystem.md` > Playback.
 
 ## REQUEST: one status per version
 
@@ -427,7 +429,12 @@ that across three contracts would make one companion serve three actions to do o
 PLAYER is deferred rather than built. For a LIBRARY title the host's own player, fed by
 `PLAYBACK_SOURCE`, already does what PLAYER was for (live progress, decoding negotiation, track
 selection), and the installed players stay on offer through Android's standard video intents. What
-would still bring PLAYER back is listed in `Ecosystem.md` > Players.
+would still bring PLAYER back is listed in `Ecosystem.md` > Players. When it does come back, its
+shape is already drawn: Binge's player sits behind an internal seam in the host (a request carrying
+the source, the title, the resume position, the tracks and a session id; events carrying progress,
+the chosen tracks and finished or stopped) that names nothing of LIBRARY or STREAM, and both
+contracts' sources go through it. PLAYER would be that seam as a proto, almost word for word, with
+Binge as the hub: a companion gives Binge a source, Binge hands it to the chosen player.
 Whether TRACKING survives LIBRARY is still a decision for when it is actually built.
 
 ## STREAM: sources outside the library
@@ -501,8 +508,10 @@ not carry is `NOT_FOUND`, not a bad request.
 
 The host is a courier for a source and never a consumer of it. In order of how much each buys:
 
-1. **Hand-off only, no in-app player, no web view.** A source goes to a player the user chose,
-   through Android's standard video intents, or it goes nowhere. This is the decision the whole
+1. **A player or nowhere, and never a web view.** A source goes to a player the user chose, through
+   Android's standard video intents, or to the host's own player beside that choice, or it goes
+   nowhere. The host's player is held to the same rules as any other: it fetches the source as VLC
+   would, keeps nothing past the sitting, and never renders a page. This is the decision the whole
    stance rests on, and it is not revisited casually: an app cannot be un-removed.
 2. **The host validates and drops; it never repairs.** The URL scheme is each contract's own rule:
    STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` also takes http, but only when every
