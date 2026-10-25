@@ -478,6 +478,13 @@ reasons for the gate, both about Play:
   a line of its own, so the title never truncates it away, and gives any kind but `OPEN` a visible
   warning. `UNSPECIFIED` is an older integration and shows nothing extra. The licence no longer
   travels in `label`.
+- **The file name has its own field** (#265). `label` names the source, e.g. an upload's title,
+  and `file_name` names the file it plays, e.g. one encode of that upload. It is a bare name, never
+  a path or a URL, at most 120 characters, and the host truncates longer ones. The host shows it
+  as-is, secondary to `label` and never in place of it. A host with no room may omit it, and which
+  of the two gives way first on a narrow row is the host's call. Empty means the integration has
+  no file to name, and the host shows nothing extra. It is display text only: the host never
+  parses it and never uses it to choose a player.
 - **Resolution streams.** `Resolve` is server-streaming: one source per message, as found, and the
   stream ends when the integration is done. Partial results are normal. The host's deadline bounds
   it, cancellation abandons it, and an integration stops work when cancelled. The host reads at

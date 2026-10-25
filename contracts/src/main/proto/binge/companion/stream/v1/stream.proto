@@ -217,9 +217,9 @@ message StreamSource {
   string id = 1;
   binge.companion.v1.PlaybackSource source = 2;
   SourceQuality quality = 3;
-  // A short label the host shows as-is on the row, e.g. a release name. At most 120 characters;
-  // the host truncates longer ones. Never the URL, and never the licence: that is
-  // `licence_label`.
+  // A short label the host shows as-is on the row, e.g. a release name. It names the source; the
+  // file it plays goes in `file_name`. At most 120 characters; the host truncates longer ones.
+  // Never the URL, and never the licence: that is `licence_label`.
   string label = 4;
   // Requires CAPABILITY_SUBTITLES; empty otherwise. At most ten tracks; the host keeps the
   // first ten in the order sent and drops the rest, so one source message never nears the
@@ -233,6 +233,12 @@ message StreamSource {
   // How the host treats `licence_label`: any kind other than LICENCE_KIND_OPEN gets a visible
   // warning, and UNSPECIFIED shows nothing extra.
   LicenceKind licence_kind = 7;
+  // The name of the file this source plays, e.g. "Nosferatu_1922_512kb.mp4". A bare name, never
+  // a path or a URL. At most 120 characters; the host truncates longer ones. The host shows it
+  // as-is, secondary to `label` and never in place of it, and a host with no room may omit it.
+  // Empty when the integration has no file to name, and the host shows nothing extra. Display
+  // text only: the host never parses it and never uses it to choose a player.
+  string file_name = 8;
 }
 
 message ResolveRequest {
