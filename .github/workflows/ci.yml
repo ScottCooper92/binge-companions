@@ -85,7 +85,7 @@ jobs:
       # kover and Android lint, so a red run is as likely to be one of those as a test.
       # Paths checked against a deliberately failing run (#98): detekt writes only detekt.html,
       # koverVerify only kover/verify.err, lint lint-results-debug.html.
-      # Failure-only, kept one day (three for the nightly, the age the weekly storage sweep deletes at).
+      # Failure-only, kept one day (seven for the nightly).
       - name: Upload reports
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -98,7 +98,7 @@ jobs:
             **/build/reports/ktlint/**
             sdk/build/reports/lint-results-debug.html
           if-no-files-found: ignore
-          retention-days: ${{ github.event_name == 'schedule' && 3 || 1 }}
+          retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
   proto:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
