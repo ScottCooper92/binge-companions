@@ -68,6 +68,7 @@ jobs:
         libraryHandshakesAndAnswersWithATimestamp
         streamHandshakesAndAnswers
       artifact_name: device-round-trip-results
+      retention_days: 7
       artifact_paths: |
         minify-check/build/reports/androidTests/**
         minify-check/build/outputs/androidTest-results/**
