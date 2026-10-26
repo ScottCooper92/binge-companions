@@ -20,7 +20,15 @@ const val MAX_LIST_PAGE_SIZE = 50
  * so it is [default]. Anything above [max] is cut to [max], [default] included; the contract lets a
  * page be shorter than asked. A negative size is `INVALID_ARGUMENT`.
  */
-fun ListRequestsRequest.effectivePageSize(default: Int = DEFAULT_LIST_PAGE_SIZE, max: Int = MAX_LIST_PAGE_SIZE): Int {
+fun ListRequestsRequest.effectivePageSize(default: Int = DEFAULT_LIST_PAGE_SIZE, max: Int = MAX_LIST_PAGE_SIZE): Int =
+    effectivePageSize(pageSize, default, max)
+
+/** [pageSize] as a list rpc serves it; see [ListRequestsRequest.effectivePageSize]. */
+internal fun effectivePageSize(
+    pageSize: Int,
+    default: Int,
+    max: Int,
+): Int {
     if (pageSize < 0) throw invalidArgument("page_size must not be negative, was $pageSize")
     return (if (pageSize == 0) default else pageSize).coerceAtMost(max)
 }
@@ -36,16 +44,12 @@ fun ListRequestsRequest.effectivePageSize(default: Int = DEFAULT_LIST_PAGE_SIZE,
  * The offset is the companion's own: a `skip`, a row number, whatever its server pages by.
  */
 object ListRequestsPageToken {
-    private const val VERSION = "v1"
-    private const val FIELD_COUNT = 4
+    private val codec = OffsetPageTokenCodec(version = "v1", fieldCount = 3)
 
     /** The token for the page of [request]'s listing that starts at [skip]. */
     fun issue(request: ListRequestsRequest, skip: Int): String {
         require(skip >= 0) { "skip must not be negative, was $skip" }
-        return Base64
-            .getUrlEncoder()
-            .withoutPadding()
-            .encodeToString("$VERSION:${request.filterValue}:${request.pageSize}:$skip".toByteArray())
+        return codec.encode(request.filterValue, request.pageSize, skip)
     }
 
     /**
@@ -54,33 +58,42 @@ object ListRequestsPageToken {
      */
     fun skipOf(request: ListRequestsRequest): Int {
         if (request.pageToken.isEmpty()) return 0
-        val token = decode(request.pageToken) ?: throw invalidArgument("page_token was not issued by this integration")
-        if (token.filter != request.filterValue || token.pageSize != request.pageSize) {
+        val (filter, pageSize, skip) = codec.decode(request.pageToken)
+            ?: throw invalidArgument("page_token was not issued by this integration")
+        if (filter != request.filterValue || pageSize != request.pageSize) {
             throw invalidArgument("page_token was issued for a different filter or page_size")
         }
-        return token.skip
-    }
-
-    private class Decoded(
-        val filter: Int,
-        val pageSize: Int,
-        val skip: Int,
-    )
-
-    /** Null for anything [issue] could not have written. */
-    private fun decode(token: String): Decoded? {
-        val numbers =
-            attempt { String(Base64.getUrlDecoder().decode(token)) }
-                .getOrNull()
-                ?.split(':')
-                ?.takeIf { it.size == FIELD_COUNT && it.first() == VERSION }
-                ?.drop(1)
-                ?.mapNotNull { it.toIntOrNull() }
-                ?.takeIf { it.size == FIELD_COUNT - 1 }
-                ?: return null
-        val (filter, pageSize, skip) = numbers
-        return Decoded(filter, pageSize, skip).takeIf { skip >= 0 }
+        return skip
     }
 }
 
-private fun invalidArgument(description: String): StatusException = StatusException(Status.INVALID_ARGUMENT.withDescription(description))
+/**
+ * Writes and reads the versioned, base64url offset tokens the paging helpers issue: the version,
+ * then [fieldCount] integers, the last of them the offset. Shared so every list rpc's token is
+ * built and checked the same way, and a token from one rpc never parses as another's, because
+ * each rpc has its own [version].
+ */
+internal class OffsetPageTokenCodec(
+    private val version: String,
+    private val fieldCount: Int,
+) {
+    fun encode(vararg numbers: Int): String {
+        check(numbers.size == fieldCount) { "expected $fieldCount numbers, was ${numbers.size}" }
+        return Base64
+            .getUrlEncoder()
+            .withoutPadding()
+            .encodeToString((listOf(version) + numbers.map(Int::toString)).joinToString(":").toByteArray())
+    }
+
+    /** The numbers [encode] wrote, or null for anything it could not have written, a negative offset included. */
+    fun decode(token: String): List<Int>? =
+        attempt { String(Base64.getUrlDecoder().decode(token)) }
+            .getOrNull()
+            ?.split(':')
+            ?.takeIf { it.size == fieldCount + 1 && it.first() == version }
+            ?.drop(1)
+            ?.mapNotNull { it.toIntOrNull() }
+            ?.takeIf { it.size == fieldCount && it.last() >= 0 }
+}
+
+internal fun invalidArgument(description: String): StatusException = StatusException(Status.INVALID_ARGUMENT.withDescription(description))

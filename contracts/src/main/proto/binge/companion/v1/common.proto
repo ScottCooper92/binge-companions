@@ -53,6 +53,29 @@ message EpisodeRef {
   int32 episode_number = 2;
 }
 
+// What a host's player did during one sitting, reported to the companion that keeps the watch
+// progress. Shared by every contract that takes playback reports. LIBRARY v1 predates this enum
+// and keeps its own identical `PlaybackEvent`; new contracts use this one. Same names, same numbers.
+//
+// Append-only: new values get new numbers. Host to integration, so the integration is the
+// receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT. A future event therefore needs
+// its own capability before a host may send it.
+enum PlaybackEvent {
+  PLAYBACK_EVENT_UNSPECIFIED = 0;
+  // Playback began, at `position_millis`. Once per sitting.
+  PLAYBACK_EVENT_STARTED = 1;
+  // A periodic position while playing. The host sends one about every ten seconds, and never
+  // more often than every five.
+  PLAYBACK_EVENT_PROGRESS = 2;
+  PLAYBACK_EVENT_PAUSED = 3;
+  PLAYBACK_EVENT_RESUMED = 4;
+  // The user left before the end. The sitting is over; `position_millis` is the resume point.
+  PLAYBACK_EVENT_STOPPED = 5;
+  // Playback reached the end, or near enough that the host counts it played (within the credits,
+  // or past 90% where it knows no credits). The sitting is over.
+  PLAYBACK_EVENT_FINISHED = 6;
+}
+
 // One HTTP request header a player must send to fetch a `PlaybackSource`.
 message HttpHeader {
   string name = 1;

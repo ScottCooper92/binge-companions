@@ -94,8 +94,9 @@ sdk/         Android library for companion apps: the exported Service base, the 
              by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`).
              It also carries the small pieces every companion would otherwise write again:
              `attempt` (a `runCatching` that rethrows cancellation), `ListRequestsPageToken` and
-             `effectivePageSize` for paging `ListRequests`, and `checkedSeasonNumbers` for an rpc's
-             season list. Its test fixtures hold `awaitEvent`, for tests of one-shot event flows;
+             `effectivePageSize` for paging `ListRequests`, `ContinueWatchingPageToken` for paging
+             STREAM's `ListContinueWatching`, `applyReport` and `requireValid` for STREAM's watch
+             progress, and `checkedSeasonNumbers` for an rpc's season list. Its test fixtures hold `awaitEvent`, for tests of one-shot event flows;
              a companion takes them with `testImplementation(testFixtures(...))`.
              Its `paging` package holds what a companion that caches a server's list would write again:
              `OffsetPagingSource` (a `take`/`skip` list), `pageCursorAfter`, `OpenPagingSources` and

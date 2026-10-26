@@ -546,7 +546,9 @@ The host is a courier for a source and never a consumer of it. In order of how m
    one player that can take it. Attributing a source is how the host says "this came from an app
    you installed", which is not the same as listing or recommending a provider.
 6. **Consent says what the integration is.** A STREAM companion's consent text is its own: this
-   app will give Binge links to video sources, and Binge does not check where they come from.
+   app will give Binge links to video sources, and Binge does not check where they come from. For a
+   companion that declares `PLAYBACK_PROGRESS`, it adds: and Binge tells it what you play from its
+   sources.
    Consent is per package with the certificate pinned, as everywhere.
 7. **A remote kill switch, and a remote revocation list.** The host renders STREAM UI only while
    a feature flag is on, so a policy problem is answered in minutes without a release. Separately,
@@ -566,11 +568,38 @@ privileged path for any host.
 
 ### Capabilities
 
-`PROBE`, `SUBTITLES`, `REPORT_SOURCE`. The mandatory core is `Handshake` and `Resolve`. A STREAM
+`PROBE`, `SUBTITLES`, `REPORT_SOURCE`, `PLAYBACK_PROGRESS`. The last joined additively. The mandatory core is `Handshake` and `Resolve`. A STREAM
 companion whose backend needs a sign-in the user has not completed answers `Handshake` with
 `UNAUTHENTICATED`, as LIBRARY does, and the host handshakes again when the user returns from the
 companion app. One with nothing to sign in to answers OK. As everywhere: feature
 detection never uses version numbers.
+
+### Watch progress belongs to the companion
+
+A companion that declares `PLAYBACK_PROGRESS` keeps the user's progress for the titles it resolves.
+The host's player reports `STARTED`, `PROGRESS`, `PAUSED`, `RESUMED`, `STOPPED` and `FINISHED`
+through `ReportPlayback`. That is LIBRARY's shape, with the shared `PlaybackEvent`. `Resolve`
+carries the resume point on its first message. `ListContinueWatching` feeds a "Continue watching"
+row with ids only, rendered from TMDB. Every resume and every entry carries `last_played`: the host
+resumes from the most recent across companions and orders the row by it.
+
+- **A finished movie leaves the row.** `FINISHED` on a movie clears its progress.
+- **A finished episode stays, as next up.** `FINISHED` on an episode records it as completed, at
+  its runtime, with `last_played` stamped. The entry stays with `completed` set. The host works out
+  the next episode from TMDB and shows the entry as that episode, with no progress bar. When there
+  is no next episode, the host drops the entry. `Resolve` never offers a completed episode as a
+  resume point.
+- **The user can remove an entry.** `ForgetProgress` is "Remove from Continue watching". It forgets
+  a movie, one episode, or every episode of a series. It is idempotent.
+
+The host keeps no progress for a STREAM title and nothing about any source. Uninstalling the
+companion, or clearing its data, loses the progress; that is intended. A companion hears only about
+sittings of its own sources. A row is not a resolve: tapping an entry opens the title page, which
+resolves as usual.
+
+*Added on 2026-10-26, on the maintainer's decision. Rejected: host-side storage (Binge would hold
+STREAM history); moving LIBRARY's enum (breaking); clearing a finished episode (the row would lose
+the series instead of offering the next episode).*
 
 ### Discovery
 
@@ -586,7 +615,8 @@ from a data centre, and 10 s leaves room for a phone on a home network.
 - It hands out playable sources and nothing else: no browsing, no search, no catalogue. A
   companion with a catalogue of its own is a different product, and the host does not render it.
   binge-archive will have one in its own UI, opening titles in Binge, as a later phase (#149).
-- It does not record what was watched. A STREAM source has no viewer session to write back to.
+- The host records nothing about what was watched; a companion with `PLAYBACK_PROGRESS` may, for its
+  own sources.
 
 ## Notifications: forwarded, and polled
 

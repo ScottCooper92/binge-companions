@@ -10,9 +10,11 @@ syntax = "proto3";
 // decision rather than the last. That companion is binge-archive, and it is being built.
 //
 // Mandatory core: `Handshake` and `Resolve`. A service that cannot serve both must not export the
-// `com.binge.companion.STREAM` action. `Probe` and `ReportSource` are gated by the `Capability`
-// set returned from `Handshake`; the host never calls a gated rpc whose capability was not
-// declared, and an integration that receives one anyway answers PERMISSION_DENIED.
+// `com.binge.companion.STREAM` action. `Probe`, `ReportSource`, `ReportPlayback`,
+// `ListContinueWatching` and `ForgetProgress` are gated by the `Capability` set returned from
+// `Handshake`; the host never calls a gated rpc whose capability was not declared, and an
+// integration that receives one anyway answers PERMISSION_DENIED. Likewise the host reads no
+// `ResolveResponse.resume` unless the integration declared CAPABILITY_PLAYBACK_PROGRESS.
 //
 // Playback is a HAND-OFF, and the host's own player may play it too. A source is a
 // `binge.companion.v1.PlaybackSource`, the shared message whose header lists what the host does
@@ -22,6 +24,14 @@ syntax = "proto3";
 // source, and keeps nothing once the title page that resolved it closes. A page that plays
 // arbitrary third-party links is the pattern that gets a media app removed from Play, and an app
 // cannot be un-removed, so a web view is not on offer under any flag.
+//
+// Watch progress belongs to the COMPANION (CAPABILITY_PLAYBACK_PROGRESS). The host reports where
+// a sitting got to (`ReportPlayback`). The companion keeps it, and the host reads it back as a
+// resume point on `Resolve` and as a "Continue watching" row (`ListContinueWatching`). The host
+// keeps no progress of its own for a STREAM title, and nothing about any source. Progress lives
+// only in the companion: uninstalling it, or clearing its data, loses it, and that is intended.
+// A host reports to a companion only sittings of sources that companion resolved, so no companion
+// learns what was played from another companion's sources or from the user's library.
 //
 // URLs are https only. The `url` of a source and every subtitle or artwork URL beside it must be
 // https, and the host drops anything else. The source comes from a third party the user does not
@@ -64,9 +74,12 @@ syntax = "proto3";
 //                                     (MEDIA_TYPE_UNSPECIFIED, `tmdb_id` <= 0), a `MediaId`
 //                                     whose type the integration knows is wrong (a movie id
 //                                     that is not a film, or the reverse), an `episode` on a
-//                                     movie, an episode the series does not have, or a
-//                                     `source_id` this integration never issued. A valid
-//                                     series the integration does not carry is NOT_FOUND.
+//                                     movie, an episode the series does not have, a
+//                                     `source_id` this integration never issued (`ReportSource`
+//                                     only), an unknown or UNSPECIFIED `PlaybackEvent`, a
+//                                     negative position or runtime, or a `page_token` it did
+//                                     not issue. A valid series the integration does not carry
+//                                     is NOT_FOUND.
 //   PERMISSION_DENIED               — a gated rpc the integration did not declare.
 //
 // So `Resolve` has four answers: sources; OK and empty (a known title with no licit source);
@@ -91,6 +104,7 @@ syntax = "proto3";
 package binge.companion.stream.v1;
 
 import "binge/companion/v1/common.proto";
+import "google/protobuf/timestamp.proto";
 
 option java_package = "com.binge.companion.contracts.stream.v1";
 option java_multiple_files = true;
@@ -109,6 +123,12 @@ enum Capability {
   // Answers `ReportSource`: the user told the host a source did not play, and the integration
   // wants to know.
   CAPABILITY_REPORT_SOURCE = 3;
+  // The companion keeps the user's watch progress for the titles it resolves. It answers
+  // `ReportPlayback`, `ListContinueWatching` and `ForgetProgress`, and puts
+  // `ResolveResponse.resume` on the first message of `Resolve`. The progress is the companion's
+  // alone: the host keeps no copy, and uninstalling the companion or clearing its data loses it,
+  // which is intended.
+  CAPABILITY_PLAYBACK_PROGRESS = 4;
 }
 
 // The vertical resolution class of a source, so a host can sort and a TV can pick without a
@@ -213,7 +233,8 @@ message SubtitleTrack {
 // One playable source for the title `Resolve` asked about.
 message StreamSource {
   // The integration's own id for this source, opaque to the host and never parsed by it. The
-  // host echoes it verbatim on `ReportSource`, and nowhere else.
+  // host echoes it verbatim on `ReportSource` and `ReportPlayback`, and nowhere else. It holds
+  // the id no longer than the sitting.
   string id = 1;
   binge.companion.v1.PlaybackSource source = 2;
   SourceQuality quality = 3;
@@ -241,6 +262,32 @@ message StreamSource {
   string file_name = 8;
 }
 
+// Where the user got to in one title, or in one episode of a series, as the companion recorded
+// it from the host's `ReportPlayback`s. Requires CAPABILITY_PLAYBACK_PROGRESS. The companion's
+// alone: the host keeps no copy, so uninstalling the companion or clearing its data loses it, and
+// that is intended.
+//
+// A movie the user finished has no progress: FINISHED clears it. An episode the user finished
+// keeps its progress with `completed` set, so the host can offer the next episode. A title the
+// user has not started has no progress, and the companion sends none.
+message PlaybackProgress {
+  // The resume point, greater than 0. For a completed episode, the episode's runtime when the
+  // host reported one, and otherwise the position FINISHED was reported at.
+  int64 position_millis = 1;
+  // The title's length as the host's player last reported it; 0 when it never said. The host
+  // draws no progress bar at 0.
+  int64 runtime_millis = 2;
+  // When the user last played it: the time the companion received the latest report. REQUIRED.
+  // The host picks the most recent progress across companions by it, and orders "Continue
+  // watching" by it. Progress without it is dropped.
+  google.protobuf.Timestamp last_played = 3;
+  // The user finished this episode: the host reported FINISHED for it, and nothing since. Only
+  // ever set for an episode of a series. A completed episode is never a resume point: `Resolve`
+  // carries no `resume` for it. It is how `ListContinueWatching` says "next up": see
+  // `ContinueWatchingEntry`. Any later report for the episode other than FINISHED clears it.
+  bool completed = 4;
+}
+
 message ResolveRequest {
   binge.companion.v1.MediaId media = 1;
   // For a series, the episode to resolve. Required for a series: STREAM resolves one playable
@@ -251,6 +298,13 @@ message ResolveRequest {
 
 message ResolveResponse {
   StreamSource source = 1;
+  // Requires CAPABILITY_PLAYBACK_PROGRESS. Where the user left the requested title, or the
+  // requested episode of a series. Never another episode, and never a completed one. Carried on
+  // the FIRST message of the stream only, beside its source; absent when the companion has no
+  // progress to resume for it. A stream with no sources carries no resume, because every message
+  // still carries a source. The host ignores it on any later message. Across companions, the
+  // host resumes from the progress with the latest `last_played`.
+  PlaybackProgress resume = 2;
 }
 
 message ProbeRequest {
@@ -271,6 +325,78 @@ message ReportSourceRequest {
 }
 
 message ReportSourceResponse {}
+
+// One event in a sitting of a source this integration resolved. The companion applies it as
+// follows. STARTED, PROGRESS, PAUSED, RESUMED and STOPPED record `position_millis` as the resume
+// point, stamp `last_played` with the time the report arrives, keep `runtime_millis` when it is
+// not 0, and clear `completed`. FINISHED depends on the title:
+//   - For a movie, it clears the progress, so the movie leaves `ListContinueWatching` and
+//     `Resolve` carries no resume for it.
+//   - For an episode of a series, it records the episode as completed: `completed` set,
+//     `position_millis` at the runtime, and `last_played` stamped. The episode stays in
+//     `ListContinueWatching`, so the host can offer the next one, and `Resolve` carries no
+//     resume for it.
+// The companion may drop a position too near the start to be worth resuming.
+message ReportPlaybackRequest {
+  binge.companion.v1.MediaId media = 1;
+  // The episode the source was resolved for, as on the `ResolveRequest`. Required for a series,
+  // absent for a movie.
+  binge.companion.v1.EpisodeRef episode = 2;
+  // Optional. The `StreamSource.id` being played, for the companion's own use; progress is keyed
+  // by `media` and `episode`, never by it. Empty when the host no longer holds it. An id the
+  // integration does not remember is not an error.
+  string source_id = 3;
+  binge.companion.v1.PlaybackEvent event = 4;
+  // The player's position when the event happened. Never negative.
+  int64 position_millis = 5;
+  // The title's length as the player measures it; 0 when it cannot say. Never negative.
+  int64 runtime_millis = 6;
+}
+
+message ReportPlaybackResponse {}
+
+// One row of the host's "Continue watching", from one companion. Ids, not display data: the host
+// renders the title from TMDB by `media`, as it renders every title, so an entry stays a few
+// dozen bytes. One entry per title: for a series, the episode played most recently.
+//
+// When `progress.completed` is set, the user finished that episode. The host works out the next
+// episode from TMDB and shows the entry as that episode, with no progress bar. When TMDB has no
+// next episode, the host drops the entry.
+message ContinueWatchingEntry {
+  binge.companion.v1.MediaId media = 1;
+  // The episode played most recently, for a series. Absent for a movie.
+  binge.companion.v1.EpisodeRef episode = 2;
+  // REQUIRED, with its `last_played`. The host drops an entry without it.
+  PlaybackProgress progress = 3;
+}
+
+message ListContinueWatchingRequest {
+  // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
+  // A token is only valid with the `page_size` it was issued under.
+  string page_token = 1;
+  // At most this many entries; 0 lets the integration choose. It may answer fewer, and keeps
+  // every page well under the Binder transaction limit whatever is asked. The host must not
+  // read a short page as the end; only an empty `next_page_token` says that. Keep it the same
+  // on every page of one listing.
+  int32 page_size = 2;
+}
+
+message ListContinueWatchingResponse {
+  // Most recent `last_played` first.
+  repeated ContinueWatchingEntry entries = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
+
+// What to forget. The host sends it for "Remove from Continue watching".
+message ForgetProgressRequest {
+  binge.companion.v1.MediaId media = 1;
+  // For a series, the one episode to forget. Absent for a series, it forgets every episode of the
+  // series. Absent for a movie, which it forgets.
+  binge.companion.v1.EpisodeRef episode = 2;
+}
+
+message ForgetProgressResponse {}
 
 // Served by an integration app from a bound Service exported with the
 // `com.binge.companion.STREAM` intent action, over gRPC's Android Binder transport.
@@ -297,4 +423,20 @@ service StreamService {
   // Requires CAPABILITY_REPORT_SOURCE. INVALID_ARGUMENT for a `source_id` this integration did
   // not issue, or one it no longer remembers; the host does not retry either.
   rpc ReportSource(ReportSourceRequest) returns (ReportSourceResponse);
+  // Requires CAPABILITY_PLAYBACK_PROGRESS. Sent only for a sitting of a source this integration
+  // resolved. INVALID_ARGUMENT for an unusable `MediaId`, an unknown or UNSPECIFIED `event`, a
+  // negative `position_millis` or `runtime_millis`, or an episode on a movie or a series with no
+  // episode. Never NOT_FOUND: the host reports only titles this integration resolved. The host
+  // retries only the transient codes, because the next report carries the position anyway.
+  rpc ReportPlayback(ReportPlaybackRequest) returns (ReportPlaybackResponse);
+  // Requires CAPABILITY_PLAYBACK_PROGRESS. Paged, as every list on this platform is.
+  // INVALID_ARGUMENT for a `page_token` this integration did not issue, one that comes back with
+  // a different `page_size` than it was issued under, or a negative `page_size`. Empty and OK
+  // when nothing is in progress. Not a resolve: it touches no source.
+  rpc ListContinueWatching(ListContinueWatchingRequest) returns (ListContinueWatchingResponse);
+  // Requires CAPABILITY_PLAYBACK_PROGRESS. The host uses it for "Remove from Continue watching".
+  // Forgets the progress the request names: a movie, one episode of a series, or, with no
+  // episode, every episode of a series. Idempotent: OK when the companion holds nothing for it.
+  // INVALID_ARGUMENT for an unusable `MediaId` or an episode on a movie. Never NOT_FOUND.
+  rpc ForgetProgress(ForgetProgressRequest) returns (ForgetProgressResponse);
 }
