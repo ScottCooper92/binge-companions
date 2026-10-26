@@ -14,6 +14,9 @@
 -keep class kotlin.LazyKt { *; }
 -keep class kotlin.LazyKt__* { *; }
 -keep class kotlin.jvm.internal.Intrinsics { *; }
+-keep class kotlin.Unit { *; }
+-keep class kotlin.jvm.internal.Lambda { *; }
+-keep class kotlinx.coroutines.CancellableContinuation { *; }
 
 # The test's one entry point into the shrunk app. What it calls inside the SDK and the contracts is left to R8.
 -keep class com.binge.companion.minifycheck.RoundTripClient { *; }
