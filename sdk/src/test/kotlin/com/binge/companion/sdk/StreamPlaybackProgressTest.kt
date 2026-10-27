@@ -30,7 +30,7 @@ class StreamPlaybackProgressTest {
             .setTmdbId(tmdbId)
             .build()
 
-    private val episode: EpisodeRef =
+    private val thirdEpisode: EpisodeRef =
         EpisodeRef
             .newBuilder()
             .setSeasonNumber(1)
@@ -47,7 +47,7 @@ class StreamPlaybackProgressTest {
         ReportPlaybackRequest
             .newBuilder()
             .setMedia(media(type))
-            .apply { if (withEpisode) setEpisode(episode) }
+            .apply { if (withEpisode) setEpisode(thirdEpisode) }
             .setEvent(event)
             .setPositionMillis(position)
             .setRuntimeMillis(runtime)
@@ -167,7 +167,7 @@ class StreamPlaybackProgressTest {
         listOf(
             ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_MOVIE)),
             ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_TV)),
-            ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_TV)).setEpisode(episode),
+            ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_TV)).setEpisode(thirdEpisode),
         ).forEach { assertDoesNotThrow { it.build().requireValid() } }
     }
 
@@ -176,8 +176,40 @@ class StreamPlaybackProgressTest {
         listOf(
             ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_UNSPECIFIED)),
             ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_MOVIE, tmdbId = -4)),
-            ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_MOVIE)).setEpisode(episode),
+            ForgetProgressRequest.newBuilder().setMedia(media(MediaType.MEDIA_TYPE_MOVIE)).setEpisode(thirdEpisode),
         ).forEach { assertInvalidArgument { it.build().requireValid() } }
+    }
+
+    private fun episodeRef(season: Int, number: Int): EpisodeRef =
+        EpisodeRef
+            .newBuilder()
+            .setSeasonNumber(season)
+            .setEpisodeNumber(number)
+            .build()
+
+    private fun reportFor(episode: EpisodeRef): ReportPlaybackRequest =
+        report(PlaybackEvent.PLAYBACK_EVENT_STOPPED).toBuilder().setEpisode(episode).build()
+
+    private fun forgetFor(episode: EpisodeRef): ForgetProgressRequest =
+        ForgetProgressRequest
+            .newBuilder()
+            .setMedia(media(MediaType.MEDIA_TYPE_TV))
+            .setEpisode(episode)
+            .build()
+
+    @Test
+    fun `an episode with a negative season or an episode number below 1 is INVALID_ARGUMENT`() {
+        listOf(episodeRef(season = -1, number = 1), episodeRef(season = 1, number = 0)).forEach { bad ->
+            assertInvalidArgument { reportFor(bad).requireValid() }
+            assertInvalidArgument { forgetFor(bad).requireValid() }
+        }
+    }
+
+    @Test
+    fun `the first special of season 0 is a valid episode`() {
+        val special = episodeRef(season = 0, number = 1)
+        assertDoesNotThrow { reportFor(special).requireValid() }
+        assertDoesNotThrow { forgetFor(special).requireValid() }
     }
 
     private fun listing(pageSize: Int = 20, pageToken: String = ""): ListContinueWatchingRequest =

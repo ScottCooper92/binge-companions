@@ -425,9 +425,10 @@ service StreamService {
   rpc ReportSource(ReportSourceRequest) returns (ReportSourceResponse);
   // Requires CAPABILITY_PLAYBACK_PROGRESS. Sent only for a sitting of a source this integration
   // resolved. INVALID_ARGUMENT for an unusable `MediaId`, an unknown or UNSPECIFIED `event`, a
-  // negative `position_millis` or `runtime_millis`, or an episode on a movie or a series with no
-  // episode. Never NOT_FOUND: the host reports only titles this integration resolved. The host
-  // retries only the transient codes, because the next report carries the position anyway.
+  // negative `position_millis` or `runtime_millis`, an episode on a movie or a series with no
+  // episode, or an `EpisodeRef` with `season_number` < 0 or `episode_number` < 1. Never
+  // NOT_FOUND: the host reports only titles this integration resolved. The host retries only the
+  // transient codes, because the next report carries the position anyway.
   rpc ReportPlayback(ReportPlaybackRequest) returns (ReportPlaybackResponse);
   // Requires CAPABILITY_PLAYBACK_PROGRESS. Paged, as every list on this platform is.
   // INVALID_ARGUMENT for a `page_token` this integration did not issue, one that comes back with
@@ -437,6 +438,7 @@ service StreamService {
   // Requires CAPABILITY_PLAYBACK_PROGRESS. The host uses it for "Remove from Continue watching".
   // Forgets the progress the request names: a movie, one episode of a series, or, with no
   // episode, every episode of a series. Idempotent: OK when the companion holds nothing for it.
-  // INVALID_ARGUMENT for an unusable `MediaId` or an episode on a movie. Never NOT_FOUND.
+  // INVALID_ARGUMENT for an unusable `MediaId`, an episode on a movie, or an `EpisodeRef` with
+  // `season_number` < 0 or `episode_number` < 1. Never NOT_FOUND.
   rpc ForgetProgress(ForgetProgressRequest) returns (ForgetProgressResponse);
 }

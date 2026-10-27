@@ -49,7 +49,9 @@ message HostInfo {
 // LIBRARY v1 predates this message and keeps its own identical `EpisodeRef`; new contracts
 // use this one.
 message EpisodeRef {
+  // 0 or above. Season 0 is a series' specials, as on TMDB.
   int32 season_number = 1;
+  // 1 or above.
   int32 episode_number = 2;
 }
 
