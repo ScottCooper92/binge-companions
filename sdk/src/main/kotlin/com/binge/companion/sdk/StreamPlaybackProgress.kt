@@ -13,9 +13,9 @@ import java.time.Instant
 
 /**
  * Refuses a STREAM `ReportPlayback` the contract calls a bad request, as `INVALID_ARGUMENT`: an
- * unusable `MediaId`, an episode on a movie or none on a series, an unknown or UNSPECIFIED `event`,
- * or a negative position or runtime. `source_id` is never checked, because an id the companion
- * does not remember is not an error.
+ * unusable `MediaId`, an episode on a movie or none on a series, an episode with `season_number` < 0
+ * or `episode_number` < 1, an unknown or UNSPECIFIED `event`, or a negative position or runtime.
+ * `source_id` is never checked, because an id the companion does not remember is not an error.
  */
 fun ReportPlaybackRequest.requireValid() {
     val problem =
@@ -32,8 +32,8 @@ fun ReportPlaybackRequest.requireValid() {
 
 /**
  * Refuses a STREAM `ForgetProgress` the contract calls a bad request, as `INVALID_ARGUMENT`: an
- * unusable `MediaId` or an episode on a movie. A series with no episode is valid, and forgets the
- * whole series.
+ * unusable `MediaId`, an episode on a movie, or an episode with `season_number` < 0 or
+ * `episode_number` < 1. A series with no episode is valid, and forgets the whole series.
  */
 fun ForgetProgressRequest.requireValid() {
     titleProblem(media, if (hasEpisode()) episode else null, episodeRequired = false)?.let { throw invalidArgument(it) }
@@ -117,6 +117,8 @@ private fun titleProblem(
         !known || media.tmdbId <= 0 -> "media must be a movie or a series with a tmdb_id above 0"
         media.mediaType == MediaType.MEDIA_TYPE_MOVIE && episode != null -> "a movie has no episode"
         media.mediaType == MediaType.MEDIA_TYPE_TV && episode == null && episodeRequired -> "a series needs its episode"
+        episode != null && (episode.seasonNumber < 0 || episode.episodeNumber < 1) ->
+            "episode must have season_number >= 0 and episode_number >= 1"
         else -> null
     }
 }
