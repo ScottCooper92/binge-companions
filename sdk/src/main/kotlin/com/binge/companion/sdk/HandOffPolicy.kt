@@ -2,16 +2,20 @@ package com.binge.companion.sdk
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Log
 
 /**
- * The companion half of the mutual check for a hand-off Activity — the one behind
- * `CAPABILITY_ADVANCED_OPTIONS`, and the `ACTION_VIEW_REQUEST` and `ACTION_SETTINGS` ones in `CompanionManifest`.
- * The Activity is exported and resolvable by action, so any app on
- * the device can start it with extras of its own choosing; this is what says whether the one that
- * did is a host the companion serves, before the Activity acts on what it was handed.
+ * Both halves of the mutual check for a hand-off Activity. The companion half covers the Activities
+ * behind `CAPABILITY_ADVANCED_OPTIONS` and `CAPABILITY_PLAY`, and the `ACTION_VIEW_REQUEST` and
+ * `ACTION_SETTINGS` ones in `CompanionManifest`. Each is exported and resolvable by action, so any app
+ * on the device can start it with extras of its own choosing; [pinned], [anyCertificateOf] and
+ * [anyCaller] say whether the one that did is a host the companion serves, before the Activity acts
+ * on what it was handed. The host half is [isStartable], which says whether the Activity a host is
+ * about to start is the companion's own.
  *
- * This object only wires Android lookups; the decision is [HandOffCallerPolicy], tested on the JVM.
+ * This object only wires Android lookups. The caller decision is [HandOffCallerPolicy] and the target
+ * decision is [HandOffTargetPolicy], both tested on the JVM.
  */
 object HandOffPolicy {
     /**
@@ -44,7 +48,8 @@ object HandOffPolicy {
      * The host half of a hand-off: whether [intent], addressed to [companionPackage], resolves to an
      * exported Activity inside that package, which is the only Activity a host may start for a
      * result. Call it before `startActivityForResult`, on an Intent the host built itself, and start
-     * nothing when it is false. The decision is [HandOffTargetPolicy], tested on the JVM. On API 30+
+     * nothing when it is false. It resolves as `startActivity` does, so an Activity without the
+     * `DEFAULT` category is not found. The decision is [HandOffTargetPolicy], tested on the JVM. On API 30+
      * the lookup is subject to package visibility, so a host declares each hand-off action it starts
      * in its `<queries>`.
      */
@@ -53,7 +58,7 @@ object HandOffPolicy {
         intent: Intent,
         companionPackage: String,
     ): Boolean {
-        val activity = context.packageManager.resolveActivity(intent, 0)?.activityInfo
+        val activity = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo
         return HandOffTargetPolicy.permits(
             companionPackage = companionPackage,
             intentPackage = intent.`package`,

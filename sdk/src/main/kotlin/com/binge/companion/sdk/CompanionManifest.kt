@@ -93,7 +93,8 @@ object CompanionManifest {
      * series, [EXTRA_SEASON] and [EXTRA_EPISODE]; the companion starts the media server's own app or web
      * client itself and answers `RESULT_OK` once it has. The host builds every extra, and no
      * companion-supplied string ever enters an Intent the host starts. [Intent.toPlayRequest] reads it,
-     * after [HandOffPolicy] has admitted the caller.
+     * after [HandOffPolicy] has admitted the caller. Its intent filter must include the
+     * `android.intent.category.DEFAULT` category, or the host cannot start it.
      */
     const val ACTION_PLAY = "com.binge.companion.PLAY"
 
