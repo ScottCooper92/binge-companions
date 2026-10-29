@@ -819,8 +819,10 @@ service RequestService {
   rpc GetStatuses(GetStatusesRequest) returns (GetStatusesResponse);
   // Requires CAPABILITY_EDIT_SEASONS to change `season_numbers` and CAPABILITY_EDIT_PROFILE to
   // set `profile_id`; the two are independent. PERMISSION_DENIED when the user may not edit
-  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an edit that changes
-  // nothing, an empty season set with no `profile_id`, a season the show does not have, a
+  // this request, NOT_FOUND for an unknown id, FAILED_PRECONDITION when the request is not in a
+  // state that allows an edit (a provider may allow it only while the request is pending, and then
+  // offers the capability on that request's `allowed_actions` only while it is), INVALID_ARGUMENT
+  // for an edit that changes nothing, an empty season set with no `profile_id`, a season the show does not have, a
   // request for a movie with no `profile_id`, or a `profile_id` the integration did not offer
   // for the title. Atomic: a refused edit changes nothing. Answers an empty response; the
   // host re-reads the status.
