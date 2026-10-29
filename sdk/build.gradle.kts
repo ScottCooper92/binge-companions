@@ -34,7 +34,15 @@ android {
     }
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        // Robolectric reads the merged test config this switches on, to find the SDK level and the manifest.
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.useJUnitPlatform()
+            // Robolectric fetches its android-all jars itself, outside Gradle's repositories. Central answers
+            // bursts from shared runners with a 429, so point it at the mirror binge-seerr uses for the same reason.
+            it.systemProperty("robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2/")
+            it.systemProperty("robolectric.dependency.repo.id", "MavenCentralMirror")
+        }
     }
 
     // Test helpers a companion's own tests can use, published apart from the runtime: a consumer
@@ -60,6 +68,11 @@ dependencies {
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.grpc.inprocess)
+    // The Intent and PackageManager halves of the hand-off readers (#280). Robolectric is a JUnit 4 runner, so the
+    // vintage engine runs it on the same JUnit Platform task as the Jupiter tests, which stay as they are.
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testRuntimeOnly(libs.junit.vintage.engine)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

@@ -59,13 +59,14 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 - Kotlin/JVM, `jvmTarget` 17, built and tested on JDK 21.
 - Runtime is `protobuf-javalite` with `grpc-kotlin` stubs — suspend functions and
   `Flow`s, not callbacks. Generated code is not checked in.
-- Tests are JUnit 5. Scope Gradle to a module (`:binge-companion-contracts:test`) rather than
+- Tests are JUnit 5. The one exception is a test that needs the Android framework on the JVM: it runs under
+  Robolectric, a JUnit 4 runner, on the vintage engine (#280). Scope Gradle to a module (`:binge-companion-contracts:test`) rather than
   running the whole tree when you are checking one thing.
 
 ## Gates
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
-`build` covers the Kotlin compile, the JUnit 5 tests, `ktlintCheck`, `detekt`, `koverVerify` and
+`build` covers the Kotlin compile, the JUnit tests, `ktlintCheck`, `detekt`, `koverVerify` and
 Android lint on `:binge-companion-sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
 themselves into `check`, and `build` depends on it. `build` also shrinks `:minify-check`, a probe app that
 depends on `:binge-companion-sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
