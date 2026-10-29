@@ -3,6 +3,7 @@ package com.binge.companion.contracts
 import com.binge.companion.contracts.request.v1.Availability
 import com.binge.companion.contracts.request.v1.Capability
 import com.binge.companion.contracts.request.v1.DeclineRequestRequest
+import com.binge.companion.contracts.request.v1.EditRequestRequest
 import com.binge.companion.contracts.request.v1.HandshakeResponse
 import com.binge.companion.contracts.request.v1.ReportIssueRequest
 import com.binge.companion.contracts.request.v1.RequestEntry
@@ -10,6 +11,7 @@ import com.binge.companion.contracts.request.v1.RequestInfo
 import com.binge.companion.contracts.request.v1.RequestStatus
 import com.binge.companion.contracts.request.v1.VersionStatus
 import com.binge.companion.contracts.request.v1.declineRequestRequest
+import com.binge.companion.contracts.request.v1.editRequestRequest
 import com.binge.companion.contracts.request.v1.mediaFileInfo
 import com.binge.companion.contracts.request.v1.reportIssueRequest
 import com.binge.companion.contracts.request.v1.requestEntry
@@ -36,6 +38,33 @@ class ProtoRoundTripTest {
         val parsed = MediaId.parseFrom(id.toByteArray())
 
         assertEquals(id, parsed)
+    }
+
+    @Test
+    fun `an edit request round-trips its profile, and absent reads as leave it alone`() {
+        val edit = editRequestRequest {
+            requestId = "7"
+            profileId = "hd-1080p"
+        }
+
+        val parsed = EditRequestRequest.parseFrom(edit.toByteArray())
+
+        assertEquals("hd-1080p", parsed.profileId)
+        assertEquals("", EditRequestRequest.parseFrom(editRequestRequest { requestId = "7" }.toByteArray()).profileId)
+    }
+
+    @Test
+    fun `a profile set beside the seasons leaves them intact, and the capability keeps number 19`() {
+        val withProfile = editRequestRequest {
+            requestId = "7"
+            seasonNumbers += listOf(1, 2)
+            profileId = "hd-1080p"
+        }
+
+        val parsed = EditRequestRequest.parseFrom(withProfile.toByteArray())
+
+        assertEquals(listOf(1, 2), parsed.seasonNumbersList)
+        assertEquals(Capability.CAPABILITY_EDIT_PROFILE, Capability.forNumber(19))
     }
 
     @Test

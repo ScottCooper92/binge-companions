@@ -179,6 +179,12 @@ enum Capability {
   // by `ReportIssueRequest.category_id`. Declared only with CAPABILITY_REPORT_ISSUE. Without
   // it the host reports with the fixed `IssueType` set.
   CAPABILITY_ISSUE_CATEGORIES = 18;
+  // Change a request's quality profile, in place (`EditRequest` with `profile_id`). Declared only
+  // with CAPABILITY_ADVANCED_REQUEST_OPTIONS, since `profile_id` is one of the ids its
+  // `DestinationChoices.profiles` lists. Its own capability, not part of CAPABILITY_EDIT_SEASONS,
+  // because a server may allow one edit and not the other. Like EDIT_SEASONS it is about one
+  // request, so it appears on that request's `RequestInfo.allowed_actions`.
+  CAPABILITY_EDIT_PROFILE = 19;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -408,7 +414,7 @@ message RequestStatus {
   // (`SubmitRequest` is core): the host infers it from the standard version's
   // `availability` for a standard request and from that version's entry for a request of another. A
   // capability that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
-  // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS) belongs on that
+  // CAPABILITY_RETRY, CAPABILITY_CANCEL, CAPABILITY_EDIT_SEASONS, CAPABILITY_EDIT_PROFILE) belongs on that
   // request's own RequestInfo.allowed_actions instead — see #63 for why one flat list here
   // cannot express "approve applies to request #7, not #8".
   repeated Capability allowed_actions = 6;
@@ -540,8 +546,20 @@ message EditRequestRequest {
   // Empty is INVALID_ARGUMENT here, where on a submit it means the provider's default
   // scope: a request covers at least one season, and removing every season is what
   // `CancelRequest` is for. Said out loud because the two fields share a name, so the
-  // submit rule reads as though it carries over.
+  // submit rule reads as though it carries over. The one exception is an edit that sets
+  // `profile_id`: there an empty set means the seasons are unchanged.
   repeated int32 season_numbers = 2;
+  // The quality profile to move the request to: a `Choice.id` from `DestinationChoices.profiles`
+  // that `GetAdvancedRequestOptions` or `GetDestinationOptions` offered for the title. Empty
+  // leaves the profile as it is. Requires CAPABILITY_EDIT_PROFILE: a host never sets it for an
+  // integration that did not declare it, and an integration that did not declare it never
+  // receives it.
+  //
+  // With a `profile_id` set, a movie request is a valid edit and `season_numbers` may be empty.
+  // An edit that sets neither `profile_id` nor `season_numbers` has nothing to change and is
+  // INVALID_ARGUMENT. The edit is atomic: when any part is refused, nothing is applied, and
+  // an unknown or unavailable `profile_id` is INVALID_ARGUMENT that leaves the request as it was.
+  string profile_id = 3;
 }
 
 message EditRequestResponse {}
@@ -799,9 +817,13 @@ service RequestService {
   // unusable `MediaId`, naming none of the others. A title nobody has requested is data, not
   // an error: AVAILABILITY_NOT_REQUESTED, as `GetStatus` answers.
   rpc GetStatuses(GetStatusesRequest) returns (GetStatusesResponse);
-  // Requires CAPABILITY_EDIT_SEASONS. PERMISSION_DENIED when the user may not edit
-  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an empty season
-  // set, a season the show does not have, or a request for a movie.
+  // Requires CAPABILITY_EDIT_SEASONS to change `season_numbers` and CAPABILITY_EDIT_PROFILE to
+  // set `profile_id`; the two are independent. PERMISSION_DENIED when the user may not edit
+  // this request, NOT_FOUND for an unknown id, INVALID_ARGUMENT for an edit that changes
+  // nothing, an empty season set with no `profile_id`, a season the show does not have, a
+  // request for a movie with no `profile_id`, or a `profile_id` the integration did not offer
+  // for the title. Atomic: a refused edit changes nothing. Answers an empty response; the
+  // host re-reads the status.
   rpc EditRequest(EditRequestRequest) returns (EditRequestResponse);
   // Requires CAPABILITY_ADVANCED_REQUEST_OPTIONS. The destination choices for a
   // fresh advanced-request picker, every axis preselected exactly as a plain

@@ -64,10 +64,11 @@ class RequestStatusCodeContractTest {
         if (::server.isInitialized) server.shutdownNow()
     }
 
-    private fun edit(id: String, seasons: List<Int>): EditRequestRequest =
+    private fun edit(id: String, seasons: List<Int>, profile: String = ""): EditRequestRequest =
         editRequestRequest {
             requestId = id
             seasonNumbers += seasons
+            profileId = profile
         }
 
     private fun codeOf(block: suspend () -> Unit): Status.Code =
@@ -78,6 +79,19 @@ class RequestStatusCodeContractTest {
         val stub = stub()
 
         assertEquals(Status.Code.INVALID_ARGUMENT, codeOf { stub.editRequest(edit(KNOWN_ID, emptyList())) })
+    }
+
+    @Test
+    fun `EditRequest with a profile and no seasons is a valid profile-only edit`() =
+        runBlocking {
+            assertEquals(EditRequestResponse.getDefaultInstance(), stub().editRequest(edit(KNOWN_ID, emptyList(), profile = "hd")))
+        }
+
+    @Test
+    fun `EditRequest with a profile the integration did not offer is INVALID_ARGUMENT`() {
+        val stub = stub()
+
+        assertEquals(Status.Code.INVALID_ARGUMENT, codeOf { stub.editRequest(edit(KNOWN_ID, listOf(1), profile = UNKNOWN_PROFILE)) })
     }
 
     @Test
@@ -167,7 +181,8 @@ class RequestStatusCodeContractTest {
             when {
                 request.requestId == UNKNOWN_ID -> throw Status.NOT_FOUND.asException()
                 request.requestId == FOREIGN_ID -> throw Status.PERMISSION_DENIED.asException()
-                request.seasonNumbersList.isEmpty() -> throw Status.INVALID_ARGUMENT.asException()
+                request.profileId == UNKNOWN_PROFILE -> throw Status.INVALID_ARGUMENT.asException()
+                request.seasonNumbersList.isEmpty() && request.profileId.isEmpty() -> throw Status.INVALID_ARGUMENT.asException()
                 else -> EditRequestResponse.getDefaultInstance()
             }
 
@@ -213,6 +228,7 @@ class RequestStatusCodeContractTest {
     private companion object {
         const val KNOWN_ID = "7"
         const val UNKNOWN_ID = "404"
+        const val UNKNOWN_PROFILE = "no-such-profile"
         const val FOREIGN_ID = "403"
     }
 }

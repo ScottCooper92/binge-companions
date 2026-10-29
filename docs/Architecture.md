@@ -147,7 +147,7 @@ status. A declared capability gates every other rpc.
   It travels on the response of a call the host already makes, so each call reads it as it stands.
 - **Dynamic per-item actions.** Each status response's `allowed_actions` lists the title-level
   subset — capabilities that aren't about any one existing request. A capability that is about one
-  specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
+  specific request (approve, decline, retry, cancel, edit seasons, edit profile) travels on that request's own
   `allowed_actions` instead, so it can say "approve applies to request #7, not #8" — one flat
   title-level list cannot (REQUEST#63).
 
