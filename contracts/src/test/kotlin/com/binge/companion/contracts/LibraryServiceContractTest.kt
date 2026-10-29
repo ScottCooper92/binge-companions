@@ -50,7 +50,6 @@ private val RPC_SHAPES =
         "Handshake" to MethodType.UNARY,
         "GetAvailability" to MethodType.UNARY,
         "ObserveAvailability" to MethodType.SERVER_STREAMING,
-        "GetPlayTarget" to MethodType.UNARY,
         "GetWatchState" to MethodType.UNARY,
         "ObserveWatchState" to MethodType.SERVER_STREAMING,
         "SetPlayed" to MethodType.UNARY,

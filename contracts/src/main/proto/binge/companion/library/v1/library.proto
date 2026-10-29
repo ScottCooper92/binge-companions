@@ -10,10 +10,12 @@ syntax = "proto3";
 // a capability is what lets those be the same contract.
 //
 // Play is a HAND-OFF by default, meaning whenever the integration does not declare
-// `PLAYBACK_SOURCE`. `GetPlayTarget` returns what the host should start — the
-// server's own app where it is installed, a web URL where it is not — and the server's own
-// app handles transcoding, codecs, subtitles and its own account. The platform moves data
-// and never bytes. See docs/Architecture.md > LIBRARY.
+// `PLAYBACK_SOURCE`. There is no rpc for it: `CAPABILITY_PLAY` means the companion exports an
+// Activity on `com.binge.companion.PLAY`, which the host starts for a result with a title it built
+// itself, and the companion starts the server's own app or web client from there. The server's own
+// app handles transcoding, codecs, subtitles and its own account. The platform moves data and never
+// bytes, and no companion-supplied string ever enters an Intent the host starts. See
+// docs/Architecture.md > LIBRARY.
 //
 // `PLAYBACK_SOURCE` is the opt-in exception: an integration that declares it also hands the
 // host a short-lived `binge.companion.v1.PlaybackSource` for the signed-in viewer, minted
@@ -38,7 +40,7 @@ syntax = "proto3";
 //                                     may read watch state but not write it, which is
 //                                     also why WATCH_STATE_WRITE is its own capability.
 //   NOT_FOUND                       — the server has no such item. Reserved for the rpcs
-//                                     that need one to exist: a play target, or a watch
+//                                     that need one to exist: a watch
 //                                     state for something absent. `GetAvailability` does
 //                                     NOT use it — "not in the library" is an answer, not
 //                                     a failure, and travels in the response.
@@ -48,8 +50,8 @@ syntax = "proto3";
 // trailer with an ErrorInfo and a LocalizedMessage in the device's locale, never in the
 // status description.
 //
-// Conformance rules, as REQUEST states them: every URL a response carries (`artwork_url`,
-// `WebUrl.url`) is http or https, and the host refuses any other scheme; an rpc whose
+// Conformance rules, as REQUEST states them: every URL a response carries (`artwork_url`)
+// is http or https, and the host refuses any other scheme; an rpc whose
 // capability the handshake did not declare is answered PERMISSION_DENIED.
 //
 // Playback sources: the URL scheme rule is LIBRARY's own, and looser than STREAM's. The `url`
@@ -86,7 +88,7 @@ enum Capability {
   CAPABILITY_UNSPECIFIED = 0;
   // Answers `GetAvailability` and `ObserveAvailability`.
   CAPABILITY_AVAILABILITY = 1;
-  // Answers `GetPlayTarget`.
+  // Exports a PLAY hand-off Activity (`com.binge.companion.PLAY`). No rpc is gated on it.
   CAPABILITY_PLAY = 2;
   // Answers `GetWatchState` and `ObserveWatchState` — reading only.
   CAPABILITY_WATCH_STATE = 3;
@@ -222,55 +224,19 @@ message ObserveAvailabilityResponse {
   Availability availability = 1;
 }
 
-// One extra to put on the Intent the host starts. Values are strings on the wire; an
-// integration that needs another type encodes it and its own app decodes it, because
-// the host only copies these across and never interprets them.
-message IntentExtra {
-  string key = 1;
-  string value = 2;
-}
-
-// An Intent the host should start to play the title in the server's own app.
-message AndroidIntent {
-  // The package the Intent is addressed to. The host sets it explicitly rather than
-  // letting the system resolve, so a third app cannot answer for the server's.
-  string package_name = 1;
-  string action = 2;
-  string data_uri = 3;
-  repeated IntentExtra extras = 4;
-}
-
-// A URL to open when nothing is installed to hand to. A worse experience, not a
-// failure: an integration answers with this rather than an error, and the host should
-// not have to tell the two apart.
-message WebUrl {
-  // http or https only; the host refuses any other scheme.
-  string url = 1;
-}
-
-message PlayTarget {
-  oneof target {
-    AndroidIntent android_intent = 1;
-    WebUrl web_url = 2;
-  }
-}
-
 // One episode of the series a `MediaId` addresses.
 message EpisodeRef {
   int32 season_number = 1;
   int32 episode_number = 2;
 }
 
-message GetPlayTargetRequest {
-  binge.companion.v1.MediaId media = 1;
-  // For a series, the episode to play. Absent lets the integration choose — typically
-  // the next unwatched episode, the same as if the host had no opinion.
-  EpisodeRef episode = 2;
-}
-
-message GetPlayTargetResponse {
-  PlayTarget target = 1;
-}
+// Removed from v1 before any host called it, replaced by the PLAY hand-off. Protobuf cannot
+// `reserved` the fields of a message that no longer exists, so the names and numbers are recorded
+// here instead, and are never reused by a new message of the same name:
+//   rpc GetPlayTarget, GetPlayTargetRequest {media = 1, episode = 2}, GetPlayTargetResponse {target = 1},
+//   PlayTarget {oneof target: android_intent = 1, web_url = 2},
+//   AndroidIntent {package_name = 1, action = 2, data_uri = 3, extras = 4}, IntentExtra {key = 1, value = 2},
+//   WebUrl {url = 1}.
 
 // What the user has watched of one title.
 message WatchState {
@@ -504,8 +470,6 @@ service LibraryService {
   // polls. The host cannot tell which it has and must not try: render what you last
   // received, and never read silence as a signal.
   rpc ObserveAvailability(ObserveAvailabilityRequest) returns (stream ObserveAvailabilityResponse);
-  // Requires CAPABILITY_PLAY. NOT_FOUND when the server does not hold the title.
-  rpc GetPlayTarget(GetPlayTargetRequest) returns (GetPlayTargetResponse);
   // Requires CAPABILITY_WATCH_STATE. NOT_FOUND when the server does not hold the title.
   rpc GetWatchState(GetWatchStateRequest) returns (GetWatchStateResponse);
   // Requires CAPABILITY_WATCH_STATE. Companion-cadence, as ObserveAvailability is.

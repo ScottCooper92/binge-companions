@@ -340,15 +340,29 @@ names a server's own concepts.
   problem, and it is the same problem the reference companion already solves for REQUEST.
 - **Availability answers in the response, not in a status code.** "Not in the library" is what
   `GetAvailability` is for, so it is data: the rpc succeeds and says no. `NOT_FOUND` is left to the
-  rpcs that need an item to exist — a play target or a watch state for something the server does not
+  rpcs that need an item to exist — a watch state for something the server does not
   have.
 - **Every list is paged and artwork is a URL.** The Binder ceiling is a ceiling here too, and a
   continue-watching row is exactly the shape that tempts an author to inline a poster.
 
 ### Play is a hand-off, not a stream
 
-`GetPlayTarget` returns what the host should start: an Intent description — package, action, data
-URI — for the server's own app where it is installed, and a web URL where it is not.
+LIBRARY has no rpc for play. `CAPABILITY_PLAY` means the companion exports an Activity on
+`com.binge.companion.PLAY`. The host starts it with `startActivityForResult`, addressed to the
+companion's package, carrying only extras it builds itself: the media type, the TMDB id and, for a
+series, a season and an episode. Before it starts anything it requires the Activity to resolve inside
+that package and to be exported (`HandOffPolicy.isStartable`), and it only does so for a companion
+the user consented to and whose signer it verified.
+
+The companion checks its caller with `HandOffPolicy`, reads the title with `Intent.toPlayRequest()`,
+and launches the server's own app or web client itself. Package visibility of that app is the
+companion's concern, and it can declare it in its own `<queries>`. No companion-supplied string ever
+enters an Intent the host starts, so the host cannot be made to open its own non-exported Activities
+or another app's with data a companion chose.
+
+An earlier draft had `GetPlayTarget` return an Intent description for the host to start. It was
+removed (#117) because that put a companion's package, action, data URI and extras into an Intent
+the host started from its own foreground. Nothing called the rpc, so the removal is wire-safe.
 
 The alternative, handing back a stream URL, is refused by default. Without `PLAYBACK_SOURCE` it
 would make Binge a player for someone else's server: the bytes would cross, and transcoding, codec negotiation,
@@ -358,8 +372,8 @@ platform moves data and never bytes, which is the same rule the Play stance abov
 and PLAYER. `PLAYBACK_SOURCE`, below, is LIBRARY's exception to it, and the reason the refusal is not
 absolute; the host's own player for a STREAM source (Protecting the host, under STREAM) is the other.
 
-A companion with nothing installed to hand to answers with the web URL rather than an error. That is
-a worse experience, not a failure, and the host should not have to tell the two apart.
+A companion with the server's app not installed opens the web client from its own Activity. That is
+a worse experience, not a failure, and the host does not have to tell the two apart.
 
 **One opt-in exception: `PLAYBACK_SOURCE`.** A companion that declares it also hands the host a
 playback source: a URL minted for the signed-in viewer, short-lived and for one title, with any

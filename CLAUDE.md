@@ -91,10 +91,10 @@ and without it `UnsafeCallOnNullableType` — the `!!` ban — loads and silentl
 creating one.
 
 Coverage gates `:binge-companion-sdk` at **85% of lines**, measured after excluding the handful of classes
-that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`,
-the `PackageManager` extension and `PlayTargetIntentKt` (the `PlayTarget.toIntent` wrapper). That is not a fudge: each of those already has its
+that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`
+and the `PackageManager` extension. That is not a fudge: each of those already has its
 decision split out into a JVM-testable class the tests do cover, and the KDoc at each one
-says so. `AdvancedRequestKt` is deliberately not excluded, because it holds both halves.
+says so. `AdvancedRequestKt` and `PlayRequestKt` are deliberately not excluded, because each holds both halves.
 `:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
 
 The floor was set from a measurement (90.4% at the time) rather than inherited, so it

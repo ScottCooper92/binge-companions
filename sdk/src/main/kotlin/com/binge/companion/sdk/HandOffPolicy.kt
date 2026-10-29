@@ -1,16 +1,16 @@
 package com.binge.companion.sdk
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Log
 
 /**
- * The companion half of the mutual check for a hand-off Activity — the one behind
- * `CAPABILITY_ADVANCED_OPTIONS`, and the `ACTION_VIEW_REQUEST` and `ACTION_SETTINGS` ones in `CompanionManifest`.
- * The Activity is exported and resolvable by action, so any app on
- * the device can start it with extras of its own choosing; this is what says whether the one that
- * did is a host the companion serves, before the Activity acts on what it was handed.
- *
- * This object only wires Android lookups; the decision is [HandOffCallerPolicy], tested on the JVM.
+ * Both halves of the mutual check for a hand-off Activity (the advanced, PLAY, VIEW_REQUEST and
+ * SETTINGS ones in `CompanionManifest`). [pinned], [anyCertificateOf] and [anyCaller] are the
+ * companion's: whether the app that started its exported Activity is a host it serves. [isStartable]
+ * is the host's. This object only wires Android lookups; the decisions are [HandOffCallerPolicy] and
+ * [HandOffTargetPolicy], tested on the JVM.
  */
 object HandOffPolicy {
     /**
@@ -38,6 +38,48 @@ object HandOffPolicy {
      */
     fun anyCaller(tag: String = "BingeCompanion"): HandOffCallerPolicy =
         HandOffCallerPolicy(pinned = null) { message -> Log.w(tag, message) }
+
+    /**
+     * The host half of a hand-off: whether [intent], addressed to [companionPackage], resolves to an
+     * exported Activity inside that package. Call it before `startActivityForResult`, on an Intent the
+     * host built itself, and start nothing when it is false. It resolves as `startActivity` does, so an
+     * Activity without the `DEFAULT` category is not found. On API 30+ package visibility applies, so
+     * declare each hand-off action in `<queries>`. The decision is [HandOffTargetPolicy].
+     */
+    fun isStartable(
+        context: Context,
+        intent: Intent,
+        companionPackage: String,
+    ): Boolean {
+        val activity = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo
+        return HandOffTargetPolicy.permits(
+            companionPackage = companionPackage,
+            intentPackage = intent.`package`,
+            intentHasComponent = intent.component != null,
+            resolvedPackage = activity?.packageName,
+            resolvedExported = activity?.exported == true,
+        )
+    }
+}
+
+/**
+ * The decision behind [HandOffPolicy.isStartable], with the Android lookups as arguments so it is
+ * testable on the JVM. The host sets the package explicitly rather than letting the system choose, so
+ * a third app cannot answer for the companion; this refuses anything that does not hold to that.
+ */
+object HandOffTargetPolicy {
+    fun permits(
+        companionPackage: String,
+        intentPackage: String?,
+        intentHasComponent: Boolean,
+        resolvedPackage: String?,
+        resolvedExported: Boolean,
+    ): Boolean =
+        companionPackage.isNotEmpty() &&
+            intentPackage == companionPackage &&
+            !intentHasComponent &&
+            resolvedPackage == companionPackage &&
+            resolvedExported
 }
 
 /**

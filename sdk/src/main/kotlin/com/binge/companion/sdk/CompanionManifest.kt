@@ -87,6 +87,15 @@ object CompanionManifest {
      */
     const val ACTION_SETTINGS = "com.binge.companion.SETTINGS"
 
+    /**
+     * The action of the Activity behind `CAPABILITY_PLAY`. The host starts it for a result, scoped to the
+     * companion's package, with the title in [EXTRA_MEDIA_TYPE], [EXTRA_TMDB_ID] and, for a series,
+     * [EXTRA_SEASON] and [EXTRA_EPISODE]. The companion starts the server's own app or web client and
+     * answers `RESULT_OK`. Its intent filter needs the `DEFAULT` category. [Intent.toPlayRequest] reads
+     * the extras, after [HandOffPolicy] has admitted the caller.
+     */
+    const val ACTION_PLAY = "com.binge.companion.PLAY"
+
     /** `Int`: the title's `binge.companion.v1.MediaType` number — `1` for a movie, `2` for TV. */
     const val EXTRA_MEDIA_TYPE = "com.binge.companion.extra.MEDIA_TYPE"
 
@@ -95,6 +104,12 @@ object CompanionManifest {
 
     /** `IntArray`, TV only: the seasons the user picked in the host. Absent or empty means the companion's default. */
     const val EXTRA_SEASON_NUMBERS = "com.binge.companion.extra.SEASON_NUMBERS"
+
+    /** `Int`, TV only, on [ACTION_PLAY]: the season to play from; `0` is specials. Absent plays the series from where the companion resumes. */
+    const val EXTRA_SEASON = "com.binge.companion.extra.SEASON"
+
+    /** `Int`, TV only, on [ACTION_PLAY]: the episode to play, at least `1`, and only beside [EXTRA_SEASON]. */
+    const val EXTRA_EPISODE = "com.binge.companion.extra.EPISODE"
 
     /** `String`: the `Version.id` the user asked for, from the handshake's version list. Absent or empty is the standard version. */
     const val EXTRA_VERSION_ID = "com.binge.companion.extra.VERSION_ID"
