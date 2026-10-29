@@ -11,7 +11,7 @@ This page shows where each contract and each platform piece stands. The stages a
 A contract can also be *Deferred*: a decision, not a stage in the progression above — set aside on
 purpose, with what would bring it back written down.
 
-_Last updated: 2026-10-24._
+_Last updated: 2026-10-29._
 
 ## Contracts
 

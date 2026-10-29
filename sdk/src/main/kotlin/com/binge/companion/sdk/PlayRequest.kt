@@ -21,16 +21,16 @@ data class PlayRequest(
 /**
  * The [PlayRequest] a hand-off Intent carries, or null when it is not a play request: another
  * action, a missing or unknown media type, no TMDB id, or a season or episode that does not fit the
- * title. The Activity answers null by finishing. Call it only after [HandOffPolicy] has admitted the
- * caller.
+ * title, including one sent with the wrong type. The Activity answers null by finishing. Call it only
+ * after [HandOffPolicy] has admitted the caller.
  */
 fun Intent.toPlayRequest(): PlayRequest? =
     playRequestOf(
         action = action,
         mediaTypeNumber = getIntExtra(CompanionManifest.EXTRA_MEDIA_TYPE, MediaType.MEDIA_TYPE_UNSPECIFIED_VALUE),
         tmdbId = getIntExtra(CompanionManifest.EXTRA_TMDB_ID, 0),
-        seasonNumber = if (hasExtra(CompanionManifest.EXTRA_SEASON)) getIntExtra(CompanionManifest.EXTRA_SEASON, 0) else null,
-        episodeNumber = if (hasExtra(CompanionManifest.EXTRA_EPISODE)) getIntExtra(CompanionManifest.EXTRA_EPISODE, 0) else null,
+        seasonNumber = if (hasExtra(CompanionManifest.EXTRA_SEASON)) getIntExtra(CompanionManifest.EXTRA_SEASON, -1) else null,
+        episodeNumber = if (hasExtra(CompanionManifest.EXTRA_EPISODE)) getIntExtra(CompanionManifest.EXTRA_EPISODE, -1) else null,
     )
 
 /**
