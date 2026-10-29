@@ -48,7 +48,11 @@ object HandOffPolicy {
      * the lookup is subject to package visibility, so a host declares each hand-off action it starts
      * in its `<queries>`.
      */
-    fun isStartable(context: Context, intent: Intent, companionPackage: String): Boolean {
+    fun isStartable(
+        context: Context,
+        intent: Intent,
+        companionPackage: String,
+    ): Boolean {
         val activity = context.packageManager.resolveActivity(intent, 0)?.activityInfo
         return HandOffTargetPolicy.permits(
             companionPackage = companionPackage,
