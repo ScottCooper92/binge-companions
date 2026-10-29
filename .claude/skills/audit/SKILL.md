@@ -5,7 +5,7 @@ description: Whole-repo sweep of binge-companions (the contracts, the SDK and it
 
 # Contracts and SDK audit
 
-CI runs `./gradlew build` (Kotlin compile, JUnit 5 tests, `ktlintCheck`, `detekt` on `:binge-companion-sdk` with type
+CI runs `./gradlew build` (Kotlin compile, JUnit tests (JUnit 5, plus Robolectric on the vintage engine), `ktlintCheck`, `detekt` on `:binge-companion-sdk` with type
 resolution, `koverVerify` at 85% on `:binge-companion-sdk`, Android lint on `:binge-companion-sdk`) and, separately, `buf lint` (STANDARD) plus
 `buf breaking --against main` (FILE). There is **no** screenshot suite here — do not look for one
 and do not report a finding as though one had caught it. Do not re-report what that set decides.
