@@ -40,12 +40,12 @@ companion app runs its own code in its own process. Only data crosses the IPC bo
   bytes. This respects the Binder transaction limit of about 1 MB.
 - **Media identity.** Every payload identifies media as media type + TMDB id, with seasons or an episode carried beside it where an rpc needs them (`season_numbers`, `EpisodeRef`).
   The companion app translates to other id spaces.
-- **The play hand-off.** LIBRARY's `GetPlayTarget` answers with a `PlayTarget`: an Intent to start
-  in the server's own app, or a web URL when nothing is installed. Both ends build and read it the
-  same way — a companion builds one with the SDK's `playTarget { androidIntent(...) }` /
-  `playTarget { webUrl(...) }`, and the host turns it into a startable `Intent` with
-  `PlayTarget.toIntent(context)`, which checks the target package actually resolves before handing
-  back an Intent addressed to it.
+- **The play hand-off.** LIBRARY has no rpc for play. `CAPABILITY_PLAY` means the companion exports an
+  Activity on `com.binge.companion.PLAY`. The host starts it for a result, addressed to the companion's
+  package, with the title in extras it builds itself: media type, TMDB id and, for a series, a season
+  and episode. The companion checks its caller with `HandOffPolicy`, reads the extras with
+  `Intent.toPlayRequest()`, and starts the server's own app or web client itself. The host checks
+  `HandOffPolicy.isStartable` first. No companion-supplied string ever enters an Intent the host starts.
 - **Versioning.** The proto package version (for example `v1` in `binge.companion.request.v1`)
   is the contract major version. Changes inside a package must be additive. CI enforces this with
   `buf breaking`. The host's first call on every new instance of an integration is a handshake. The host binds per
@@ -90,8 +90,8 @@ source of truth for stage, so it isn't restated here.
 ```
 contracts/   The .proto contracts + generated Kotlin/JVM stubs (messages, gRPC services)
 sdk/         Android library for companion apps: the exported Service base, the caller policy,
-             the manifest keys, the handshake helper and the LIBRARY play-target hand-off (built
-             by the companion with `playTarget { }`, consumed by the host with `PlayTarget.toIntent`).
+             the manifest keys, the handshake helper and the LIBRARY play hand-off (read by the
+             companion with `Intent.toPlayRequest()`, checked by the host with `HandOffPolicy.isStartable`).
              It also carries the small pieces every companion would otherwise write again:
              `attempt` (a `runCatching` that rethrows cancellation), `ListRequestsPageToken` and
              `effectivePageSize` for paging `ListRequests`, `ContinueWatchingPageToken` for paging

@@ -3,24 +3,17 @@ package com.binge.companion.contracts
 import com.binge.companion.contracts.library.v1.Availability
 import com.binge.companion.contracts.library.v1.AvailabilityState
 import com.binge.companion.contracts.library.v1.Capability
-import com.binge.companion.contracts.library.v1.GetPlayTargetRequest
 import com.binge.companion.contracts.library.v1.HandshakeResponse
 import com.binge.companion.contracts.library.v1.ListContinueWatchingResponse
-import com.binge.companion.contracts.library.v1.PlayTarget
 import com.binge.companion.contracts.library.v1.WatchState
-import com.binge.companion.contracts.library.v1.androidIntent
 import com.binge.companion.contracts.library.v1.availability
 import com.binge.companion.contracts.library.v1.episodeRef
 import com.binge.companion.contracts.library.v1.episodeWatchState
-import com.binge.companion.contracts.library.v1.getPlayTargetRequest
 import com.binge.companion.contracts.library.v1.handshakeResponse
-import com.binge.companion.contracts.library.v1.intentExtra
 import com.binge.companion.contracts.library.v1.libraryEntry
 import com.binge.companion.contracts.library.v1.listContinueWatchingResponse
-import com.binge.companion.contracts.library.v1.playTarget
 import com.binge.companion.contracts.library.v1.seasonAvailability
 import com.binge.companion.contracts.library.v1.watchState
-import com.binge.companion.contracts.library.v1.webUrl
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
 import com.google.protobuf.timestamp
@@ -51,29 +44,6 @@ class LibraryProtoRoundTripTest {
         assertEquals(held, parsed)
         assertEquals(listOf(1, 2, 3), parsed.getSeasons(0).episodeNumbersList)
         assertTrue(parsed.getSeasons(1).episodeNumbersList.isEmpty())
-    }
-
-    @Test
-    fun `a play target keeps whichever arm of the oneof it was built with`() {
-        val intent = playTarget {
-            androidIntent = androidIntent {
-                packageName = "com.example.server"
-                action = "android.intent.action.VIEW"
-                dataUri = "example://item/a1b2c3"
-                extras += intentExtra {
-                    key = "startPositionMs"
-                    value = "42000"
-                }
-            }
-        }
-        val web = playTarget { webUrl = webUrl { url = "https://example.test/item/a1b2c3" } }
-
-        val parsedIntent = PlayTarget.parseFrom(intent.toByteArray())
-        val parsedWeb = PlayTarget.parseFrom(web.toByteArray())
-
-        assertEquals(PlayTarget.TargetCase.ANDROID_INTENT, parsedIntent.targetCase)
-        assertEquals("42000", parsedIntent.androidIntent.getExtras(0).value)
-        assertEquals(PlayTarget.TargetCase.WEB_URL, parsedWeb.targetCase)
     }
 
     @Test
@@ -143,25 +113,6 @@ class LibraryProtoRoundTripTest {
         assertEquals(page, parsed)
         assertEquals(4, parsed.getEntries(0).episode.episodeNumber)
         assertEquals("cursor-2", parsed.nextPageToken)
-    }
-
-    @Test
-    fun `a play target request can name the episode, not just the title`() {
-        val request = getPlayTargetRequest {
-            media = mediaId {
-                mediaType = MediaType.MEDIA_TYPE_TV
-                tmdbId = 1396
-            }
-            episode = episodeRef {
-                seasonNumber = 2
-                episodeNumber = 3
-            }
-        }
-
-        val parsed = GetPlayTargetRequest.parseFrom(request.toByteArray())
-
-        assertEquals(request, parsed)
-        assertEquals(3, parsed.episode.episodeNumber)
     }
 
     @Test

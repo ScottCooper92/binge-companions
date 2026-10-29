@@ -1,6 +1,7 @@
 package com.binge.companion.sdk
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 
 /**
@@ -38,6 +39,45 @@ object HandOffPolicy {
      */
     fun anyCaller(tag: String = "BingeCompanion"): HandOffCallerPolicy =
         HandOffCallerPolicy(pinned = null) { message -> Log.w(tag, message) }
+
+    /**
+     * The host half of a hand-off: whether [intent], addressed to [companionPackage], resolves to an
+     * exported Activity inside that package, which is the only Activity a host may start for a
+     * result. Call it before `startActivityForResult`, on an Intent the host built itself, and start
+     * nothing when it is false. The decision is [HandOffTargetPolicy], tested on the JVM. On API 30+
+     * the lookup is subject to package visibility, so a host declares each hand-off action it starts
+     * in its `<queries>`.
+     */
+    fun isStartable(context: Context, intent: Intent, companionPackage: String): Boolean {
+        val activity = context.packageManager.resolveActivity(intent, 0)?.activityInfo
+        return HandOffTargetPolicy.permits(
+            companionPackage = companionPackage,
+            intentPackage = intent.`package`,
+            intentHasComponent = intent.component != null,
+            resolvedPackage = activity?.packageName,
+            resolvedExported = activity?.exported == true,
+        )
+    }
+}
+
+/**
+ * The decision behind [HandOffPolicy.isStartable], with the Android lookups as arguments so it is
+ * testable on the JVM. The host sets the package explicitly rather than letting the system choose, so
+ * a third app cannot answer for the companion; this refuses anything that does not hold to that.
+ */
+object HandOffTargetPolicy {
+    fun permits(
+        companionPackage: String,
+        intentPackage: String?,
+        intentHasComponent: Boolean,
+        resolvedPackage: String?,
+        resolvedExported: Boolean,
+    ): Boolean =
+        companionPackage.isNotEmpty() &&
+            intentPackage == companionPackage &&
+            !intentHasComponent &&
+            resolvedPackage == companionPackage &&
+            resolvedExported
 }
 
 /**

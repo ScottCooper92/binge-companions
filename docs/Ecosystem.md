@@ -77,8 +77,8 @@ Play opens a sheet with the ways the device can play it:
    set of controls, resumes from the server's position, reports progress as it plays and lets the
    viewer pick tracks. It surfaces only once such a companion is installed and allowed; a Binge
    with no LIBRARY companion has no player screen to reach.
-2. **The media server's own app.** LIBRARY's `GetPlayTarget` names it, or a web URL where the app
-   is not installed. The default where the companion declares `PLAY` and not `PLAYBACK_SOURCE`.
+2. **The media server's own app.** The companion's `PLAY` hand-off Activity starts it, or the web
+   client where the app is not installed. The default where the companion declares `PLAY` and not `PLAYBACK_SOURCE`.
 3. **The user's installed players.** Also offered under `PLAYBACK_SOURCE`. Binge lists the apps
    that handle video, and remembers the choice per device.
 

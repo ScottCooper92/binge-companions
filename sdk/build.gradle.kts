@@ -79,9 +79,9 @@ detektGate {
 // JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
 // HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy and signerDigests,
 // IntegrationService to inboundParcelablePolicy (its per-service registration needs grpc-binder's
-// Android statics, so it has no JVM test), PlayTargetIntentKt to resolveIntent. AdvancedRequestKt
-// is deliberately NOT excluded - it holds both halves, so excluding it would drop a tested function
-// from the measurement.
+// Android statics, so it has no JVM test). HandOffPolicy's host-side isStartable hands to
+// HandOffTargetPolicy. AdvancedRequestKt and PlayRequestKt are deliberately NOT excluded - each holds
+// both halves, so excluding them would drop a tested function from the measurement.
 kover {
     reports {
         filters {
@@ -95,11 +95,6 @@ kover {
                     // An android.app.Service standing up a Binder-transport gRPC server. There is
                     // no JVM unit test of this short of an instrumented one.
                     "com.binge.companion.sdk.IntegrationService",
-                    // Context + PackageManager + Intent construction for PlayTarget.toIntent. Its
-                    // decision (PlayTargetKt's resolveIntent) is split into its own file precisely so
-                    // it is NOT in this facade class and stays covered; PlayTargetIntentKt is the
-                    // thin Android wrapper around it, same split as HostPolicy/HandOffPolicy above.
-                    "com.binge.companion.sdk.PlayTargetIntentKt",
                 )
             }
         }
