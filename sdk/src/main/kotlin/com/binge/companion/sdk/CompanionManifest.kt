@@ -88,13 +88,11 @@ object CompanionManifest {
     const val ACTION_SETTINGS = "com.binge.companion.SETTINGS"
 
     /**
-     * The action of the Activity behind `CAPABILITY_PLAY` in LIBRARY. The host starts it for a result,
-     * scoped to the companion's package, with the title in [EXTRA_MEDIA_TYPE], [EXTRA_TMDB_ID] and, for a
-     * series, [EXTRA_SEASON] and [EXTRA_EPISODE]; the companion starts the media server's own app or web
-     * client itself and answers `RESULT_OK` once it has. The host builds every extra, and no
-     * companion-supplied string ever enters an Intent the host starts. [Intent.toPlayRequest] reads it,
-     * after [HandOffPolicy] has admitted the caller. Its intent filter must include the
-     * `android.intent.category.DEFAULT` category, or the host cannot start it.
+     * The action of the Activity behind `CAPABILITY_PLAY`. The host starts it for a result, scoped to the
+     * companion's package, with the title in [EXTRA_MEDIA_TYPE], [EXTRA_TMDB_ID] and, for a series,
+     * [EXTRA_SEASON] and [EXTRA_EPISODE]. The companion starts the server's own app or web client and
+     * answers `RESULT_OK`. Its intent filter needs the `DEFAULT` category. [Intent.toPlayRequest] reads
+     * the extras, after [HandOffPolicy] has admitted the caller.
      */
     const val ACTION_PLAY = "com.binge.companion.PLAY"
 

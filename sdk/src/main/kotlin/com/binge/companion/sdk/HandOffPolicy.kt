@@ -6,16 +6,11 @@ import android.content.pm.PackageManager
 import android.util.Log
 
 /**
- * Both halves of the mutual check for a hand-off Activity. The companion half covers the Activities
- * behind `CAPABILITY_ADVANCED_OPTIONS` and `CAPABILITY_PLAY`, and the `ACTION_VIEW_REQUEST` and
- * `ACTION_SETTINGS` ones in `CompanionManifest`. Each is exported and resolvable by action, so any app
- * on the device can start it with extras of its own choosing; [pinned], [anyCertificateOf] and
- * [anyCaller] say whether the one that did is a host the companion serves, before the Activity acts
- * on what it was handed. The host half is [isStartable], which says whether the Activity a host is
- * about to start is the companion's own.
- *
- * This object only wires Android lookups. The caller decision is [HandOffCallerPolicy] and the target
- * decision is [HandOffTargetPolicy], both tested on the JVM.
+ * Both halves of the mutual check for a hand-off Activity (the advanced, PLAY, VIEW_REQUEST and
+ * SETTINGS ones in `CompanionManifest`). [pinned], [anyCertificateOf] and [anyCaller] are the
+ * companion's: whether the app that started its exported Activity is a host it serves. [isStartable]
+ * is the host's. This object only wires Android lookups; the decisions are [HandOffCallerPolicy] and
+ * [HandOffTargetPolicy], tested on the JVM.
  */
 object HandOffPolicy {
     /**
@@ -46,12 +41,10 @@ object HandOffPolicy {
 
     /**
      * The host half of a hand-off: whether [intent], addressed to [companionPackage], resolves to an
-     * exported Activity inside that package, which is the only Activity a host may start for a
-     * result. Call it before `startActivityForResult`, on an Intent the host built itself, and start
-     * nothing when it is false. It resolves as `startActivity` does, so an Activity without the
-     * `DEFAULT` category is not found. The decision is [HandOffTargetPolicy], tested on the JVM. On API 30+
-     * the lookup is subject to package visibility, so a host declares each hand-off action it starts
-     * in its `<queries>`.
+     * exported Activity inside that package. Call it before `startActivityForResult`, on an Intent the
+     * host built itself, and start nothing when it is false. It resolves as `startActivity` does, so an
+     * Activity without the `DEFAULT` category is not found. On API 30+ package visibility applies, so
+     * declare each hand-off action in `<queries>`. The decision is [HandOffTargetPolicy].
      */
     fun isStartable(
         context: Context,
