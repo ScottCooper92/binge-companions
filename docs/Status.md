@@ -11,7 +11,7 @@ This page shows where each contract and each platform piece stands. The stages a
 A contract can also be *Deferred*: a decision, not a stage in the progression above — set aside on
 purpose, with what would bring it back written down.
 
-_Last updated: 2026-10-29._
+_Last updated: 2026-10-31._
 
 ## Contracts
 
@@ -32,4 +32,5 @@ _Last updated: 2026-10-29._
 | `binge-companion-sdk` | Draft | `sdk/` builds here: `IntegrationService` (Binder server bootstrap), `HostPolicy` (the Service's caller verification) and `HandOffPolicy` (the hand-off Activities': the advanced picker's, the view-request one's, the settings one's and the play one's, plus the host's `isStartable` check), `CompanionManifest` keys, hand-off actions and extras, the host title and companion links (`hostTitleUri`, `binge://title/…`; `hostCompanionUri`, `binge://companions/…`), Binge's Play listing URL, handshake helper. binge-seerr consumes it as source through the same submodule. `BingeHosts.release` pins release Binge's Play App Signing certificate, the one every Play install carries. Not yet published. |
 | Conformance harness | Not started | Runs over any channel, so companion authors need no emulator. |
 | Reference companion (Binge Seerr) | Draft | [binge-seerr](https://github.com/ScottCooper92/binge-seerr) serves every REQUEST v1 operation against the connected Seerr instance, the capability set is derived from the signed-in user's permissions, and the setup screen is built on the shared design system. The in-tree Seerr integration it replaces is deleted from Binge. |
+| LIBRARY companion (binge-jellyfin) | Draft | [binge-jellyfin](https://github.com/ScottCooper92/binge-jellyfin) serves every LIBRARY v1 rpc against the signed-in Jellyfin user, with `PLAYBACK_SOURCE` and `PLAYBACK_PROGRESS`, and has played and resumed in Binge's player on a phone. Its own UI is sign-in (Quick Connect first, on phone and TV) and a console for the server, being built. Its device lane binds the Service over Binder on the minified build. |
 | Host support in Binge | Draft | Discovery, consent and the grpc-binder client are written and unit-tested, and each companion is exposed through a `RequestIntegration` contributed by the bridge. Binge's emulator lane drives bind → handshake → request between Binge and a stub companion over a real Binder, and the hardware spike measured latency, memory and APK cost (tracked privately). |

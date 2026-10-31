@@ -204,6 +204,6 @@ anyway. A PLAYER contract would add those for players that choose to implement i
 | --- | --- | --- |
 | Binge | The host | Leads. Every flow on this page works on phone, foldable and TV. |
 | [binge-seerr](https://github.com/ScottCooper92/binge-seerr) | REQUEST, plus its own console for Seerr, Jellyseerr and Overseerr | Sign-in, "request with options", requests and light moderation. Administration stays on the phone and the web client (binge-seerr#37). |
-| Jellyfin companion (planned) | LIBRARY, with `PLAYBACK_SOURCE` | Sign-in only. Browsing and playing the library stay with Jellyfin's own app. |
+| [binge-jellyfin](https://github.com/ScottCooper92/binge-jellyfin) | LIBRARY, with `PLAYBACK_SOURCE` and `PLAYBACK_PROGRESS`, plus its own console for the user's Jellyfin server | Sign-in (Quick Connect first) and the signed-in settings. The console is phone-first: approving Quick Connect codes and the user's own devices for everyone, and a dashboard, library scans, tasks, activity and users for an admin. Browsing and playing stay with Binge and Jellyfin's own apps; the companion renders no video. |
 
 A companion's own UI is for signing in and for what only it can do. It is not a second Binge.
