@@ -178,8 +178,9 @@ enum LicenceKind {
 //
 // Append-only: new values get new numbers. Host to integration, so the integration is the
 // receiver: an unknown or UNSPECIFIED value is INVALID_ARGUMENT unless the integration can map
-// it to SOURCE_PROBLEM_OTHER, which it may.
+// it to SOURCE_PROBLEM_OTHER, which it may. Deprecated with `ReportSource`, its only use.
 enum SourceProblem {
+  option deprecated = true;
   SOURCE_PROBLEM_UNSPECIFIED = 0;
   // The player could not open or play it.
   SOURCE_PROBLEM_UNPLAYABLE = 1;
