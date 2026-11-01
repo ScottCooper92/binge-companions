@@ -582,7 +582,7 @@ privileged path for any host.
 
 ### Capabilities
 
-`PROBE`, `SUBTITLES`, `REPORT_SOURCE`, `PLAYBACK_PROGRESS`. The last joined additively. The mandatory core is `Handshake` and `Resolve`. A STREAM
+`PROBE`, `SUBTITLES`, `REPORT_SOURCE`, `PLAYBACK_PROGRESS`. The last joined additively. `REPORT_SOURCE` is deprecated: no host calls `ReportSource`, so a new companion should not declare it. It stays in the contract, because removing it would be a `v2` decision. The mandatory core is `Handshake` and `Resolve`. A STREAM
 companion whose backend needs a sign-in the user has not completed answers `Handshake` with
 `UNAUTHENTICATED`, as LIBRARY does, and the host handshakes again when the user returns from the
 companion app. One with nothing to sign in to answers OK. As everywhere: feature

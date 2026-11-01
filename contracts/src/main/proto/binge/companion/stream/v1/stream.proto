@@ -121,8 +121,8 @@ enum Capability {
   // Populates `StreamSource.subtitles`. Without it the host assumes the player finds its own.
   CAPABILITY_SUBTITLES = 2;
   // Answers `ReportSource`: the user told the host a source did not play, and the integration
-  // wants to know.
-  CAPABILITY_REPORT_SOURCE = 3;
+  // wants to know. Deprecated: no host calls `ReportSource`, so a companion should not declare it.
+  CAPABILITY_REPORT_SOURCE = 3 [deprecated = true];
   // The companion keeps the user's watch progress for the titles it resolves. It answers
   // `ReportPlayback`, `ListContinueWatching` and `ForgetProgress`, and puts
   // `ResolveResponse.resume` on the first message of `Resolve`. The progress is the companion's
@@ -319,12 +319,17 @@ message ProbeResponse {
   bool may_have_sources = 1;
 }
 
+// Deprecated: no host calls `ReportSource`, and a companion should not declare it.
 message ReportSourceRequest {
+  option deprecated = true;
   string source_id = 1;
   SourceProblem problem = 2;
 }
 
-message ReportSourceResponse {}
+// Deprecated with `ReportSourceRequest`.
+message ReportSourceResponse {
+  option deprecated = true;
+}
 
 // One event in a sitting of a source this integration resolved. The companion applies it as
 // follows. STARTED, PROGRESS, PAUSED, RESUMED and STOPPED record `position_millis` as the resume
@@ -421,8 +426,11 @@ service StreamService {
   // that would have to resolve to answer should not declare the capability. Codes as `Resolve`.
   rpc Probe(ProbeRequest) returns (ProbeResponse);
   // Requires CAPABILITY_REPORT_SOURCE. INVALID_ARGUMENT for a `source_id` this integration did
-  // not issue, or one it no longer remembers; the host does not retry either.
-  rpc ReportSource(ReportSourceRequest) returns (ReportSourceResponse);
+  // not issue, or one it no longer remembers; the host does not retry either. Deprecated: no host
+  // calls it, and a companion should not declare the capability.
+  rpc ReportSource(ReportSourceRequest) returns (ReportSourceResponse) {
+    option deprecated = true;
+  }
   // Requires CAPABILITY_PLAYBACK_PROGRESS. Sent only for a sitting of a source this integration
   // resolved. INVALID_ARGUMENT for an unusable `MediaId`, an unknown or UNSPECIFIED `event`, a
   // negative `position_millis` or `runtime_millis`, an episode on a movie or a series with no
