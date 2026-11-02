@@ -91,15 +91,17 @@ and without it `UnsafeCallOnNullableType` — the `!!` ban — loads and silentl
 `detekt-baseline.xml`, because the first run found nothing; keep it that way rather than
 creating one.
 
-Coverage gates `:binge-companion-sdk` at **85% of lines**, measured after excluding the handful of classes
-that exist only to hold an Android type — `HostPolicy`, `HandOffPolicy`, `IntegrationService`
-and the `PackageManager` extension. That is not a fudge: each of those already has its
-decision split out into a JVM-testable class the tests do cover, and the KDoc at each one
-says so. `AdvancedRequestKt` and `PlayRequestKt` are deliberately not excluded, because each holds both halves.
+Coverage gates `:binge-companion-sdk` at **95% of lines**, with nothing excluded. The classes that hold an Android
+type — `HostPolicy`, `HandOffPolicy`, `IntegrationService` and the `PackageManager` extension — were excluded while the
+tests ran on the plain JVM. Robolectric now runs in `build` (#281), so they are tested through `ShadowPackageManager` and
+Robolectric's service controller (#282). Each one's decision is still split into a class that needs no Android type
+(`HostSecurityPolicy`, `HandOffCallerPolicy`, `HandOffTargetPolicy`, `signerDigests`) and tested on the JVM. With nothing
+excluded the SDK measured 99.2%.
+
 `:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
 
-The floor was set from a measurement (90.4% at the time) rather than inherited, so it
-ratchets. **A new module has to apply kover or say in its build file why not.** Binge
+The floor is set from a measurement rather than inherited, so it
+ratchets: 85% from a measured 90.4%, and 95% from the 99.2% measured once the exclusions went (#282). **A new module has to apply kover or say in its build file why not.** Binge
 enforces that with a root `checkCoverageGate` task; with four modules that is still overkill,
 so here it is a convention — which means the next module is where it can silently go wrong.
 Two modules have no floor, and neither is shipped. `:detekt-rules` holds the custom detekt rules,
