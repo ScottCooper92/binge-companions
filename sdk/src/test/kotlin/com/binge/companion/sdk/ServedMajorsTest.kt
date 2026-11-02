@@ -88,6 +88,14 @@ class ServedMajorsTest {
     }
 
     @Test
+    fun `a private action the Service filters on has no majors beside one contract action`() {
+        assertEquals(
+            emptySet<Int>(),
+            majors("com.example.INTERNAL", single + "com.example.INTERNAL", CompanionManifest.META_MAJORS to "1"),
+        )
+    }
+
+    @Test
     fun `an action the Service does not filter on has no majors, whatever the bare key says`() {
         assertEquals(setOf(1), majors(CompanionManifest.ACTION_REQUEST, single, CompanionManifest.META_MAJORS to "1"))
         assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_LIBRARY, single, CompanionManifest.META_MAJORS to "1"))
