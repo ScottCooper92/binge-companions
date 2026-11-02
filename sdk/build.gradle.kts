@@ -87,33 +87,16 @@ detektGate {
 }
 
 // Coverage gates :binge-companion-sdk and not :binge-companion-contracts: generated protobuf and grpc-kotlin stubs would swamp the
-// figure with code no test should be written for. The exclusions below are the same idea one level
-// down - each is a class that exists only to hold an Android type, and each already has its
-// JVM-testable half split out and covered, which the SDK's own KDoc says at every one of them:
-// HandOffPolicy hands to HandOffCallerPolicy, HostPolicy to HostSecurityPolicy and signerDigests,
-// IntegrationService to inboundParcelablePolicy (its per-service registration needs grpc-binder's
-// Android statics, so it has no JVM test). HandOffPolicy's host-side isStartable hands to
-// HandOffTargetPolicy. AdvancedRequestKt and PlayRequestKt are deliberately NOT excluded - each holds
-// both halves, so excluding them would drop a tested function from the measurement.
+// figure with code no test should be written for. Nothing in the SDK is excluded: Robolectric runs in `build` (#281), so the
+// classes that hold an Android type are tested through ShadowPackageManager and Robolectric's service controller (#282) -
+// HostPolicy and the PackageManager extension, HandOffPolicy's factories and isStartable, and IntegrationService. Their
+// decisions are still split out (HostSecurityPolicy, HandOffCallerPolicy, HandOffTargetPolicy, signerDigests) and tested on the
+// plain JVM. The floor was set from a measurement, 99.2% with nothing excluded, so it ratchets: raise it as the SDK grows.
 kover {
     reports {
-        filters {
-            excludes {
-                classes(
-                    // Context + PackageManager + Log factories, and the PackageManager extension.
-                    "com.binge.companion.sdk.HostPolicy",
-                    "com.binge.companion.sdk.HostPolicy\$*",
-                    "com.binge.companion.sdk.HostPolicyKt",
-                    "com.binge.companion.sdk.HandOffPolicy",
-                    // An android.app.Service standing up a Binder-transport gRPC server. There is
-                    // no JVM unit test of this short of an instrumented one.
-                    "com.binge.companion.sdk.IntegrationService",
-                )
-            }
-        }
         verify {
             rule {
-                minBound(85)
+                minBound(95)
             }
         }
     }

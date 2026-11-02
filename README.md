@@ -129,7 +129,7 @@ with "Included build … does not exist". Then run:
 ```
 
 That compiles all four modules, runs the tests, checks formatting, runs detekt and Android lint
-over the SDK and holds its line coverage to 85%. `./gradlew ktlintFormat` fixes formatting in place.
+over the SDK and holds its line coverage to 95%. `./gradlew ktlintFormat` fixes formatting in place.
 
 You need JDK 17 or later.
 

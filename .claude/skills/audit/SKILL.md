@@ -6,7 +6,7 @@ description: Whole-repo sweep of binge-companions (the contracts, the SDK and it
 # Contracts and SDK audit
 
 CI runs `./gradlew build` (Kotlin compile, JUnit tests (JUnit 5, plus Robolectric on the vintage engine), `ktlintCheck`, `detekt` on `:binge-companion-sdk` with type
-resolution, `koverVerify` at 85% on `:binge-companion-sdk`, Android lint on `:binge-companion-sdk`) and, separately, `buf lint` (STANDARD) plus
+resolution, `koverVerify` at 95% on `:binge-companion-sdk`, Android lint on `:binge-companion-sdk`) and, separately, `buf lint` (STANDARD) plus
 `buf breaking --against main` (FILE). There is **no** screenshot suite here — do not look for one
 and do not report a finding as though one had caught it. Do not re-report what that set decides.
 The audit's value is what it can't: whether a *breaking* change hides where `buf` can't see it,
@@ -22,9 +22,7 @@ Modules: `contracts/` (`.proto` + generated stubs, not checked in), `sdk/` (`com
 **Three disciplines make this useful rather than noisy:**
 
 1. **Exemptions first.** Check each hit against the exemption. Recurring ones: `src/test`, generated
-   code under `build/generated`, the four excluded Android-holder classes (`HostPolicy`,
-   `HandOffPolicy`, `IntegrationService`, the `PackageManager` extension — each already splits its
-   decision into a JVM-tested class), and `reserved` entries in protos (they are the right way to
+   code under `build/generated`, and `reserved` entries in protos (they are the right way to
    remove a field).
 2. **Verify before reporting.** Re-read every candidate in context; label it **confirmed**
    (`file:line` plus the precise violation or failure scenario) or **plausible** (needs a design
@@ -82,9 +80,8 @@ tests against `docs/Architecture.md` > Security: mutual verification and > Hand-
 - Capability handling: unknown enum values ignored; no behaviour keyed on a version number
   (the `Capability` enum in `request.proto` is the list; `Capabilities.kt` holds only `handshakeResponse()` and
   `requireDeclared()`; also `CompanionManifest.kt`); a gated rpc reachable when its capability is undeclared.
-- Coverage honesty: the four excluded classes' KDocs must still say where the decision was split out,
-  and `AdvancedRequestKt` must stay **included** (it holds both halves). Check the exclusion list in
-  `sdk/build.gradle.kts` has not grown to hide untested logic.
+- Coverage honesty: nothing is excluded from the kover gate. Check `sdk/build.gradle.kts` has not grown an
+  exclusion to hide untested logic. Any exclusion added later needs its Android-free half split out and tested.
 
 ## Dimension 3 — the custom detekt rules (`detekt-rules/`)
 
@@ -103,7 +100,7 @@ Extract every checkable claim from `docs/Architecture.md`, `docs/Status.md`, `do
 the SDK, `build.gradle.kts` and the workflows: the action-string table (`com.binge.companion.REQUEST`,
 `STREAM`, `TRACKING`, `PLAYER`, `LIBRARY`) vs what exists; the three manifest meta-data keys; capability
 lists vs the `Capability` enum in `request.proto` (`Capabilities.kt` has no list); **Status.md contract stages** (Draft / Spike-validated / Stable) vs reality and
-its "last updated" date; the 85% floor and the "a new module must apply kover" rule (`:detekt-rules` and `:minify-check` are the documented exceptions); JDK/`jvmTarget`
+its "last updated" date; the 95% floor and the "a new module must apply kover" rule (`:detekt-rules` and `:minify-check` are the documented exceptions); JDK/`jvmTarget`
 figures; Maven Central / published-artifact claims. Also check whether the docs mention consumers
 (`ScottCooper92/binge-seerr`, `ScottCooper92/Binge`) accurately. Report claim → reality → which side
 should change. Contract *definitions* must appear only here (nothing in the consumers may redefine one —
