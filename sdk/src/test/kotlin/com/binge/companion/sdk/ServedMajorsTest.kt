@@ -86,4 +86,37 @@ class ServedMajorsTest {
     fun `an action that is not a contract has no scoped key on a multi-action Service`() {
         assertEquals(emptySet<Int>(), majors("com.example.OTHER", multi + "com.example.OTHER", CompanionManifest.META_MAJORS to "1"))
     }
+
+    @Test
+    fun `a private action the Service filters on has no majors beside one contract action`() {
+        assertEquals(
+            emptySet<Int>(),
+            majors("com.example.INTERNAL", single + "com.example.INTERNAL", CompanionManifest.META_MAJORS to "1"),
+        )
+    }
+
+    @Test
+    fun `an action the Service does not filter on has no majors, whatever the bare key says`() {
+        assertEquals(setOf(1), majors(CompanionManifest.ACTION_REQUEST, single, CompanionManifest.META_MAJORS to "1"))
+        assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_LIBRARY, single, CompanionManifest.META_MAJORS to "1"))
+    }
+
+    @Test
+    fun `no filtered actions means no majors for any action`() {
+        assertEquals(emptySet<Int>(), majors(CompanionManifest.ACTION_REQUEST, emptySet(), CompanionManifest.META_MAJORS to "1"))
+    }
+
+    @Test
+    fun `a contract action the multi-action Service does not filter on has no majors, though its scoped key is declared`() {
+        assertEquals(
+            emptySet<Int>(),
+            majors(
+                CompanionManifest.ACTION_STREAM,
+                multi,
+                CompanionManifest.META_MAJORS_STREAM to "1",
+                CompanionManifest.META_MAJORS_REQUEST to "1",
+                CompanionManifest.META_MAJORS_LIBRARY to "1",
+            ),
+        )
+    }
 }
