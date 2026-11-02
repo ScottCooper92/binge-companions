@@ -341,7 +341,13 @@ names a server's own concepts.
 - **Availability answers in the response, not in a status code.** "Not in the library" is what
   `GetAvailability` is for, so it is data: the rpc succeeds and says no. `NOT_FOUND` is left to the
   rpcs that need an item to exist — a watch state for something the server does not
-  have.
+  have. The answer can say why, in `Availability.reason`, when the cause is not that the server lacks
+  the title: `SERVER_LACKS_IDS` means the server holds titles that carry no id the integration can
+  match on, so this one may be among them. It is a field and not a capability, and not a new state
+  value. An old host skips the field and an old integration leaves it `UNSPECIFIED`, which means no
+  reason, so both show "Not in your library" as before. A new state value would not be safe that way:
+  an old host reads an unknown state as `UNSPECIFIED` and loses the `NOT_IN_LIBRARY` answer it
+  relies on.
 - **Every list is paged and artwork is a URL.** The Binder ceiling is a ceiling here too, and a
   continue-watching row is exactly the shape that tempts an author to inline a poster.
 
