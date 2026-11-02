@@ -32,7 +32,11 @@ object CompanionManifest {
     /** Display name: a literal, or a string resource in the companion's own package. */
     const val META_NAME = "com.binge.companion.name"
 
-    /** A drawable resource in the companion's own package. Optional; the host has a generic glyph. */
+    /**
+     * A monochrome drawable resource in the companion's own package, which Binge tints. Binge shows the
+     * package's launcher icon (`android:icon`) in full colour first, and uses this only when the package has
+     * none. Optional; the host has a generic glyph.
+     */
     const val META_ICON = "com.binge.companion.icon"
 
     /**
