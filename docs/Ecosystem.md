@@ -143,8 +143,9 @@ removes for a LIBRARY title:
 
 ### `PLAYBACK_SOURCE`: an opt-in exception to "a hand-off, not a stream"
 
-LIBRARY's play rule hands back an Intent, not a stream, so that a companion need never make Binge
-a player for its server. `PLAYBACK_SOURCE` is the opt-in exception, for Binge's own player and
+LIBRARY's play rule is a hand-off, not a stream: the companion exports an Activity on
+`com.binge.companion.PLAY` that the host starts with a title, and nothing is handed back, so that a
+companion need never make Binge a player for its server. `PLAYBACK_SOURCE` is the opt-in exception, for Binge's own player and
 for the installed-player path alike. It is a capability, so a companion that does not want it
 declares nothing and its titles play through the server's own app only.
 
@@ -204,6 +205,7 @@ anyway. A PLAYER contract would add those for players that choose to implement i
 | --- | --- | --- |
 | Binge | The host | Leads. Every flow on this page works on phone, foldable and TV. |
 | [binge-seerr](https://github.com/ScottCooper92/binge-seerr) | REQUEST, plus its own console for Seerr, Jellyseerr and Overseerr | Sign-in, "request with options", requests and light moderation. Administration stays on the phone and the web client (binge-seerr#37). |
+| [binge-archive](https://github.com/ScottCooper92/binge-archive) | STREAM, with `PLAYBACK_PROGRESS`: public-domain and openly licensed films from the Internet Archive, resolved to playable sources | Status and settings, with the licence page. No browse and no search: a title is picked in Binge, and Binge's player plays it. |
 | [binge-jellyfin](https://github.com/ScottCooper92/binge-jellyfin) | LIBRARY, with `PLAYBACK_SOURCE` and `PLAYBACK_PROGRESS`, plus its own console for the user's Jellyfin server | Sign-in (Quick Connect first) and the signed-in settings. The console is phone-first: approving Quick Connect codes and the user's own devices for everyone, and a dashboard, library scans, tasks, activity and users for an admin. Browsing and playing stay with Binge and Jellyfin's own apps; the companion renders no video. |
 
 A companion's own UI is for signing in and for what only it can do. It is not a second Binge.

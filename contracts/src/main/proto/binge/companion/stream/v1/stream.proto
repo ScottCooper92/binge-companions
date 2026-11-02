@@ -33,7 +33,7 @@ syntax = "proto3";
 // A host reports to a companion only sittings of sources that companion resolved, so no companion
 // learns what was played from another companion's sources or from the user's library.
 //
-// URLs are https only. The `url` of a source and every subtitle or artwork URL beside it must be
+// URLs are https only. The `url` of a source and every subtitle URL beside it must be
 // https, and the host drops anything else. The source comes from a third party the user does not
 // run, the player is another app the host does not control, and cleartext credentials in
 // `PlaybackSource.headers` or in the URL would travel in the clear on its behalf. The other
