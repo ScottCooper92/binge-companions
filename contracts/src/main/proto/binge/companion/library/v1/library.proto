@@ -169,6 +169,21 @@ enum AvailabilityState {
   AVAILABILITY_STATE_IN_LIBRARY = 2;
 }
 
+// Why the integration answered NOT_IN_LIBRARY, when it can say.
+//
+// Append-only: new values get new numbers; a receiver ignores values it does not know. The reason
+// carries no text: the host owns the words and the translation, as it does for `PlaybackMethod`.
+enum AvailabilityReason {
+  // No reason. Every state but NOT_IN_LIBRARY carries this, and so does a NOT_IN_LIBRARY from an
+  // integration that cannot say why, including one built before this enum existed. A host shows
+  // nothing extra for it.
+  AVAILABILITY_REASON_UNSPECIFIED = 0;
+  // The server holds titles that carry no id this integration can match on, so this title may be one
+  // of them. "May": the integration cannot know whether this title is among them, only that some of
+  // the server's titles cannot be matched, such as a library with no metadata downloader.
+  AVAILABILITY_REASON_SERVER_LACKS_IDS = 1;
+}
+
 message HandshakeRequest {
   binge.companion.v1.HostInfo host = 1;
 }
@@ -198,6 +213,12 @@ message Availability {
   string library_name = 3;
   // Per-season detail, populated for a series so the host can show which parts are held.
   repeated SeasonAvailability seasons = 4;
+  // Why the title is not in the library, when the integration can say. Set only when `state` is
+  // AVAILABILITY_STATE_NOT_IN_LIBRARY; AVAILABILITY_REASON_UNSPECIFIED means no reason, and is what
+  // every other state carries. It needs no capability: a host that predates it skips the field, and an
+  // integration that predates it leaves it UNSPECIFIED, so each reads as "no reason" and shows
+  // "Not in your library" exactly as before. `ObserveAvailability` carries it too.
+  AvailabilityReason reason = 5;
 }
 
 message SeasonAvailability {
@@ -463,7 +484,8 @@ service LibraryService {
   // session it holds now.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Requires CAPABILITY_AVAILABILITY. "Not in the library" is a successful answer
-  // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND.
+  // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND, and may say why in
+  // `Availability.reason`.
   rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse);
   // Requires CAPABILITY_AVAILABILITY. The integration pushes on its own schedule — one
   // with a websocket to its server pushes on change, one that polls pushes when it

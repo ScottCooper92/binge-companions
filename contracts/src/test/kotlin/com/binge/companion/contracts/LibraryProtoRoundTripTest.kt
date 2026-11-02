@@ -1,6 +1,7 @@
 package com.binge.companion.contracts
 
 import com.binge.companion.contracts.library.v1.Availability
+import com.binge.companion.contracts.library.v1.AvailabilityReason
 import com.binge.companion.contracts.library.v1.AvailabilityState
 import com.binge.companion.contracts.library.v1.Capability
 import com.binge.companion.contracts.library.v1.HandshakeResponse
@@ -44,6 +45,42 @@ class LibraryProtoRoundTripTest {
         assertEquals(held, parsed)
         assertEquals(listOf(1, 2, 3), parsed.getSeasons(0).episodeNumbersList)
         assertTrue(parsed.getSeasons(1).episodeNumbersList.isEmpty())
+    }
+
+    @Test
+    fun `a not-in-library answer round-trips the reason it was given`() {
+        val missing = availability {
+            state = AvailabilityState.AVAILABILITY_STATE_NOT_IN_LIBRARY
+            reason = AvailabilityReason.AVAILABILITY_REASON_SERVER_LACKS_IDS
+        }
+
+        val parsed = Availability.parseFrom(missing.toByteArray())
+
+        assertEquals(missing, parsed)
+        assertEquals(AvailabilityReason.AVAILABILITY_REASON_SERVER_LACKS_IDS, parsed.reason)
+    }
+
+    @Test
+    fun `an answer with no reason reads as no reason, the way an integration that predates the field sends it`() {
+        val parsed = Availability.parseFrom(
+            availability { state = AvailabilityState.AVAILABILITY_STATE_NOT_IN_LIBRARY }.toByteArray(),
+        )
+
+        assertEquals(AvailabilityReason.AVAILABILITY_REASON_UNSPECIFIED, parsed.reason)
+        assertEquals(0, parsed.reasonValue)
+    }
+
+    @Test
+    fun `a reason a newer peer adds is kept as a number and read as unrecognised, not as a known one`() {
+        val fromNewer = availability {
+            state = AvailabilityState.AVAILABILITY_STATE_NOT_IN_LIBRARY
+            reasonValue = UNKNOWN_REASON
+        }
+
+        val parsed = Availability.parseFrom(fromNewer.toByteArray())
+
+        assertEquals(AvailabilityReason.UNRECOGNIZED, parsed.reason)
+        assertEquals(UNKNOWN_REASON, parsed.reasonValue)
     }
 
     @Test
@@ -148,3 +185,5 @@ class LibraryProtoRoundTripTest {
         assertTrue(!parsed.capabilitiesList.contains(Capability.CAPABILITY_WATCH_STATE_WRITE))
     }
 }
+
+private const val UNKNOWN_REASON = 99
