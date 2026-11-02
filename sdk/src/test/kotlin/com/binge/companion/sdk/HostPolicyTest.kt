@@ -60,7 +60,7 @@ class HostPolicyTest {
     }
 
     @Test
-    fun `anyCertificateOf admits a listed package under any certificate, and logs it`() {
+    fun `anyCertificateOf admits a listed package under any certificate`() {
         installPackage(context, HOST, HOST_UID, listOf(NEW_KEY))
         val policy = HostPolicy.anyCertificateOf(context, packageNames = listOf(HOST))
 
