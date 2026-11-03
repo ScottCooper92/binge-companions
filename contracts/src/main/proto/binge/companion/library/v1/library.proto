@@ -412,8 +412,8 @@ message PlaybackSegment {
 
 // Seek-bar thumbnails (trickplay) for the host's own player: the server pre-renders JPEG tile sheets, one
 // sheet holding a `tile_columns` x `tile_rows` grid of `thumbnail_width` x `thumbnail_height` pixel frames
-// taken every `interval_millis`, in order, left to right then top to bottom, the last sheet possibly
-// partial. The companion knows the server's URL layout and the host must not, so the companion mints a
+// taken every `interval_millis`, in order, left to right then top to bottom. Every sheet is the full
+// grid size, so the last one may leave unused cells at the end. The companion knows the server's URL layout and the host must not, so the companion mints a
 // template and the host only puts a number in it. One descriptor describes one size: the companion picks
 // the width the player should use.
 //
