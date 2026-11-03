@@ -432,9 +432,11 @@ message PlaybackSegment {
 //   - Bounds, because the host decodes JPEGs a server sent it. `thumbnail_count` is 1 to 10,000;
 //     `thumbnail_width` and `thumbnail_height` are 16 to 1,024 pixels; `tile_columns` and `tile_rows` are at
 //     least 1; a sheet's decoded area (`thumbnail_width * tile_columns` by `thumbnail_height * tile_rows`) is at
-//     most 8,000,000 pixels; `interval_millis` is at least 100. A sheet over 2 MiB of bytes is dropped, and at
+//     most 8,000,000 pixels; `interval_millis` is at least 100. A sheet over 4 MiB of bytes is dropped, and at
 //     most 3 sheets are held at once. Over any bound the host drops the whole `Trickplay` and plays
-//     without thumbnails.
+//     without thumbnails. The byte cap is 4 MiB and not tighter because a 3200 x 1800 sheet at JPEG
+//     quality 90, a common server default, can pass 2 MiB on grainy footage; the decoded-area cap is
+//     the one that bounds the host's memory.
 //   - A STREAM source never carries it: it is not part of that contract.
 message Trickplay {
   // The URL of one tile sheet, with one `{index}` where the sheet number goes.
