@@ -40,6 +40,22 @@ object CompanionManifest {
     const val META_ICON = "com.binge.companion.icon"
 
     /**
+     * A colour resource (`android:resource="@color/…"`) in the companion's own package: its brand colour, which the host
+     * may tint what it draws for the companion with. Optional. A literal `android:value="#RRGGBB"` is not read, since
+     * aapt types it as an Int and it would be taken for a resource id. The host uses it only as a tint, a wash or a
+     * non-text accent, and never as text or control colour. [META_COLOR_DARK] is the dark theme's variant, and
+     * [readBrandColor] is the host's half.
+     */
+    const val META_COLOR = "com.binge.companion.color"
+
+    /**
+     * The dark theme's variant of [META_COLOR], a colour resource in the companion's own package. Optional. It is its own
+     * key and not a `values-night` qualifier because a qualifier follows the device's configuration, and the host has an
+     * in-app theme of its own that may differ from it. A light theme never reads it.
+     */
+    const val META_COLOR_DARK = "com.binge.companion.color.dark"
+
+    /**
      * Comma-separated contract majors served, e.g. `1` or `1,2`. Bare key for a Service naming one contract
      * action ([ACTION_REQUEST], [ACTION_LIBRARY], [ACTION_STREAM] or [ACTION_NOTIFICATIONS]), whatever private
      * actions it adds; one naming several uses the scoped `META_MAJORS_*` keys, since a bare key can't say which

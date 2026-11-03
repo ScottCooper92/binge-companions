@@ -35,6 +35,32 @@ its intent action:
   reports every single-major companion as having declared nothing, and its author has no way to
   see why. The same applies to `name`, which is a String when written literally and a resource id
   when written as `@string/…`.
+- **An optional brand colour.** Two more optional keys let a companion say what colour the host may
+  tint what it draws for it with: `com.binge.companion.color` and `com.binge.companion.color.dark`,
+  each `android:resource="@color/…"`, a colour in the companion's own package.
+
+  ```xml
+  <meta-data android:name="com.binge.companion.color" android:resource="@color/companion_brand" />
+  <meta-data android:name="com.binge.companion.color.dark" android:resource="@color/companion_brand_dark" />
+  ```
+
+  It is metadata only: no rpc, no wire change and no capability. A host reads each as a resource id
+  and resolves it in the companion's resources. A literal `android:value="#RRGGBB"` is not read,
+  because aapt types it as an Int and it would be taken for a resource id. The dark key is a key of
+  its own and not a `values-night` qualifier, because a qualifier follows the device's configuration
+  and the host has an in-app theme that may differ from it.
+
+  The host's rules. A key that is absent, is 0, or does not resolve to a colour is absent, and never
+  an error; alpha is dropped and the colour is read as opaque. A dark theme reads the dark key, then
+  the plain key; a light theme reads only the plain key; and where nothing is declared the host
+  falls back to its own reading of the launcher icon and then its own accent. The colour is a tint:
+  a wash or a non-text accent, never text or control colour, so what sits on it keeps the host's own
+  theme colours. A wash is laid at low alpha over the host's own surface. An accent that has to be
+  seen needs at least **3:1** against that surface by WCAG relative luminance (the non-text
+  contrast rule), and under that the host takes the next step in the chain and does not recolour the
+  companion. The contrast is the host's to compute; the SDK's `Bundle.readBrandColor` only reads
+  and validates. A companion that wants a usable tint on a dark theme declares a lighter dark key,
+  since a near-black brand colour has none there.
 - A companion may serve more than one contract from the same exported Service — REQUEST and
   LIBRARY together, say, rather than one Service per action — since consent and the certificate pin
   are per package, not per Service. A Service is free to declare more than one `<intent-filter>`
