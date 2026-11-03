@@ -4,16 +4,19 @@ import com.binge.companion.contracts.library.v1.Availability
 import com.binge.companion.contracts.library.v1.AvailabilityReason
 import com.binge.companion.contracts.library.v1.AvailabilityState
 import com.binge.companion.contracts.library.v1.Capability
+import com.binge.companion.contracts.library.v1.GetPlaybackSourceResponse
 import com.binge.companion.contracts.library.v1.HandshakeResponse
 import com.binge.companion.contracts.library.v1.ListContinueWatchingResponse
 import com.binge.companion.contracts.library.v1.WatchState
 import com.binge.companion.contracts.library.v1.availability
 import com.binge.companion.contracts.library.v1.episodeRef
 import com.binge.companion.contracts.library.v1.episodeWatchState
+import com.binge.companion.contracts.library.v1.getPlaybackSourceResponse
 import com.binge.companion.contracts.library.v1.handshakeResponse
 import com.binge.companion.contracts.library.v1.libraryEntry
 import com.binge.companion.contracts.library.v1.listContinueWatchingResponse
 import com.binge.companion.contracts.library.v1.seasonAvailability
+import com.binge.companion.contracts.library.v1.trickplay
 import com.binge.companion.contracts.library.v1.watchState
 import com.binge.companion.contracts.v1.MediaType
 import com.binge.companion.contracts.v1.mediaId
@@ -183,6 +186,30 @@ class LibraryProtoRoundTripTest {
 
         assertTrue(parsed.capabilitiesList.contains(Capability.CAPABILITY_WATCH_STATE))
         assertTrue(!parsed.capabilitiesList.contains(Capability.CAPABILITY_WATCH_STATE_WRITE))
+    }
+
+    @Test
+    fun `a playback source response round-trips its trickplay, and one with none has none`() {
+        val withTrickplay = getPlaybackSourceResponse {
+            playbackSessionId = "s1"
+            trickplay = trickplay {
+                urlTemplate = "https://jellyfin.lan/Videos/abc/Trickplay/320/{index}.jpg"
+                thumbnailWidth = 320
+                thumbnailHeight = 180
+                tileColumns = 10
+                tileRows = 10
+                intervalMillis = 10_000
+                thumbnailCount = 720
+            }
+        }
+
+        val parsed = GetPlaybackSourceResponse.parseFrom(withTrickplay.toByteArray())
+        val without = GetPlaybackSourceResponse.parseFrom(getPlaybackSourceResponse { playbackSessionId = "s1" }.toByteArray())
+
+        assertEquals(withTrickplay, parsed)
+        assertTrue(parsed.hasTrickplay())
+        assertEquals(10_000L, parsed.trickplay.intervalMillis)
+        assertTrue(!without.hasTrickplay())
     }
 }
 

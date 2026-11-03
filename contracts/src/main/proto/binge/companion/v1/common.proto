@@ -112,7 +112,9 @@ message HttpHeader {
 //     because the type picks the Intent, and `text/html` or an APK type would reach a browser or
 //     the package installer instead of a player. Empty reads as `video/*`.
 //   - The host never follows, fetches or inspects the URL itself: no thumbnails, no HEAD
-//     requests, no metadata scraping. What it knows about the source is what this message says.
+//     requests, no metadata scraping. What it knows about the source is what this message says. The
+//     one exception is LIBRARY's `Trickplay` (library.proto), which the companion hands over beside
+//     the source and the host's own player fetches, under rules stated there.
 message PlaybackSource {
   string url = 1;
   repeated HttpHeader headers = 2;

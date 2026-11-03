@@ -394,6 +394,20 @@ The server still does the transcoding, and still owns the watch state. Both are 
 companion that wants none of it declares neither and its titles play through the server's own app
 only. The flow is in `Ecosystem.md` > Playback.
 
+**Trickplay, an optional field and not a capability.** A companion whose server pre-renders seek-bar
+thumbnails can hand the host's own player a `Trickplay` beside the source, on
+`GetPlaybackSourceResponse` (field 9). It is the one thing the host fetches from a source's host,
+and so it carries its own rules: the companion mints a URL template with one `{index}` and the host
+only substitutes a sheet number into it; it is used only by Binge's own player, after the user has
+pressed Play, never from the Play sheet, never for an installed player and never to fetch ahead; it
+is fetched with the source's own headers and held no longer than its `expires_at`; it lives in memory
+for the sitting and is never written to disk; and it is bounded on every side the host decodes (the
+caps are in `library.proto`, as host rules, so a later change to a cap is a change to a comment).
+Anything over a bound drops the whole `Trickplay` and the title plays without thumbnails. It sits on
+the LIBRARY response, not on the shared `PlaybackSource`, so a STREAM source cannot carry it. It has no capability: the host
+needs no warning that it may be sent, an absent field means no thumbnails, and the host calls nothing
+extra.
+
 ### Watch state flows both ways, on consent
 
 Reading is the default: once the user allows the integration, `GetWatchState` and
@@ -556,6 +570,8 @@ The host is a courier for a source and never a consumer of it. In order of how m
    nothing from the host about why, which keeps the rules from being probed.
 3. **The host fetches nothing.** No thumbnails from a source host, no HEAD requests, no metadata
    scraping, no following redirects. What the host knows about a source is what the message says.
+   The one exception is LIBRARY's `Trickplay`, below, which is for Binge's own player and never
+   comes from a STREAM source.
 4. **Nothing persists.** Sources live only as long as the title page that resolved them, and
    never past `expires_at`. The host keeps no history of sources, no cache across title pages,
    and nothing on disk.
