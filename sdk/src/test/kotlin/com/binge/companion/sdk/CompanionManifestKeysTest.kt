@@ -17,6 +17,8 @@ class CompanionManifestKeysTest {
         assertEquals("com.binge.companion.NOTIFICATIONS", CompanionManifest.ACTION_NOTIFICATIONS)
         assertEquals("com.binge.companion.name", CompanionManifest.META_NAME)
         assertEquals("com.binge.companion.icon", CompanionManifest.META_ICON)
+        assertEquals("com.binge.companion.color", CompanionManifest.META_COLOR)
+        assertEquals("com.binge.companion.color.dark", CompanionManifest.META_COLOR_DARK)
         assertEquals("com.binge.companion.majors", CompanionManifest.META_MAJORS)
         assertEquals("com.binge.companion.majors.request", CompanionManifest.META_MAJORS_REQUEST)
         assertEquals("com.binge.companion.majors.library", CompanionManifest.META_MAJORS_LIBRARY)
