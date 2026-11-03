@@ -410,6 +410,47 @@ message PlaybackSegment {
   int64 end_millis = 3;
 }
 
+// Seek-bar thumbnails (trickplay) for the host's own player: the server pre-renders JPEG tile sheets, one
+// sheet holding a `tile_columns` x `tile_rows` grid of `thumbnail_width` x `thumbnail_height` pixel frames
+// taken every `interval_millis`, in order, left to right then top to bottom, the last sheet possibly
+// partial. The companion knows the server's URL layout and the host must not, so the companion mints a
+// template and the host only puts a number in it. One descriptor describes one size: the companion picks
+// the width the player should use.
+//
+// The rules the host applies, so a companion knows what will be dropped. The caps are the host's to
+// change, and a later change to them is a change to this comment and not to the wire:
+//   - Only Binge's own player uses it, and only once the user has pressed Play. Never for an installed
+//     player, never from the Play sheet, never to fetch ahead. This is the one thing the host fetches
+//     from a source's host (see `PlaybackSource`), and only these sheets.
+//   - `url_template` is at most 2 KiB, has exactly one `{index}`, and the placeholder is in the path or
+//     the query. The host replaces it with a non-negative decimal integer, the sheet number from 0, and
+//     with nothing else. The URL follows this file's scheme rule. A template that fails drops the whole
+//     `Trickplay`, never the source.
+//   - The sheets are fetched with the source's own `headers` (the same allowlist) and are held no
+//     longer than the source's `expires_at`. Nothing is written to disk: the sheets live in memory for
+//     the sitting and go with it.
+//   - Bounds, because the host decodes JPEGs a server sent it. `thumbnail_count` is 1 to 10,000;
+//     `thumbnail_width` and `thumbnail_height` are 16 to 1,024 pixels; `tile_columns` and `tile_rows` are at
+//     least 1; a sheet's decoded area (`thumbnail_width * tile_columns` by `thumbnail_height * tile_rows`) is at
+//     most 8,000,000 pixels; `interval_millis` is at least 100. A sheet over 2 MiB of bytes is dropped, and at
+//     most 3 sheets are held at once. Over any bound the host drops the whole `Trickplay` and plays
+//     without thumbnails.
+//   - A STREAM source never carries it: it is not part of that contract.
+message Trickplay {
+  // The URL of one tile sheet, with one `{index}` where the sheet number goes.
+  string url_template = 1;
+  // One thumbnail's size in pixels.
+  int32 thumbnail_width = 2;
+  int32 thumbnail_height = 3;
+  // How many thumbnails a sheet holds across and down.
+  int32 tile_columns = 4;
+  int32 tile_rows = 5;
+  // The time between two thumbnails.
+  int64 interval_millis = 6;
+  // How many thumbnails the title has in all, so the host knows how many sheets exist.
+  int32 thumbnail_count = 7;
+}
+
 message GetPlaybackSourceRequest {
   binge.companion.v1.MediaId media = 1;
   // For a series, the episode to play. Required for a series: a source plays one thing, and
@@ -445,6 +486,10 @@ message GetPlaybackSourceResponse {
   repeated PlaybackChapter chapters = 7;
   // At most twenty; the host drops the rest.
   repeated PlaybackSegment segments = 8;
+  // Seek-bar thumbnails for the host's own player, or absent when the title has none. Rules, with the
+  // caps, are on `Trickplay`. It sits here and not on `PlaybackSource` because that message is shared
+  // with STREAM, which must not carry it.
+  Trickplay trickplay = 9;
 }
 
 message ReportPlaybackRequest {
