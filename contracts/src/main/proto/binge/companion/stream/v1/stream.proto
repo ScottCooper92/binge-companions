@@ -11,7 +11,7 @@ syntax = "proto3";
 //
 // Mandatory core: `Handshake` and `Resolve`. A service that cannot serve both must not export the
 // `com.binge.companion.STREAM` action. `Probe`, `ReportSource`, `ReportPlayback`,
-// `ListContinueWatching` and `ForgetProgress` are gated by the `Capability` set returned from
+// `ListContinueWatching`, `ForgetProgress` and `ListServedTitles` are gated by the `Capability` set returned from
 // `Handshake`; the host never calls a gated rpc whose capability was not declared, and an
 // integration that receives one anyway answers PERMISSION_DENIED. Likewise the host reads no
 // `ResolveResponse.resume` unless the integration declared CAPABILITY_PLAYBACK_PROGRESS.
@@ -77,8 +77,8 @@ syntax = "proto3";
 //                                     movie, an episode the series does not have, a
 //                                     `source_id` this integration never issued (`ReportSource`
 //                                     only), an unknown or UNSPECIFIED `PlaybackEvent`, a
-//                                     negative position or runtime, or a `page_token` it did
-//                                     not issue. A valid series the integration does not carry
+//                                     negative position or runtime, a `region` that is not
+//                                     two letters, or a `page_token` it did not issue. A valid series the integration does not carry
 //                                     is NOT_FOUND.
 //   PERMISSION_DENIED               — a gated rpc the integration did not declare.
 //
@@ -422,19 +422,22 @@ message ForgetProgressResponse {}
 
 message ListServedTitlesRequest {
   // The host's region as an ISO 3166-1 alpha-2 code ("US", "GB"). INVALID_ARGUMENT unless it is
-  // two letters.
+  // two letters. The companion compares it without regard to case, so "us" is "US".
   string region = 1;
   // The certifications the user's content-rating limit admits, as TMDB writes them for `region`
   // ("G", "PG", "PG-13", "12A"). The host computes the set from its own ceiling, so the companion
   // matches exactly and needs no ordering table for each country. A title whose certification for
-  // `region` is in the set is listed.
+  // `region` is in the set is listed. An empty set admits no certification: it is not "no limit".
+  // A host with no limit sends every certification TMDB has for `region` and `include_unrated`.
   repeated string allowed_certifications = 2;
   // Whether a title with no certification for `region` is listed. The host resolves its own rule for
   // unrated titles and says the result here, so the companion filters the same way without knowing
   // the rule. True lists it; false leaves it out.
   bool include_unrated = 3;
   // Empty for the first page; otherwise a previous response's `next_page_token`, unchanged.
-  // A token is only valid with the `page_size` it was issued under.
+  // A token is only valid with the `region`, `allowed_certifications`, `include_unrated` and
+  // `page_size` it was issued under. When the host's filter changes, it starts again from an empty
+  // token.
   string page_token = 4;
   // At most this many titles; 0 lets the integration choose. It may answer fewer, and sends at most
   // 200 whatever is asked. The host must not read a short page as the end; only an empty
@@ -503,8 +506,9 @@ service StreamService {
   // `season_number` < 0 or `episode_number` < 1. Never NOT_FOUND.
   rpc ForgetProgress(ForgetProgressRequest) returns (ForgetProgressResponse);
   // Requires CAPABILITY_LIST_SERVED_TITLES. Paged, as every list on this platform is.
-  // INVALID_ARGUMENT for a `region` that is not two letters, or a `page_token` this integration did
-  // not issue or that comes back with a different `page_size` than it was issued under. An empty
+  // INVALID_ARGUMENT for a `region` that is not two letters, a negative `page_size`, or a
+  // `page_token` this integration did not issue or that comes back with a different `region`,
+  // `allowed_certifications`, `include_unrated` or `page_size` than it was issued under. An empty
   // list with an empty token is a valid answer. Not for browsing: see Architecture.md > Where STREAM
   // stops, which names this as its one exception.
   rpc ListServedTitles(ListServedTitlesRequest) returns (ListServedTitlesResponse);
