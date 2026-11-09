@@ -709,7 +709,9 @@ from a data centre, and 10 s leaves room for a phone on a home network.
 A companion that declares `LIST_SERVED_TITLES` lets the host show a paged "Free to watch" row. The host
 asks `ListServedTitles` with its region, the certifications its rating limit admits, and whether
 unrated titles are included. The companion filters, so a page is already exact. The host reads a
-bounded number of pages per refresh and leaves the rest for the next. It renders each title from TMDB.
+bounded number of pages per refresh and leaves the rest for the next. It starts again from an empty
+token when its region, rating limit or unrated rule changes, such as on a switch to a child profile.
+It renders each title from TMDB.
 
 The row is off by default, like every row a companion feeds, with a switch for each companion. A
 title in the row opens the host's own title page, where `Resolve` shows what the companion has. The
