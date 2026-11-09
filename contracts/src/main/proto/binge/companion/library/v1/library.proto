@@ -436,13 +436,14 @@ message PlaybackDeviceProfile {
   repeated string container_mime_types = 7;
   // The largest frame per video codec and profile, where a device decodes some further than others
   // (HEVC Main 10 to 4K but AVC High only to 1080p). `max_width` and `max_height` above stay the
-  // fallback, and keep their meaning. At most 32 entries; the integration reads no more.
+  // fallback, and keep their meaning. At most 32 entries; the integration reads no more. The cap is
+  // positional: an all-zero entry within the first 32 still takes a slot.
   //
   // For a source in codec C and profile P the integration uses the most specific entry: the one for
   // (C, P), else the one for C with an empty profile, else `max_width` and `max_height`, else no
   // limit. A profile token the integration does not know matches only the codec-only entry. When two
-  // entries name the same (C, P), the first one that is not all-zero wins. This only narrows `video_codecs`: a codec missing
-  // from that list is not decodable whatever an entry here says.
+  // entries name the same (C, P), the first one that is not all-zero wins. This only narrows
+  // `video_codecs`: a codec missing from that list is not decodable whatever an entry here says.
   //
   // Each dimension resolves on its own. A 0 `max_width` or `max_height` in an entry means that entry
   // gives no limit for that dimension, so the integration takes it from the next tier down, ending at
