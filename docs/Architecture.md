@@ -641,6 +641,9 @@ The host is a courier for a source and never a consumer of it. In order of how m
    app will give Binge links to video sources, and Binge does not check where they come from. For a
    companion that declares `PLAYBACK_PROGRESS`, it adds: and Binge tells it what you play from its
    sources.
+   For a companion that declares `LIST_SERVED_TITLES`, it adds: and Binge tells it your region and
+   the content-rating limit you set, to choose which titles to list. The rating limit can show that
+   a profile is a child's, so the text says it.
    Consent is per package with the certificate pinned, as everywhere.
 7. **A remote kill switch, and a remote revocation list.** The host renders STREAM UI only while
    a feature flag is on, so a policy problem is answered in minutes without a release. Separately,
@@ -701,12 +704,28 @@ host resolves against each under its own deadline and shows what arrives, groupe
 preferred. The deadline is 10 s (#148). binge-archive measured a p95 of 5.5 s over 258 resolves
 from a data centre, and 10 s leaves room for a phone on a home network.
 
+### The served-titles row
+
+A companion that declares `LIST_SERVED_TITLES` lets the host show a paged "Free to watch" row. The host
+asks `ListServedTitles` with its region, the certifications its rating limit admits, and whether
+unrated titles are included. The companion filters, so a page is already exact. The host reads a
+bounded number of pages per refresh and leaves the rest for the next. It starts again from an empty
+token when its region, rating limit or unrated rule changes, such as on a switch to a child profile.
+It renders each title from TMDB.
+
+The row is off by default, like every row a companion feeds, with a switch for each companion. A
+title in the row opens the host's own title page, where `Resolve` shows what the companion has. The
+list is ids only, in the companion's order, which the host does not read as a ranking.
+
 ### Where STREAM stops
 
 - It never answers for the user's own server; that is LIBRARY, even when the same backend could.
 - It hands out playable sources and nothing else: no browsing, no search, no catalogue. A
   companion with a catalogue of its own is a different product, and the host does not render it.
-  binge-archive will have one in its own UI, opening titles in Binge, as a later phase (#149).
+  There is one named exception (#149): a companion may list the TMDB ids it serves, through
+  `ListServedTitles`. The host renders those titles from TMDB, as it renders any title. The companion
+  still never renders a catalogue and never sends a title, a poster or any other text. The host never
+  ranks the list.
 - The host records nothing about what was watched; a companion with `PLAYBACK_PROGRESS` may, for its
   own sources.
 
