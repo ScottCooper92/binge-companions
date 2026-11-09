@@ -427,6 +427,10 @@ service StreamService {
   // OK. The host handshakes again when the user returns from the integration app after it
   // sent them there for an UNAUTHENTICATED, from this rpc or any other. An integration answers
   // every Handshake from the session it holds now.
+  //
+  // With the backend not answering, it may fail UNAVAILABLE or DEADLINE_EXCEEDED carrying the
+  // SERVER_UNREACHABLE detail, and the host reads it without a declared capability; see
+  // common.proto.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. Streams one `StreamSource` per message as the integration finds them and completes
   // when it has no more. Completing with no messages is OK: the title has no sources here.

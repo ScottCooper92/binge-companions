@@ -41,6 +41,13 @@ option java_multiple_files = true;
 // A host relies on it only when the handshake declared the capability, and falls back to its
 // generic "can't reach" otherwise, as it does for an UNAVAILABLE that carries no detail. A
 // `LocalizedMessage` may ride beside it, as for any error, and replaces the host's own copy.
+//
+// The one exception is a failed `Handshake`. With the server down, an integration cannot know its
+// capability set, so no capability could have been declared, and that is the case this detail exists
+// for. A `Handshake` may therefore fail with it, and a host reads it there without a declared
+// capability. This is safe: an older integration never sends it, an older host ignores an unknown
+// detail, the reader cleans `server_name`, and the only effect is a clearer line beside the retry the
+// host offers for these codes anyway. Every other rpc needs the capability declared.
 
 // The kind of title a `MediaId` addresses.
 //

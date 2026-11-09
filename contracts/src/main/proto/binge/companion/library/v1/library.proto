@@ -540,6 +540,10 @@ service LibraryService {
   // integration app after it sent them there for an UNAUTHENTICATED,
   // from this rpc or any other. An integration answers every Handshake from the
   // session it holds now.
+  //
+  // With the media server not answering, it may fail UNAVAILABLE or DEADLINE_EXCEEDED carrying the
+  // SERVER_UNREACHABLE detail, and the host reads it without a declared capability; see
+  // common.proto.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Requires CAPABILITY_AVAILABILITY. "Not in the library" is a successful answer
   // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND, and may say why in

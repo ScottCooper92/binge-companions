@@ -783,6 +783,10 @@ service RequestService {
   // integration app after the host sent them there for an UNAUTHENTICATED. An
   // integration answers every Handshake from the session it holds now, not from an
   // earlier one.
+  //
+  // With the provider not answering, it may fail UNAVAILABLE or DEADLINE_EXCEEDED carrying the
+  // SERVER_UNREACHABLE detail, and the host reads it without a declared capability; see
+  // common.proto.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or a `version_id` the handshake did
   // not list; FAILED_PRECONDITION for a blocklisted title;
