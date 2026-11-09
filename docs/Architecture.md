@@ -450,7 +450,9 @@ extra.
 ### Watch state flows both ways, on consent
 
 Reading is the default: once the user allows the integration, `GetWatchState` and
-`ObserveWatchState` report played, progress and the last played instant, per episode for a series.
+`ObserveWatchState` report played, progress and the last played instant. For a series they carry only a window of the 100 most recently played episodes (#287).
+`ListEpisodeWatchState` pages the rest, behind `CAPABILITY_EPISODE_WATCH_STATE`. A continue-watching
+row carries no episode list, because it already names its episode.
 
 Writing is a second, explicit consent, because `SetPlayed` changes data on the user's server. The
 two are therefore two capabilities — `WATCH_STATE` and `WATCH_STATE_WRITE` — and not one with a

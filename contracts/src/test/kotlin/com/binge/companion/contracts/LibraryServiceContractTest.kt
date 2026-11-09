@@ -57,6 +57,7 @@ private val RPC_SHAPES =
         "ListNextUp" to MethodType.UNARY,
         "GetPlaybackSource" to MethodType.UNARY,
         "ReportPlayback" to MethodType.UNARY,
+        "ListEpisodeWatchState" to MethodType.UNARY,
     )
 
 /**
