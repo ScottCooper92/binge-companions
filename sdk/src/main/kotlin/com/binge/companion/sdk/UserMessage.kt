@@ -100,7 +100,7 @@ internal fun <T> List<Any>.unpack(typeUrl: String, parse: (com.google.protobuf.B
         }
     }
 
-/** The domain an integration's reasons belong to when it names none of its own. */
+/** The domain an integration's reasons belong to when it names none of its own. `SERVER_UNREACHABLE` is reserved in it. */
 const val USER_MESSAGE_DOMAIN = "binge.companion"
 
 internal const val TYPE_URL_PREFIX = "type.googleapis.com/"
