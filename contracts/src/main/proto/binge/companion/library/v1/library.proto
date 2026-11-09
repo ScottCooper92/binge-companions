@@ -434,6 +434,32 @@ message PlaybackDeviceProfile {
   // The containers and manifests the player opens: the `PlaybackSource.mime_type` allowlist,
   // narrowed ("application/x-mpegURL", "video/mp4"). Empty means any on the allowlist.
   repeated string container_mime_types = 7;
+  // The largest frame per video codec and profile, where a device decodes some further than others
+  // (HEVC Main 10 to 4K but AVC High only to 1080p). `max_width` and `max_height` above stay the
+  // fallback, and keep their meaning. At most 32 entries; the integration reads no more.
+  //
+  // For a source in codec C and profile P the integration uses the most specific entry: the one for
+  // (C, P), else the one for C with an empty profile, else `max_width` and `max_height`, else no
+  // limit. A profile token the integration does not know matches only the codec-only entry. When two
+  // entries name the same (C, P), the first wins. This only narrows `video_codecs`: a codec missing
+  // from that list is not decodable whatever an entry here says.
+  repeated CodecLimit codec_limits = 8;
+}
+
+// The largest frame the player decodes for one video codec, optionally for one profile of it. A hint
+// like the rest of `PlaybackDeviceProfile`: an integration that ignores it answers as it would for an
+// unknown device.
+message CodecLimit {
+  // A `PlaybackDeviceProfile.video_codecs` entry: "video/avc", "video/hevc" or "video/av01".
+  string mime_type = 1;
+  // The codec profile as a lowercase token, or empty for every profile of the codec. The tokens are
+  // "baseline", "main", "high" and "high10" for video/avc; "main" and "main10" for video/hevc; and
+  // "main", "high" and "professional" for video/av01. The table is extended by appending, and for any
+  // other codec only the empty profile is meaningful.
+  string profile = 2;
+  // The largest frame in pixels. 0 for either means no limit given for that dimension.
+  int32 max_width = 3;
+  int32 max_height = 4;
 }
 
 // One subtitle file the host's player loads beside the source. The same URL rule as
