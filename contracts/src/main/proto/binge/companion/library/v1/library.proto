@@ -290,9 +290,13 @@ message WatchState {
   //
   // In `GetWatchState` and `ObserveWatchState` it is a window, not the whole series: at most 100
   // entries, most recently played first (`last_played` descending; entries with none follow, in
-  // season then episode order). A host reads no more than 100 and ignores the rest. An entry is about
-  // 40 bytes, so every push stays small however long the series is. The full list is
-  // `ListEpisodeWatchState`, behind CAPABILITY_EPISODE_WATCH_STATE.
+  // season then episode order). An episode with neither a played flag nor a resume point is absent.
+  // A host reads no more than 100 and ignores the rest. An entry is about 40 bytes, so every push
+  // stays small however long the series is. The full list is `ListEpisodeWatchState`, behind
+  // CAPABILITY_EPISODE_WATCH_STATE.
+  //
+  // Inside an `EpisodeWatchState`, including every entry of a `ListEpisodeWatchState` page, it is
+  // empty, and a host ignores any entries found there.
   repeated EpisodeWatchState episodes = 5;
 }
 

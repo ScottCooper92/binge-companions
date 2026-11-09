@@ -50,6 +50,5 @@ class LibraryEpisodeSizeContractTest {
             .build()
 
         assertTrue(page.serializedSize < 32 * 1024, "200 episodes serialised to ${page.serializedSize} bytes")
-        assertTrue(page.serializedSize < 1024 * 1024 / 16)
     }
 }
