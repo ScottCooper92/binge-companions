@@ -1,5 +1,6 @@
 package com.binge.companion.sdk
 
+import com.binge.companion.contracts.stream.v1.ListContinueWatchingRequest
 import com.binge.companion.contracts.stream.v1.ListServedTitlesRequest
 import io.grpc.Status
 import io.grpc.StatusException
@@ -75,7 +76,7 @@ class ServedTitlesTest {
     fun `a garbled or foreign token is refused`() {
         assertInvalid { ServedTitlesPageToken.skipOf(request(token = "!!!")) }
         val other = ContinueWatchingPageToken.issue(
-            com.binge.companion.contracts.stream.v1.ListContinueWatchingRequest
+            ListContinueWatchingRequest
                 .newBuilder()
                 .setPageSize(50)
                 .build(),
