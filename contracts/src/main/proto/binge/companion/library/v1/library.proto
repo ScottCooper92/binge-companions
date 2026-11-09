@@ -50,6 +50,12 @@ syntax = "proto3";
 // trailer with an ErrorInfo and a LocalizedMessage in the device's locale, never in the
 // status description.
 //
+// Server unreachable: with CAPABILITY_SERVER_UNREACHABLE declared, a call that failed because the
+// media server did not answer carries the shared SERVER_UNREACHABLE `ErrorInfo` (common.proto) on
+// UNAVAILABLE or DEADLINE_EXCEEDED, so the host can say "<Server> isn't answering" rather than
+// "can't reach". Send it only when the integration is running and signed in; a broken session is
+// still UNAUTHENTICATED.
+//
 // Conformance rules, as REQUEST states them: every URL a response carries (`artwork_url`)
 // is http or https, and the host refuses any other scheme; an rpc whose
 // capability the handshake did not declare is answered PERMISSION_DENIED.
@@ -111,6 +117,11 @@ enum Capability {
   // integration that writes `SetPlayed` has no `ReportPlayback` to answer, and the host must
   // never call an rpc it cannot tell is served.
   CAPABILITY_PLAYBACK_PROGRESS = 7;
+  // The integration marks a failure caused by an unanswering media server with the shared
+  // SERVER_UNREACHABLE `ErrorInfo` (`binge.companion.v1`, common.proto), on UNAVAILABLE or
+  // DEADLINE_EXCEEDED. No rpc is gated on it. Without it the host reads those codes as it always
+  // has.
+  CAPABILITY_SERVER_UNREACHABLE = 8;
 }
 
 // How the server prepared a playback source. Display only: the host shows a transcode so the
@@ -529,6 +540,10 @@ service LibraryService {
   // integration app after it sent them there for an UNAUTHENTICATED,
   // from this rpc or any other. An integration answers every Handshake from the
   // session it holds now.
+  //
+  // With the media server not answering, it may fail UNAVAILABLE or DEADLINE_EXCEEDED carrying the
+  // SERVER_UNREACHABLE detail, and the host reads it without a declared capability; see
+  // common.proto.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Requires CAPABILITY_AVAILABILITY. "Not in the library" is a successful answer
   // carrying AVAILABILITY_STATE_NOT_IN_LIBRARY, never NOT_FOUND, and may say why in
