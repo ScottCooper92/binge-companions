@@ -153,8 +153,8 @@ The shape, in `library.proto`:
 
 - The URL scheme rule is LIBRARY's own and is looser than STREAM's: https for any address, and
   http only when every address the host resolves to is private (loopback, link-local, RFC 1918,
-  IPv6 unique local, or the 100.64/10 shared space overlay networks use), so a hostname alone
-  does not qualify. The user's own server on their own network may be cleartext. STREAM states
+  IPv6 unique local, or the 100.64/10 shared space while a VPN or overlay network is up), so a
+  hostname alone does not qualify. `::ffff:` addresses are classified by their IPv4 address. The user's own server on their own network may be cleartext. STREAM states
   https only.
 - `GetPlaybackSource` takes the media identity, the episode for a series, the player's package
   (empty for Binge's own) and the device profile, and returns the `PlaybackSource` with its

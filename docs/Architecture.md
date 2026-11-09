@@ -614,7 +614,11 @@ The host is a courier for a source and never a consumer of it. In order of how m
    which already exists for LIBRARY and is held to these rules, with the hand-off kept beside it.
 2. **The host validates and drops; it never repairs.** The URL scheme is each contract's own rule:
    STREAM takes https only, and LIBRARY's `PLAYBACK_SOURCE` also takes http, but only when every
-   address the host resolves to is private. `library.proto` lists the ranges. Only `Authorization`,
+   address the host resolves to is private. `library.proto` lists the ranges. The shared space
+   (`100.64/10`) counts only while a VPN or overlay network is up, and `::ffff:` is classified by
+   its IPv4 address. The host's own player fetches through the addresses the host checked. An
+   installed player cannot be pinned, so the rule bounds what the host accepts, not what that
+   player later fetches. Only `Authorization`,
    `Cookie`, `Referer` and `User-Agent` headers, each at most 4 KiB. A source whose headers the
    chosen player cannot carry is hidden for that player, not sent without them. `mime_type` is on
    a video allowlist (`video/*`, HLS and DASH), and empty reads as `video/*`. Labels are
