@@ -348,6 +348,13 @@ TV title.
 decline still succeeds. `CancelRequest` withdraws the request and never deletes media files, even
 for a provider where adding the title and downloading it are one step.
 
+`DeleteFiles` (`CAPABILITY_DELETE_FILES`, #284) is the one rpc that deletes files. It takes a title and
+a version, removes that version's downloaded files, and then withdraws every request for it so nothing
+requests the title again. One capability covers both versions, and a host that finds files for both
+lets the user choose in its confirm. It is irreversible, so the host confirms first and offers it only
+where the title's `allowed_actions` carry the capability. Once the files are gone it answers OK even if
+withdrawing the request then fails.
+
 ## LIBRARY: the user's own media server
 
 Binge decides what to watch and remembers what you decided. REQUEST gets a title into a library.
