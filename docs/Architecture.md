@@ -114,7 +114,9 @@ Practical rules:
   optional `server_name`, on `UNAVAILABLE` or `DEADLINE_EXCEEDED`. The host then says "<Server> isn't
   answering" with a retry. It is not sent for a missing session (`UNAUTHENTICATED`) or a failure of
   the companion, and the transport's own `UNIMPLEMENTED` and dead-process `UNAVAILABLE` never carry
-  it. A host relies on it only when the capability was declared, except on a failed `Handshake`: with the server down the integration cannot know its capability set, so a `Handshake` may carry the detail and the host reads it there without one. It is a detail on an existing code,
+  it. A host relies on it only when the capability was declared, except on a failed `Handshake`: with
+  the server down the integration cannot know its capability set, so a `Handshake` may carry the detail
+  and the host reads it there without one. It is a detail on an existing code,
   so it needed no new field, rpc or code, and an older host or companion is unaffected.
   `common.proto` states the rules once, and the SDK's `serverUnreachable()` and
   `serverUnreachableOf()` write and read it, cleaning `server_name` on the way in and out.

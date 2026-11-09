@@ -62,9 +62,9 @@ data class ServerUnreachable(
 /**
  * The server-unreachable detail in [trailers], or null when there is none (the host shows its generic message).
  * Malformed or foreign details, and an `ErrorInfo` with another reason or domain, give null rather than throw.
+ * It does not check the status code; the `Throwable` overload does, so a host with only trailers checks it itself.
  * [ServerUnreachable.serverName] is cleaned here, as a companion is a third party: control characters and bidi
  * overrides are removed, the text is trimmed and cut to [SERVER_NAME_MAX_CODE_POINTS] code points.
- * It does not check the status code; the [Throwable] overload does.
  */
 fun serverUnreachableOf(trailers: Metadata?): ServerUnreachable? {
     val bytes = trailers?.get(STATUS_DETAILS_KEY) ?: return null

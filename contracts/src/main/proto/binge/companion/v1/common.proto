@@ -38,6 +38,9 @@ option java_multiple_files = true;
 // UNIMPLEMENTED (not installed) and an UNAVAILABLE from a dead process come from the transport, which
 // has no such detail. That absence is what lets a host tell the two apart.
 //
+// The reason `SERVER_UNREACHABLE` is reserved for this meaning in the domain `binge.companion`:
+// a companion does not use it for anything else.
+//
 // A host relies on it only when the handshake declared the capability, and falls back to its
 // generic "can't reach" otherwise, as it does for an UNAVAILABLE that carries no detail. A
 // `LocalizedMessage` may ride beside it, as for any error, and replaces the host's own copy.
