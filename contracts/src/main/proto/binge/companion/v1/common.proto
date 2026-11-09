@@ -138,7 +138,7 @@ message HttpHeader {
 //   - The URL scheme is the CONTRACT's rule, not this message's: each contract that carries a
 //     `PlaybackSource` states which schemes (and, for cleartext, which addresses) it accepts, and
 //     the host drops a source whose `url` breaks it. STREAM allows https only. LIBRARY allows
-//     http to a private address as well; library.proto states the rule.
+//     http to a private address as well; library.proto states the rule and its limits.
 //   - `expires_at` is REQUIRED. A source with none is dropped: players keep history, so a URL
 //     a player was given is a URL that gets stored, and the expiry is what bounds that. The
 //     host never caches a source past it and never past the title page that resolved it.
