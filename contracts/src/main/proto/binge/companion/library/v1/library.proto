@@ -63,12 +63,29 @@ syntax = "proto3";
 // Playback sources: the URL scheme rule is LIBRARY's own, and looser than STREAM's. The `url`
 // of a `PlaybackSource` and every `SubtitleTrack.url` beside it is https for any address, or
 // http only when EVERY address the URL's host RESOLVES to is private: loopback (127/8, ::1),
-// link-local (169.254/16, fe80::/10), RFC 1918 (10/8, 172.16/12, 192.168/16), IPv6 unique
-// local (fc00::/7) or the shared address space (100.64/10) that overlay networks hand out. A
-// hostname that merely looks local does not qualify, and a host that resolves to nothing is
-// refused. The server is the user's own, so cleartext on their network is a fair trade; the
-// rest of the rules the host applies to a `PlaybackSource` (expiry, headers, `mime_type`) are
-// in that message's header. A source failing any rule is dropped silently.
+// link-local (169.254/16, fe80::/10), RFC 1918 (10/8, 172.16/12, 192.168/16) or IPv6 unique
+// local (fc00::/7). A hostname that merely looks local does not qualify, and a host that
+// resolves to nothing is refused. The server is the user's own, so cleartext on their network is
+// a fair trade; the rest of the rules the host applies to a `PlaybackSource` (expiry, headers,
+// `mime_type`) are in that message's header. A source failing any rule is dropped silently.
+//
+// The shared address space (100.64/10) is private only while the device has a VPN or overlay
+// network up on its active network (on Android, `NetworkCapabilities.TRANSPORT_VPN`). Overlay
+// networks such as Tailscale hand these addresses out, but so do carriers, whose next hop is not
+// the user's. With no such network up, a URL whose host resolves into 100.64/10 needs https, as a
+// public address does.
+//
+// An IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) is classified by its embedded IPv4 address,
+// against the same ranges and the same overlay condition: `::ffff:10.0.0.5` is private and
+// `::ffff:8.8.8.8` is not. Other forms that embed an IPv4 address (NAT64 `64:ff9b::/96`, 6to4,
+// IPv4-compatible `::a.b.c.d`) are not unwrapped and are not private, so they need https.
+//
+// What the check covers. The host's own player fetches through the addresses the host checked,
+// pinned, and does not resolve the name again. An installed third-party player is started with the
+// URL, resolves the name itself and cannot be pinned, so a name with a short TTL can answer
+// differently to the player than it did to the host. The rule bounds what the host accepts, not
+// what such a player later fetches. A companion should not rely on this check to keep a credential
+// it puts in a source, such as an `Authorization` header or a token in the URL, off the network.
 //
 // The transport codes are the same ones REQUEST documents at length, and for the same
 // reasons: UNIMPLEMENTED means the integration is NOT INSTALLED (grpc-binder reports a
