@@ -441,13 +441,14 @@ message PlaybackDeviceProfile {
   // For a source in codec C and profile P the integration uses the most specific entry: the one for
   // (C, P), else the one for C with an empty profile, else `max_width` and `max_height`, else no
   // limit. A profile token the integration does not know matches only the codec-only entry. When two
-  // entries name the same (C, P), the first wins. This only narrows `video_codecs`: a codec missing
+  // entries name the same (C, P), the first one that is not all-zero wins. This only narrows `video_codecs`: a codec missing
   // from that list is not decodable whatever an entry here says.
   //
   // Each dimension resolves on its own. A 0 `max_width` or `max_height` in an entry means that entry
   // gives no limit for that dimension, so the integration takes it from the next tier down, ending at
   // the profile's `max_width` or `max_height`, and at no limit if that is 0 too. An entry with both
-  // dimensions 0 is the same as no entry.
+  // dimensions 0 is the same as no entry: it is ignored, and cannot shadow a later entry for the same
+  // (C, P). An entry that sets one dimension is not all-zero, so it counts.
   repeated CodecLimit codec_limits = 8;
 }
 
