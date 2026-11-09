@@ -60,6 +60,7 @@ private val RPC_SHAPES =
         "UnblockTitle" to MethodType.UNARY,
         "GetAttention" to MethodType.UNARY,
         "ObserveAttention" to MethodType.SERVER_STREAMING,
+        "DeleteFiles" to MethodType.UNARY,
     )
 
 /**

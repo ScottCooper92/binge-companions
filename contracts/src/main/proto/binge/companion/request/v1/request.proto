@@ -190,6 +190,13 @@ enum Capability {
   // DEADLINE_EXCEEDED. No rpc is gated on it. Without it the host reads those codes as it always
   // has.
   CAPABILITY_SERVER_UNREACHABLE = 19;
+  // Delete a title's downloaded media files from the provider's server (`DeleteFiles`), for
+  // either version: one capability, and the rpc carries the version. In `allowed_actions` it
+  // means this user may delete the files for that version on this server. It travels only on
+  // that version's `VersionStatus.allowed_actions`: deletion is per version, not per request, so
+  // it is never on a request's `RequestInfo.allowed_actions`, and never on
+  // `RequestStatus.allowed_actions`, which is one flat list for the whole title.
+  CAPABILITY_DELETE_FILES = 20;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -415,7 +422,8 @@ message RequestStatus {
   repeated RequestInfo requests = 4;
   // The title-level capabilities that apply to THIS title for THIS user right now —
   // the ones that aren't about any one existing request, such as CAPABILITY_BLOCK or
-  // CAPABILITY_REPORT_ISSUE. Whether a new request may be submitted is not a capability
+  // CAPABILITY_REPORT_ISSUE. A capability that is about one version (CAPABILITY_DELETE_FILES)
+  // belongs on that version's `VersionStatus.allowed_actions`. Whether a new request may be submitted is not a capability
   // (`SubmitRequest` is core): the host infers it from the standard version's
   // `availability` for a standard request and from that version's entry for a request of another. A
   // capability that is about one specific request (CAPABILITY_APPROVE, CAPABILITY_DECLINE,
@@ -472,6 +480,10 @@ message VersionStatus {
   // CAPABILITY_MEDIA_FILE_INFO. Movies only: a series has a file per episode, which this
   // contract doesn't model.
   MediaFileInfo file_info = 6;
+  // The capabilities that apply to THIS version for THIS user right now, such as
+  // CAPABILITY_DELETE_FILES. A host offers a capability that is about one version only from
+  // this list. Actions on one existing request (cancel, approve) stay on that request's list.
+  repeated Capability allowed_actions = 8;
 }
 
 // A movie's resulting file, only meaningfully populated when its `VersionStatus.availability`
@@ -739,6 +751,26 @@ message UnblockTitleRequest {
 
 message UnblockTitleResponse {}
 
+// Deletes a title's downloaded media files for one version on the provider's server, and then
+// withdraws every request for that title and version, so nothing requests it again. It is the one
+// rpc that deletes files; `CancelRequest` only withdraws a request and leaves them.
+//
+// Destructive and irreversible, so the host confirms first. When files exist for both the standard
+// and a second version, the host's confirm lets the user choose, and sends one call per version.
+// It covers the whole title: for a series, every season's files for that version.
+//
+// If the files were deleted, the answer is OK even when withdrawing the request then failed; the
+// next status read shows what remains. An integration never answers an error after it has deleted
+// files.
+message DeleteFilesRequest {
+  binge.companion.v1.MediaId media = 1;
+  // A `Version.id` from the handshake; empty is the standard version. INVALID_ARGUMENT for one the
+  // handshake did not list.
+  string version_id = 2;
+}
+
+message DeleteFilesResponse {}
+
 // What the host may badge the integration with. The count is the host's to show on the
 // integration's row and tab; the flag is a warning state on the row whose tap hands
 // off to the integration app, where the user can sign in again.
@@ -834,7 +866,8 @@ service RequestService {
   rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
   // Requires CAPABILITY_CANCEL. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
-  // PERMISSION_DENIED when the user may not cancel this one. Never deletes media files.
+  // PERMISSION_DENIED when the user may not cancel this one. Never deletes media files;
+  // `DeleteFiles` does that.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
   // Requires CAPABILITY_APPROVE. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
@@ -878,4 +911,14 @@ service RequestService {
   // `GetAttention`: the stream fails UNAUTHENTICATED when nothing is connected, and
   // carries a broken session as `needs_reconnect`.
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
+  // Requires CAPABILITY_DELETE_FILES, and the host offers it for a version only where that
+  // version's `VersionStatus.allowed_actions` carries that capability. Deletes the media files for `media` and
+  // `version_id`, then withdraws every request for them; see `DeleteFilesRequest`.
+  // INVALID_ARGUMENT for an unspecified `media` or an unknown `version_id`;
+  // PERMISSION_DENIED when the user may not delete files; FAILED_PRECONDITION when the
+  // provider's media services cannot delete; NOT_FOUND when the media is gone. A version with a request but no files yet
+  // is not gone: the request is withdrawn and the answer is OK. NOT_FOUND means neither files nor
+  // a request remain. A host that
+  // retries after DEADLINE_EXCEEDED and meets NOT_FOUND reads it as done and refreshes.
+  rpc DeleteFiles(DeleteFilesRequest) returns (DeleteFilesResponse);
 }

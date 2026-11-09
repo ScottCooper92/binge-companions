@@ -188,7 +188,9 @@ status. A declared capability gates every other rpc.
   subset — capabilities that aren't about any one existing request. A capability that is about one
   specific request (approve, decline, retry, cancel, edit seasons) travels on that request's own
   `allowed_actions` instead, so it can say "approve applies to request #7, not #8" — one flat
-  title-level list cannot (REQUEST#63).
+  title-level list cannot (REQUEST#63). A capability that is about one version of a title
+  (`CAPABILITY_DELETE_FILES`) travels on that version's `VersionStatus.allowed_actions`, because the
+  title-level list cannot say which version. So there are three levels: title, version and request.
 
 The boundary rule: a behavior variation over the same data model is a capability. A new data model
 with its own lifecycle is a new contract. Capability enums grow by appending. Peers ignore values
@@ -360,6 +362,15 @@ TV title.
 `DeclineRequest` takes an optional `reason`. A provider with no place for one ignores it and the
 decline still succeeds. `CancelRequest` withdraws the request and never deletes media files, even
 for a provider where adding the title and downloading it are one step.
+
+`DeleteFiles` (`CAPABILITY_DELETE_FILES`, #284) is the one rpc that deletes files. It takes a title and
+a version, removes that version's downloaded files, and then withdraws every request for it so nothing
+requests the title again. One capability covers both versions, and a host that finds files for both
+lets the user choose in its confirm. It is irreversible, so the host confirms first and offers it only
+where that version's `VersionStatus.allowed_actions` carries the capability, and only there.
+The title-level list cannot say which version. A version with a request but no files has its
+request withdrawn and the call answers OK. Once the files are gone it answers OK even if
+withdrawing the request then fails.
 
 ## LIBRARY: the user's own media server
 
