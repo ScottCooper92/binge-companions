@@ -179,6 +179,10 @@ enum Capability {
   // by `ReportIssueRequest.category_id`. Declared only with CAPABILITY_REPORT_ISSUE. Without
   // it the host reports with the fixed `IssueType` set.
   CAPABILITY_ISSUE_CATEGORIES = 18;
+  // Delete a title's downloaded media files from the provider's server (`DeleteFiles`), for
+  // either version: one capability, and the rpc carries the version. In `allowed_actions` it
+  // means this user may delete the files for this title and version on this server.
+  CAPABILITY_DELETE_FILES = 20;
 }
 
 // How far along the provider is for a title (or one season of it).
@@ -728,6 +732,26 @@ message UnblockTitleRequest {
 
 message UnblockTitleResponse {}
 
+// Deletes a title's downloaded media files for one version on the provider's server, and then
+// withdraws every request for that title and version, so nothing requests it again. It is the one
+// rpc that deletes files; `CancelRequest` only withdraws a request and leaves them.
+//
+// Destructive and irreversible, so the host confirms first. When files exist for both the standard
+// and a second version, the host's confirm lets the user choose, and sends one call per version.
+// It covers the whole title: for a series, every season's files for that version.
+//
+// If the files were deleted, the answer is OK even when withdrawing the request then failed; the
+// next status read shows what remains. An integration never answers an error after it has deleted
+// files.
+message DeleteFilesRequest {
+  binge.companion.v1.MediaId media = 1;
+  // A `Version.id` from the handshake; empty is the standard version. INVALID_ARGUMENT for one the
+  // handshake did not list.
+  string version_id = 2;
+}
+
+message DeleteFilesResponse {}
+
 // What the host may badge the integration with. The count is the host's to show on the
 // integration's row and tab; the flag is a warning state on the row whose tap hands
 // off to the integration app, where the user can sign in again.
@@ -819,7 +843,8 @@ service RequestService {
   rpc SubmitAdvancedRequest(SubmitAdvancedRequestRequest) returns (SubmitAdvancedRequestResponse);
   // Requires CAPABILITY_CANCEL. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
-  // PERMISSION_DENIED when the user may not cancel this one. Never deletes media files.
+  // PERMISSION_DENIED when the user may not cancel this one. Never deletes media files;
+  // `DeleteFiles` does that.
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
   // Requires CAPABILITY_APPROVE. NOT_FOUND for an unknown `request_id`;
   // FAILED_PRECONDITION when the request is not in a state that allows it;
@@ -863,4 +888,12 @@ service RequestService {
   // `GetAttention`: the stream fails UNAUTHENTICATED when nothing is connected, and
   // carries a broken session as `needs_reconnect`.
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
+  // Requires CAPABILITY_DELETE_FILES, and the host offers it only where `allowed_actions` carries
+  // that capability for the title or request in view. Deletes the media files for `media` and
+  // `version_id`, then withdraws every request for them; see `DeleteFilesRequest`.
+  // INVALID_ARGUMENT for an unspecified `media` or an unknown `version_id`;
+  // PERMISSION_DENIED when the user may not delete files; FAILED_PRECONDITION when the
+  // provider's media services cannot delete; NOT_FOUND when the media is gone. A host that
+  // retries after DEADLINE_EXCEEDED and meets NOT_FOUND reads it as done and refreshes.
+  rpc DeleteFiles(DeleteFilesRequest) returns (DeleteFilesResponse);
 }
