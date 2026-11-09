@@ -443,6 +443,11 @@ message PlaybackDeviceProfile {
   // limit. A profile token the integration does not know matches only the codec-only entry. When two
   // entries name the same (C, P), the first wins. This only narrows `video_codecs`: a codec missing
   // from that list is not decodable whatever an entry here says.
+  //
+  // Each dimension resolves on its own. A 0 `max_width` or `max_height` in an entry means that entry
+  // gives no limit for that dimension, so the integration takes it from the next tier down, ending at
+  // the profile's `max_width` or `max_height`, and at no limit if that is 0 too. An entry with both
+  // dimensions 0 is the same as no entry.
   repeated CodecLimit codec_limits = 8;
 }
 
@@ -457,7 +462,8 @@ message CodecLimit {
   // "main", "high" and "professional" for video/av01. The table is extended by appending, and for any
   // other codec only the empty profile is meaningful.
   string profile = 2;
-  // The largest frame in pixels. 0 for either means no limit given for that dimension.
+  // The largest frame in pixels. 0 for either means this entry gives no limit for that dimension,
+  // and the next tier decides it (see `PlaybackDeviceProfile.codec_limits`).
   int32 max_width = 3;
   int32 max_height = 4;
 }
