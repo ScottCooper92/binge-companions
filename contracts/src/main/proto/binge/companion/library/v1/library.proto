@@ -303,11 +303,15 @@ message WatchState {
   // When the user last played it. Absent when the server does not say.
   google.protobuf.Timestamp last_played = 4;
   // Per-episode detail for a series. Empty for a movie, and empty in `LibraryEntry.state`, where the
-  // row already names its episode in `LibraryEntry.episode`: a host ignores any entries found there.
+  // row already names its episode in `LibraryEntry.episode`. It is also empty inside an
+  // `EpisodeWatchState`, which includes every entry of a `ListEpisodeWatchState` page, because it
+  // would nest a second list. A host ignores any entries found in those places.
   //
   // In `GetWatchState` and `ObserveWatchState` it is a window, not the whole series: at most 100
   // entries, most recently played first (`last_played` descending; entries with none follow, in
-  // season then episode order). A host reads no more than 100 and ignores the rest. An entry is about
+  // season then episode order). Only episodes the user has some state for are in it, played or with
+  // a resume point; an episode with neither is absent, as in `ListEpisodeWatchStateResponse`. A host
+  // reads no more than 100 and ignores the rest. An entry is about
   // 40 bytes, so every push stays small however long the series is. The full list is
   // `ListEpisodeWatchState`, behind CAPABILITY_EPISODE_WATCH_STATE.
   repeated EpisodeWatchState episodes = 5;
