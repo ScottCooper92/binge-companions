@@ -123,7 +123,11 @@ class ServerUnreachableTest {
         assertNull(serverUnreachableOf(IllegalStateException("not grpc")))
     }
 
-    private fun detailsOnly(reason: String, domain: String, name: String): Metadata {
+    private fun detailsOnly(
+        reason: String,
+        domain: String,
+        name: String,
+    ): Metadata {
         val info =
             ErrorInfo
                 .newBuilder()

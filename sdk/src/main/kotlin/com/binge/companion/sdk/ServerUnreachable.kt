@@ -9,19 +9,11 @@ import io.grpc.StatusException
 import com.binge.companion.contracts.rpc.Status as RpcStatus
 
 /**
- * A failed call, marked as "signed in, but the server behind the companion is not answering" (#299).
- * This is the companion's side of `CAPABILITY_SERVER_UNREACHABLE` in REQUEST, LIBRARY and STREAM: declare the
- * capability in the handshake, then raise this where a call failed because the provider or media server
- * did not answer. The rules, and when not to send it, are in `common.proto`.
- *
- * The status is `UNAVAILABLE`, or `DEADLINE_EXCEEDED` when [timedOut]. Both carry an [ErrorInfo] with
- * [SERVER_UNREACHABLE_REASON] in [USER_MESSAGE_DOMAIN], and [serverName] under [SERVER_NAME_KEY] when it
- * holds text. [serverName] is cleaned and cut as [serverUnreachableOf] reads it, so what is sent is what a
- * host will show. A non-blank [message] adds a `LocalizedMessage` in [locale], as [withUserMessage] does, and
- * replaces the host's own copy.
- *
- * Do not raise it for a missing or broken session (`UNAUTHENTICATED`), for an upstream that answered with an
- * error on the merits, or for a failure of the companion itself.
+ * A failed call marked "signed in, but the server behind the companion is not answering" (#299).
+ * Status is `UNAVAILABLE`, or `DEADLINE_EXCEEDED` when [timedOut]; it carries an [ErrorInfo] with
+ * [SERVER_UNREACHABLE_REASON] and the cleaned [serverName] under [SERVER_NAME_KEY].
+ * A non-blank [message] adds a `LocalizedMessage` in [locale], as [withUserMessage] does.
+ * Declare `CAPABILITY_SERVER_UNREACHABLE` first; when to send it is in `common.proto`.
  */
 fun serverUnreachable(
     serverName: String? = null,
@@ -68,15 +60,10 @@ data class ServerUnreachable(
 )
 
 /**
- * The server-unreachable detail in [trailers], or null when there is none, which is when the host shows its
- * generic "can't reach". This is the host's reader: pass the trailers of the failed call,
- * `Status.trailersFromThrowable(e)`, and rely on it only when the handshake declared
- * `CAPABILITY_SERVER_UNREACHABLE`. Malformed or foreign details are ignored rather than thrown, and so is an
- * `ErrorInfo` with another reason or domain.
- *
- * [ServerUnreachable.serverName] is cleaned here and not only by the host, because a companion is a third
- * party and every host reads it through this function: control characters and bidi overrides are removed, the
- * text is trimmed, and it is cut to [SERVER_NAME_MAX_CODE_POINTS] code points. Nothing left means null.
+ * The server-unreachable detail in [trailers], or null when there is none (the host shows its generic message).
+ * Malformed or foreign details, and an `ErrorInfo` with another reason or domain, give null rather than throw.
+ * [ServerUnreachable.serverName] is cleaned here, as a companion is a third party: control characters and bidi
+ * overrides are removed, the text is trimmed and cut to [SERVER_NAME_MAX_CODE_POINTS] code points.
  */
 fun serverUnreachableOf(trailers: Metadata?): ServerUnreachable? {
     val bytes = trailers?.get(STATUS_DETAILS_KEY) ?: return null
