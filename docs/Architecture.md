@@ -107,6 +107,17 @@ Practical rules:
   `LocalizedMessage` in the device's locale. Host and integration share a device, and only the
   handshake carries `HostInfo.locale`, which an integration does not keep (#177). This applies to
   every contract, STREAM included; `request.proto` states it in full.
+- **A server that does not answer is told apart from a transport failure** (#299). A companion that
+  declares `CAPABILITY_SERVER_UNREACHABLE` (REQUEST, LIBRARY and STREAM each have one, and all three
+  mean the same) marks a call that failed because the media server or provider behind it did not
+  answer, with an `ErrorInfo` of reason `SERVER_UNREACHABLE`, domain `binge.companion` and an
+  optional `server_name`, on `UNAVAILABLE` or `DEADLINE_EXCEEDED`. The host then says "<Server> isn't
+  answering" with a retry. It is not sent for a missing session (`UNAUTHENTICATED`) or a failure of
+  the companion, and the transport's own `UNIMPLEMENTED` and dead-process `UNAVAILABLE` never carry
+  it. A host relies on it only when the capability was declared. It is a detail on an existing code,
+  so it needed no new field, rpc or code, and an older host or companion is unaffected.
+  `common.proto` states the rules once, and the SDK's `serverUnreachable()` and
+  `serverUnreachableOf()` write and read it, cleaning `server_name` on the way in and out.
 - The host's own translated copy is the default line for every code. A non-empty
   `LocalizedMessage` replaces it when the integration sends one.
 - Some codes come from the transport rather than from an integration, and a host has to handle
