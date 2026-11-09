@@ -63,6 +63,7 @@ private val RPC_SHAPES =
         "ReportPlayback" to MethodType.UNARY,
         "ListContinueWatching" to MethodType.UNARY,
         "ForgetProgress" to MethodType.UNARY,
+        "ListServedTitles" to MethodType.UNARY,
     )
 
 /**
