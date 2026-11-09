@@ -783,6 +783,9 @@ service RequestService {
   // integration app after the host sent them there for an UNAUTHENTICATED. An
   // integration answers every Handshake from the session it holds now, not from an
   // earlier one.
+  //
+  // Never SERVER_UNREACHABLE: with the server down it answers OK, as it does with no
+  // session, and the detail rides on the next call that fails (common.proto).
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or a `version_id` the handshake did
   // not list; FAILED_PRECONDITION for a blocklisted title;
