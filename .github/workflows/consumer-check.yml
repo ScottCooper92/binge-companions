@@ -38,7 +38,7 @@ permissions:
 
 jobs:
   seerr:
-    uses: ScottCooper92/binge-ci/.github/workflows/consumer-check.yml@494e473b01f083178315f3f723383fefba23c937 # v1
+    uses: ScottCooper92/binge-ci/.github/workflows/consumer-check.yml@ec5d41415c5cf9a49d0e49c9f08338f2b8798784 # v1
     with:
       consumer: ScottCooper92/binge-seerr
       tasks: ':app:compileDebugKotlin :app:compileDebugUnitTestKotlin'
