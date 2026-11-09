@@ -84,14 +84,14 @@ fun userMessageOf(trailers: Metadata?): UserMessage? {
     return UserMessage(reason = reason, message = localized.message, locale = localized.locale)
 }
 
-private fun pack(message: MessageLite, fullName: String): Any =
+internal fun pack(message: MessageLite, fullName: String): Any =
     Any
         .newBuilder()
         .setTypeUrl(TYPE_URL_PREFIX + fullName)
         .setValue(message.toByteString())
         .build()
 
-private fun <T> List<Any>.unpack(typeUrl: String, parse: (com.google.protobuf.ByteString) -> T): T? =
+internal fun <T> List<Any>.unpack(typeUrl: String, parse: (com.google.protobuf.ByteString) -> T): T? =
     firstOrNull { it.typeUrl == typeUrl }?.let { packed ->
         try {
             parse(packed.value)
@@ -103,7 +103,7 @@ private fun <T> List<Any>.unpack(typeUrl: String, parse: (com.google.protobuf.By
 /** The domain an integration's reasons belong to when it names none of its own. */
 const val USER_MESSAGE_DOMAIN = "binge.companion"
 
-private const val TYPE_URL_PREFIX = "type.googleapis.com/"
-private const val ERROR_INFO_URL = TYPE_URL_PREFIX + "google.rpc.ErrorInfo"
-private const val LOCALIZED_MESSAGE_URL = TYPE_URL_PREFIX + "google.rpc.LocalizedMessage"
-private val STATUS_DETAILS_KEY: Metadata.Key<ByteArray> = Metadata.Key.of("grpc-status-details-bin", Metadata.BINARY_BYTE_MARSHALLER)
+internal const val TYPE_URL_PREFIX = "type.googleapis.com/"
+internal const val ERROR_INFO_URL = TYPE_URL_PREFIX + "google.rpc.ErrorInfo"
+internal const val LOCALIZED_MESSAGE_URL = TYPE_URL_PREFIX + "google.rpc.LocalizedMessage"
+internal val STATUS_DETAILS_KEY: Metadata.Key<ByteArray> = Metadata.Key.of("grpc-status-details-bin", Metadata.BINARY_BYTE_MARSHALLER)
