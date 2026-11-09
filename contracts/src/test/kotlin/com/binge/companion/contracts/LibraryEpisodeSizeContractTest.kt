@@ -31,14 +31,23 @@ class LibraryEpisodeSizeContractTest {
     @Test
     fun `a window of 100 episodes in a watch state is a few kilobytes`() {
         val state = WatchState.newBuilder().addAllEpisodes((0 until 100).map(::episode)).build()
-        val size = GetWatchStateResponse.newBuilder().setState(state).build().serializedSize
+        val size = GetWatchStateResponse
+            .newBuilder()
+            .setState(state)
+            .build()
+            .serializedSize
 
         assertTrue(size < 16 * 1024, "100 episodes serialised to $size bytes")
     }
 
     @Test
     fun `a page of 200 episodes is well under the Binder limit`() {
-        val page = ListEpisodeWatchStateResponse.newBuilder().addAllEpisodes((0 until 200).map(::episode)).setNextPageToken("x".repeat(256)).build()
+        val page = ListEpisodeWatchStateResponse
+            .newBuilder()
+            .addAllEpisodes(
+                (0 until 200).map(::episode),
+            ).setNextPageToken("x".repeat(256))
+            .build()
 
         assertTrue(page.serializedSize < 32 * 1024, "200 episodes serialised to ${page.serializedSize} bytes")
         assertTrue(page.serializedSize < 1024 * 1024 / 16)
