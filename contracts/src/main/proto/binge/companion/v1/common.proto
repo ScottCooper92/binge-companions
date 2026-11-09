@@ -13,6 +13,45 @@ import "google/protobuf/timestamp.proto";
 option java_package = "com.binge.companion.contracts.v1";
 option java_multiple_files = true;
 
+// Server unreachable: "signed in, but the server behind the companion is not answering".
+//
+// Shared by REQUEST, LIBRARY and STREAM, each of which declares it as
+// `CAPABILITY_SERVER_UNREACHABLE`. It is an error detail, not a message, because errors travel as
+// gRPC status codes and never as response fields. It rides on the failed call in the
+// `google.rpc.Status` of the `grpc-status-details-bin` trailer, as a `google.rpc.ErrorInfo`:
+//   - `domain`   is "binge.companion".
+//   - `reason`   is "SERVER_UNREACHABLE".
+//   - `metadata` may hold "server_name", the display name of the server that did not answer
+//                ("Living room Jellyfin"). Plain text; empty or absent means the companion names
+//                none. A reader strips control and bidi-override characters (U+202A-U+202E,
+//                U+2066-U+2069), trims it, and cuts it to 60 Unicode code points. The SDK's parser
+//                does this, so a host written against it need not. Other keys are ignored.
+//
+// The status code is UNAVAILABLE when the server refused, could not be resolved or answered with a
+// 5xx, and DEADLINE_EXCEEDED when it did not answer in time. Both carry the same detail, and both
+// stay retryable as each contract already says, so the host's retry needs nothing new.
+//
+// When a companion sends it: it is running, its own session with the server is intact, and the
+// call failed because the server did not answer. When it must NOT: no session or a broken one
+// (UNAUTHENTICATED); the server answered with an error on the merits (PERMISSION_DENIED,
+// NOT_FOUND and so on); the companion itself failed. A transport failure never carries it:
+// UNIMPLEMENTED (not installed) and an UNAVAILABLE from a dead process come from the transport, which
+// has no such detail. That absence is what lets a host tell the two apart.
+//
+// The reason `SERVER_UNREACHABLE` is reserved for this meaning in the domain `binge.companion`:
+// a companion does not use it for anything else.
+//
+// A host relies on it only when the handshake declared the capability, and falls back to its
+// generic "can't reach" otherwise, as it does for an UNAVAILABLE that carries no detail. A
+// `LocalizedMessage` may ride beside it, as for any error, and replaces the host's own copy.
+//
+// The one exception is a failed `Handshake`. With the server down, an integration cannot know its
+// capability set, so no capability could have been declared, and that is the case this detail exists
+// for. A `Handshake` may therefore fail with it, and a host reads it there without a declared
+// capability. This is safe: an older integration never sends it, an older host ignores an unknown
+// detail, the reader cleans `server_name`, and the only effect is a clearer line beside the retry the
+// host offers for these codes anyway. Every other rpc needs the capability declared.
+
 // The kind of title a `MediaId` addresses.
 //
 // Append-only: new values get new numbers; a receiver ignores values it does not know.

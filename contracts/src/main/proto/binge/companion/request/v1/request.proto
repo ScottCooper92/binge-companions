@@ -52,6 +52,12 @@ syntax = "proto3";
 // the code otherwise, an empty or blank one included. The sentence never goes in the status
 // description.
 //
+// Server unreachable: an integration that declares CAPABILITY_SERVER_UNREACHABLE marks a call that
+// failed because the provider behind it did not answer, with an `ErrorInfo` reason of
+// SERVER_UNREACHABLE and an optional `server_name`, on UNAVAILABLE or DEADLINE_EXCEEDED. It lets the
+// host say "<Server> isn't answering" with a retry, instead of the "can't reach" it shows for a
+// failure of the transport. The rules, and when not to send it, are in common.proto.
+//
 // Conformance rules both ends follow, so a third-party integration can learn them here:
 //   URLs           — every URL a response carries (`VersionStatus.watch_url`) is http or https. The host
 //                    refuses any other scheme (content:, file:, intent:, a custom one)
@@ -179,6 +185,11 @@ enum Capability {
   // by `ReportIssueRequest.category_id`. Declared only with CAPABILITY_REPORT_ISSUE. Without
   // it the host reports with the fixed `IssueType` set.
   CAPABILITY_ISSUE_CATEGORIES = 18;
+  // The integration marks a failure caused by an unanswering provider with the shared
+  // SERVER_UNREACHABLE `ErrorInfo` (`binge.companion.v1`, common.proto), on UNAVAILABLE or
+  // DEADLINE_EXCEEDED. No rpc is gated on it. Without it the host reads those codes as it always
+  // has.
+  CAPABILITY_SERVER_UNREACHABLE = 19;
   // Delete a title's downloaded media files from the provider's server (`DeleteFiles`), for
   // either version: one capability, and the rpc carries the version. In `allowed_actions` it
   // means this user may delete the files for that version on this server. It travels only on
@@ -804,6 +815,10 @@ service RequestService {
   // integration app after the host sent them there for an UNAUTHENTICATED. An
   // integration answers every Handshake from the session it holds now, not from an
   // earlier one.
+  //
+  // With the provider not answering, it may fail UNAVAILABLE or DEADLINE_EXCEEDED carrying the
+  // SERVER_UNREACHABLE detail, and the host reads it without a declared capability; see
+  // common.proto.
   rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
   // Core. INVALID_ARGUMENT for an unspecified `media` or a `version_id` the handshake did
   // not list; FAILED_PRECONDITION for a blocklisted title;
