@@ -181,10 +181,10 @@ enum Capability {
   CAPABILITY_ISSUE_CATEGORIES = 18;
   // Delete a title's downloaded media files from the provider's server (`DeleteFiles`), for
   // either version: one capability, and the rpc carries the version. In `allowed_actions` it
-  // means this user may delete the files for that version on this server. It travels on
-  // `VersionStatus.allowed_actions`, and on a request's `RequestInfo.allowed_actions`, whose
-  // `version_id` names the version. Never on `RequestStatus.allowed_actions`, which is one
-  // flat list for the whole title and cannot say which version.
+  // means this user may delete the files for that version on this server. It travels only on
+  // that version's `VersionStatus.allowed_actions`: deletion is per version, not per request, so
+  // it is never on a request's `RequestInfo.allowed_actions`, and never on
+  // `RequestStatus.allowed_actions`, which is one flat list for the whole title.
   CAPABILITY_DELETE_FILES = 20;
 }
 
@@ -470,8 +470,8 @@ message VersionStatus {
   // contract doesn't model.
   MediaFileInfo file_info = 6;
   // The capabilities that apply to THIS version for THIS user right now, such as
-  // CAPABILITY_DELETE_FILES. A host offers an action for a version only from this list, never
-  // from `RequestStatus.allowed_actions`, which is one flat list for the whole title.
+  // CAPABILITY_DELETE_FILES. A host offers a capability that is about one version only from
+  // this list. Actions on one existing request (cancel, approve) stay on that request's list.
   repeated Capability allowed_actions = 8;
 }
 
@@ -897,8 +897,7 @@ service RequestService {
   // carries a broken session as `needs_reconnect`.
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
   // Requires CAPABILITY_DELETE_FILES, and the host offers it for a version only where that
-  // version's `VersionStatus.allowed_actions`, or the `RequestInfo.allowed_actions` of a request
-  // for it, carries that capability. Deletes the media files for `media` and
+  // version's `VersionStatus.allowed_actions` carries that capability. Deletes the media files for `media` and
   // `version_id`, then withdraws every request for them; see `DeleteFilesRequest`.
   // INVALID_ARGUMENT for an unspecified `media` or an unknown `version_id`;
   // PERMISSION_DENIED when the user may not delete files; FAILED_PRECONDITION when the
