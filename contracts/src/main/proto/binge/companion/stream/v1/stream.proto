@@ -94,6 +94,12 @@ syntax = "proto3";
 // integration that answers UNAUTHENTICATED or NOT_FOUND from `Resolve` may use it to name
 // itself, e.g. "Not on the Internet Archive".
 //
+// Server unreachable: with CAPABILITY_SERVER_UNREACHABLE declared, a call that failed because the
+// catalogue or source server did not answer carries the shared SERVER_UNREACHABLE `ErrorInfo`
+// (common.proto) on UNAVAILABLE or DEADLINE_EXCEEDED, so the host can say "<Server> isn't
+// answering" rather than "can't reach". `Resolve` is the main case, and is a stream: the detail
+// rides on the terminating status like any other.
+//
 // The transport codes are REQUEST's, for the same reasons: UNIMPLEMENTED means the integration
 // is NOT INSTALLED (grpc-binder reports a `bindService()` that returned false this way), and
 // UNAVAILABLE means it was installed but its process is gone. See request.proto's header.
@@ -129,6 +135,11 @@ enum Capability {
   // alone: the host keeps no copy, and uninstalling the companion or clearing its data loses it,
   // which is intended.
   CAPABILITY_PLAYBACK_PROGRESS = 4;
+  // The integration marks a failure caused by an unanswering catalogue or source server with the
+  // shared SERVER_UNREACHABLE `ErrorInfo` (`binge.companion.v1`, common.proto), on UNAVAILABLE or
+  // DEADLINE_EXCEEDED. No rpc is gated on it. Without it the host reads those codes as it always
+  // has.
+  CAPABILITY_SERVER_UNREACHABLE = 5;
 }
 
 // The vertical resolution class of a source, so a host can sort and a TV can pick without a
