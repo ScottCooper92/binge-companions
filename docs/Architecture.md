@@ -352,7 +352,9 @@ for a provider where adding the title and downloading it are one step.
 a version, removes that version's downloaded files, and then withdraws every request for it so nothing
 requests the title again. One capability covers both versions, and a host that finds files for both
 lets the user choose in its confirm. It is irreversible, so the host confirms first and offers it only
-where the title's `allowed_actions` carry the capability. Once the files are gone it answers OK even if
+where that version's `VersionStatus.allowed_actions` (or a request's own list) carry the capability.
+The title-level list cannot say which version. A version with a request but no files has its
+request withdrawn and the call answers OK. Once the files are gone it answers OK even if
 withdrawing the request then fails.
 
 ## LIBRARY: the user's own media server
