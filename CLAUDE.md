@@ -98,9 +98,8 @@ Robolectric's service controller (#282). Each one's decision is still split into
 (`HostSecurityPolicy`, `HandOffCallerPolicy`, `HandOffTargetPolicy`, `signerDigests`) and tested on the JVM. With nothing
 excluded the SDK measured 99.2%.
 
-`:binge-companion-kit` is gated the same way at 95% of lines, with nothing excluded, from a measured 98.6%. It sits outside
-the contract's versioning promise (see `kit/README.md`), but not outside the gates. Its Keystore cipher is tested under
-Robolectric against a stand-in `AndroidKeyStore` provider.
+`:binge-companion-kit` is gated the same way at 95% of lines, with nothing excluded, from a measured 97.4%. It sits outside
+the contract's versioning promise (see `kit/README.md`), but not outside the gates.
 
 `:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
 
