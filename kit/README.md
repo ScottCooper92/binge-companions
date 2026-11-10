@@ -18,3 +18,4 @@ companion uses stay in that companion.
   disk. `KeystoreSecretCipher(alias)` keeps the key in the Android Keystore under the app's own alias; the alias is part
   of the on-disk format. `AesGcmSecretCipher` takes any key, so tests use a software key. The blob is a 12-byte IV and
   the ciphertext, Base64-encoded, the same as the companions' copies write today.
+- `Configuration.isTelevision()`: whether the UI mode type is a television's. Three companions had the same line.
