@@ -14,3 +14,7 @@ companion uses stay in that companion.
 - `AddressRange`, `ipLiteralBytes` and `ByteArray.isIn`: a table of address ranges (loopback, link-local,
   RFC 1918, CGNAT, unique-local, Tailscale) and a parser that reads an IP literal without resolving it. Which
   ranges a check counts is policy and stays in each app.
+- `SecretCipher`, `AesGcmSecretCipher` and `KeystoreSecretCipher`: AES-256-GCM for the secrets an app keeps on
+  disk. `KeystoreSecretCipher(alias)` keeps the key in the Android Keystore under the app's own alias; the alias is part
+  of the on-disk format. `AesGcmSecretCipher` takes any key, so tests use a software key. The blob is a 12-byte IV and
+  the ciphertext, Base64-encoded, the same as the companions' copies write today.
