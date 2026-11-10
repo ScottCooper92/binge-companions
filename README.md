@@ -107,7 +107,7 @@ sdk/         Android library for companion apps: the exported Service base, the 
              `androidx.paging:paging-common` as an `api` dependency, and every companion gets it
              transitively whether it pages or not. That is the JVM artifact: no Android, Room or Compose
              comes with it. The Room-backed stores and the remote mediator stay in the companion.
-kit/          Optional building blocks that more than one companion would otherwise copy. Not part of
+kit/         Optional building blocks that more than one companion would otherwise copy. Not part of
              the contract: the append-only rule does not apply to it, `buf breaking` does not cover it,
              and a kit release may break a companion's build. `contracts/` and `sdk/` do not depend on it.
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)

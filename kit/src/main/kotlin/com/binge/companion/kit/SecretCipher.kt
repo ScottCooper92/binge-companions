@@ -21,8 +21,9 @@ interface SecretCipher {
 
 /**
  * AES-256-GCM under a key from [keyProvider]. The per-call 12-byte IV is prepended to the ciphertext and the blob is
- * Base64-encoded. [keyProvider] is called once, on first use, and the key is kept: concurrent first callers cannot each
- * make a key and clobber the other's.
+ * Base64-encoded. [keyProvider] is called once, on first use, and the key is kept: concurrent first callers of one
+ * instance cannot each make a key and clobber the other's. Share one instance per alias: two instances with the same alias
+ * can still race on the first generation.
  *
  * This is the whole cipher with the key left out, so a test can give it a software key. [KeystoreSecretCipher] gives it
  * an Android Keystore key.

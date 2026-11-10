@@ -67,7 +67,7 @@ it does not know. Version numbers answer "can we parse each other?" and nothing 
 
 CI runs `./gradlew build` and, separately, `buf lint` plus `buf breaking --against main`.
 `build` covers the Kotlin compile, the JUnit tests, `ktlintCheck`, `detekt`, `koverVerify` and
-Android lint on `:binge-companion-sdk` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
+Android lint on `:binge-companion-sdk` and `:binge-companion-kit` (`lintDebug`, AGP's defaults, errors fail the build) — all of them wire
 themselves into `check`, and `build` depends on it. `build` also shrinks `:minify-check`, a probe app that
 depends on `:binge-companion-sdk`, with R8, and its test fails if a consumer keep rule stops holding what a minified host
 needs (#160). The device lane, `device-round-trip.yml`, is not part of `build`: it runs
@@ -80,7 +80,7 @@ Formatting is `ktlint_official` with the settings in `.editorconfig`, which are 
 minus its Compose lines. `:binge-companion-contracts` excludes `build/generated` — protoc's output is
 not checked in, so there is nothing there to format.
 
-detekt runs on `:binge-companion-sdk` only, off the root `detekt.yml`, which records deviations from
+detekt runs on `:binge-companion-sdk` and `:binge-companion-kit`, off the root `detekt.yml`, which records deviations from
 detekt's defaults rather than a full ruleset. It is detekt 2.x, through binge-ci's shared gate
 `binge.gates.detekt`, an included build from the `binge-ci` submodule pinned to a binge-ci release.
 The submodule, every binge-ci `uses:` pin in `.github/workflows/` and the catalog's detekt version
@@ -98,11 +98,15 @@ Robolectric's service controller (#282). Each one's decision is still split into
 (`HostSecurityPolicy`, `HandOffCallerPolicy`, `HandOffTargetPolicy`, `signerDigests`) and tested on the JVM. With nothing
 excluded the SDK measured 99.2%.
 
+`:binge-companion-kit` is gated the same way at 95% of lines, with nothing excluded, from a measured 98.6%. It sits outside
+the contract's versioning promise (see `kit/README.md`), but not outside the gates. Its Keystore cipher is tested under
+Robolectric against a stand-in `AndroidKeyStore` provider.
+
 `:binge-companion-contracts` has no gate at all — generated stubs, nothing to write a test for.
 
 The floor is set from a measurement rather than inherited, so it
 ratchets: 85% from a measured 90.4%, and 95% from the 99.2% measured once the exclusions went (#282). **A new module has to apply kover or say in its build file why not.** Binge
-enforces that with a root `checkCoverageGate` task; with four modules that is still overkill,
+enforces that with a root `checkCoverageGate` task; with five modules that is still overkill,
 so here it is a convention — which means the next module is where it can silently go wrong.
 Two modules have no floor, and neither is shipped. `:detekt-rules` holds the custom detekt rules,
 and its own tests run in `build`. `:minify-check` is a probe app shrunk by R8, and its test reads
