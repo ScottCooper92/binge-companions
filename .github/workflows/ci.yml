@@ -97,6 +97,7 @@ jobs:
             **/build/reports/kover/**
             **/build/reports/ktlint/**
             sdk/build/reports/lint-results-debug.html
+            kit/build/reports/lint-results-debug.html
           if-no-files-found: ignore
           retention-days: ${{ github.event_name == 'schedule' && 7 || 1 }}
 
