@@ -83,6 +83,7 @@ source of truth for stage, so it isn't restated here.
 | --- | --- |
 | `io.github.scottcooper92:binge-companion-contracts` | Protobuf messages and gRPC service stubs (protobuf-javalite, grpc-kotlin; Kotlin/JVM) |
 | `io.github.scottcooper92:binge-companion-sdk` | Android library for companion apps: binder server bootstrap, `SecurityPolicy` caller verification, handshake scaffold |
+| `io.github.scottcooper92:binge-companion-kit` | Optional building blocks companions would otherwise copy from each other. **Outside the contract's versioning promise.** |
 | `io.github.scottcooper92:binge-companion-conformance` | Test harness that validates a companion app against the contract |
 
 ## Repository layout
@@ -106,6 +107,9 @@ sdk/         Android library for companion apps: the exported Service base, the 
              `androidx.paging:paging-common` as an `api` dependency, and every companion gets it
              transitively whether it pages or not. That is the JVM artifact: no Android, Room or Compose
              comes with it. The Room-backed stores and the remote mediator stay in the companion.
+kit/          Optional building blocks that more than one companion would otherwise copy. Not part of
+             the contract: the append-only rule does not apply to it, `buf breaking` does not cover it,
+             and a kit release may break a companion's build. `contracts/` and `sdk/` do not depend on it.
 detekt-rules/  The custom detekt rules the SDK's static analysis loads (comment conventions)
 minify-check/  A probe app shrunk by R8; its test fails if a consumer keep rule stops holding what a minified host needs,
                and its instrumented test makes a real Binder round trip on the minified build (device-round-trip.yml)
