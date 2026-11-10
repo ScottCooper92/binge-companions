@@ -48,7 +48,9 @@ rootProject.name = "binge-companions"
 // directories keep their short names.
 include(":binge-companion-contracts")
 include(":binge-companion-sdk")
+include(":binge-companion-kit")
 project(":binge-companion-contracts").projectDir = file("contracts")
 project(":binge-companion-sdk").projectDir = file("sdk")
+project(":binge-companion-kit").projectDir = file("kit")
 include(":detekt-rules")
 include(":minify-check")
