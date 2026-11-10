@@ -1,6 +1,7 @@
 package com.binge.companion.kit
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -64,5 +65,70 @@ class AddressRangeTest {
     @Test
     fun `a trailing dot and surrounding space are ignored`() {
         assertArrayEquals(bytes("10.0.0.1"), bytes(" 10.0.0.1. "))
+    }
+
+    @Test
+    fun `an IPv4 literal has no sign and no leading zero`() {
+        // A resolver may read 010.0.0.1 as octal, which is 8.0.0.1. It is a name here, never a private address.
+        listOf(
+            "010.0.0.1",
+            "10.0.0.01",
+            "+10.0.0.1",
+            "-0.0.0.0",
+            "10.0.0.+1",
+            "0x10.0.0.1",
+            "1..2.3",
+            "1.2.3",
+            "1.2.3.4.5",
+            "256.0.0.1",
+            "1.2.3.1000",
+            "",
+        ).forEach { assertNull(ipLiteralBytes(it), it) }
+        assertArrayEquals(byteArrayOf(0, 0, 0, 0), bytes("0.0.0.0"))
+        assertArrayEquals(byteArrayOf(-1, -1, -1, -1), bytes("255.255.255.255"))
+    }
+
+    @Test
+    fun `a malformed IPv6 literal is a name, and never reaches the resolver`() {
+        listOf(
+            "1:2:3:4:5:6:7:8:9",
+            "1:2:3:4:5:6:7",
+            "a:b",
+            "fe80::1::2",
+            ":::",
+            "1:::2",
+            "::g",
+            "12345::1",
+            ":1:2:3:4:5:6:7",
+            "1:2:3:4:5:6:7:",
+            "1:2:3:4:5:6:7::8",
+            "::1.2.3",
+            "::01.2.3.4",
+            "1.2.3.4::",
+            "::1.2.3.4:5",
+            "fe80::1%eth0",
+            "::ffff:010.0.0.1",
+            "1:2:3:4:5:6:7:1.2.3.4",
+        ).forEach { assertNull(ipLiteralBytes(it), it) }
+    }
+
+    @Test
+    fun `IPv6 literals are read in every compressed form`() {
+        assertArrayEquals(ByteArray(16), bytes("::"))
+        assertArrayEquals(ByteArray(15) + byteArrayOf(1), bytes("::1"))
+        assertArrayEquals(byteArrayOf(0, 1) + ByteArray(14), bytes("1::"))
+        assertArrayEquals(byteArrayOf(0, 1) + ByteArray(12) + byteArrayOf(0, 2), bytes("1::2"))
+        assertArrayEquals(byteArrayOf(0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8), bytes("1:2:3:4:5:6:7:8"))
+        assertArrayEquals(byteArrayOf(0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 0), bytes("1:2:3:4:5:6:7::"))
+        assertArrayEquals(bytes("FE80::A"), bytes("fe80::a"))
+    }
+
+    @Test
+    fun `only an IPv4-mapped literal is unwrapped to four bytes`() {
+        assertArrayEquals(byteArrayOf(192.toByte(), 168.toByte(), 1, 2), bytes("::ffff:192.168.1.2"))
+        assertEquals(16, bytes("::1.2.3.4").size)
+        assertEquals(16, bytes("64:ff9b::1.2.3.4").size)
+        assertEquals(16, bytes("::fffe:c0a8:102").size)
+        assertFalse(bytes("::1.2.3.4").isIn(AddressRange.Private, AddressRange.Loopback))
     }
 }
