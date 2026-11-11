@@ -42,6 +42,12 @@ android {
             it.systemProperty("robolectric.dependency.repo.id", "MavenCentralMirror")
         }
     }
+
+    // The AndroidKeyStore stand-in a companion's own tests use, published apart from the runtime: a consumer asks for it with
+    // `testImplementation(testFixtures(...))`, and its APK never carries it.
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
