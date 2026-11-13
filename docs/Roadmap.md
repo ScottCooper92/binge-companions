@@ -11,7 +11,7 @@ the journey these stages add up to.
    grpc-binder client. A stub companion app proves them on real hardware: a phone and a
    SHIELD-class TV device. This spike validates the transport choice. It also measures the APK
    cost after R8. ✅ (held — tracked privately)
-4. **Reference companion: Binge Seerr** — extract the in-tree Seerr integration from Binge into a
+4. **Reference companion: Seerr Companion** — extract the in-tree Seerr integration from Binge into a
    real companion app. It serves REQUEST v1 with production traffic. ✅ at contract parity
    ([binge-seerr](https://github.com/ScottCooper92/binge-seerr)); production traffic is what
    moves the contract out of draft.
