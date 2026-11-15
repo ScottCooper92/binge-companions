@@ -101,8 +101,13 @@ option java_multiple_files = true;
 
 // What a REQUEST integration can do beyond the mandatory core. Declared in
 // `HandshakeResponse.capabilities` for the session the integration holds when the host
-// handshakes; see `Handshake` for when the host asks again. The per-title, per-user
-// subset that applies right now travels on `RequestStatus.allowed_actions`.
+// handshakes; see `Handshake` for when the host asks again.
+//
+// The per-user subset that applies right now travels on three lists, by what the capability is
+// about: `RequestStatus.allowed_actions` for the title, `VersionStatus.allowed_actions` for one
+// version of it, and `RequestInfo.allowed_actions` for one existing request. A host offers a
+// capability only from the list it belongs on. See `docs/Architecture.md` > Dynamic per-item
+// actions.
 //
 // Append-only: new capabilities get new numbers; hosts ignore values they don't know.
 enum Capability {
