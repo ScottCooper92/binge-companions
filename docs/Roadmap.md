@@ -23,14 +23,14 @@ the journey these stages add up to.
    is a hand-off; `PLAYBACK_SOURCE` is the one opt-in exception, for Binge's own player or an
    installed player the user chose. See `Architecture.md` > LIBRARY.
 7. **Jellyfin companion** — the first LIBRARY companion, serving `PLAYBACK_SOURCE` and
-   `PLAYBACK_PROGRESS` ([binge-jellyfin](https://github.com/ScottCooper92/binge-jellyfin)). Its own
+   `PLAYBACK_PROGRESS` ([ephyra](https://github.com/ScottCooper92/ephyra)). Its own
    UI is sign-in and a console for the user's server, as binge-seerr's is for Seerr: approving Quick
    Connect codes, devices, and for an admin a dashboard, library scans, tasks, activity and users.
    Browsing and playing the library stay with Binge and Jellyfin's own apps.
 8. **Host playback in Binge** — LIBRARY discovery and consent, availability and watch state on
    title pages, and the Play sheet: Binge's own player with progress written back live, the
    server's own app, or an installed player. TV first. See `Ecosystem.md` > Playback. In Binge behind
-   feature flags, played against binge-jellyfin on a phone.
+   feature flags, played against ephyra on a phone.
 9. **STREAM contract** — resolve a title to playable sources **that are not the user's library**.
    Hand-off through the same Play sheet, and the host's own player beside it, on the shared `PlaybackSource`. LIBRARY does not
    overlap this one: it answers for the server the user already runs, STREAM for everything else.
