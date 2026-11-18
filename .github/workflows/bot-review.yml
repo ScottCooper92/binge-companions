@@ -58,11 +58,13 @@ jobs:
     #
     # A fork PR never reaches the bot. binge-ci refuses one too, and this keeps the guard in sight
     # here (binge-design-system#407). It checks the events that name a head repository and lets the others through.
+    # Skip coordinator status notes (`<!-- to-coordinator`) so they start no empty run.
     if: >-
+      !startsWith(github.event.comment.body, '<!-- to-coordinator') &&
       (github.event_name != 'workflow_run' || github.event.workflow_run.event != 'schedule') &&
       (!github.event.pull_request || github.event.pull_request.head.repo.full_name == github.repository) &&
       (!github.event.workflow_run || github.event.workflow_run.head_repository.full_name == github.repository)
-    uses: ScottCooper92/binge-ci/.github/workflows/bot-review.yml@4ea9f85339ca1f32747cfcbe89aaf1252e5bfdd5 # v1.0.41
+    uses: ScottCooper92/binge-ci/.github/workflows/bot-review.yml@0e23ad4311757677213da647bd150eca33d256f0 # v1.0.49
     with:
       dispatch_pr: ${{ inputs.pr }}
       # On since 2026-10-16. A PR that needs a human still says so with `hold` (CLAUDE.md,
