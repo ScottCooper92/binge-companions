@@ -10,6 +10,9 @@ name: Consumer check (binge-seerr)
 # sometimes the intended outcome of an SDK API change. Do not make it a required check without a
 # decision. Binge is private, so it is not covered.
 #
+# binge-seerr includes a private submodule, so its checkout uses a read-only reviewer-app token
+# (`private_consumer`).
+#
 # The reusable workflow swaps this change in for binge-seerr's pin of this repository, found by URL
 # in its `.gitmodules`, and fetches every other binge-seerr submodule at its own pin. It runs on
 # pushes to main too, because setup-gradle saves its cache only there.
@@ -42,3 +45,7 @@ jobs:
     with:
       consumer: ScottCooper92/binge-seerr
       tasks: ':app:compileDebugKotlin :app:compileDebugUnitTestKotlin'
+      private_consumer: true
+    secrets:
+      REVIEWER_APP_ID: ${{ secrets.REVIEWER_APP_ID }}
+      REVIEWER_APP_PRIVATE_KEY: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
