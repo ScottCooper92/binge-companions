@@ -365,8 +365,8 @@ for a provider where adding the title and downloading it are one step.
 
 `DeleteFiles` (`CAPABILITY_DELETE_FILES`, #284) is the one rpc that deletes files. It takes a title and
 a version, removes that version's downloaded files, and then withdraws the requests for it that are still
-open. A completed request may stay as history, as it does on Seerr, and does not stop the title being
-requested again. One capability covers both versions, and a host that finds files for both
+open, which are those neither declined nor completed. A completed request stays as history and does not
+stop the title being requested again. One capability covers both versions, and a host that finds files for both
 lets the user choose in its confirm. It is irreversible, so the host confirms first and offers it only
 where that version's `VersionStatus.allowed_actions` carries the capability, and only there.
 The title-level list cannot say which version. A version with an open request but no files has its

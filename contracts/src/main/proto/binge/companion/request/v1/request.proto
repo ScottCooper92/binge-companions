@@ -658,7 +658,8 @@ message SubmitAdvancedRequestResponse {
 // Withdraws the request on the provider. It never deletes media files: whatever the
 // provider has already downloaded stays where it is, and removing it is the provider's own
 // job. A provider whose "request" is the download itself (a download manager adding a title
-// directly) still only stops the request: the integration does not delete files for it.
+// directly) still only stops the request: the integration does not delete files for it. `DeleteFiles`
+// is the rpc that removes them; see `DeleteFilesRequest` for what it does with the requests.
 message CancelRequestRequest {
   // A `RequestInfo.id`.
   string request_id = 1;
@@ -756,11 +757,11 @@ message UnblockTitleRequest {
 
 message UnblockTitleResponse {}
 
-// Deletes a title's downloaded media files for one version on the provider's server, and then
-// withdraws the requests for that title and version that are still open. A request that has already
-// completed may stay as history, as it does on Seerr: it does not stop the title being requested
-// again, and a status read can still list it. It is the one rpc that deletes files; `CancelRequest`
-// only withdraws a request and leaves them.
+// Deletes a title's downloaded media files for one version on the provider's server and marks the
+// media deleted. It then withdraws the requests for that title and version that are still open: those
+// that are neither declined nor completed. A completed request stays as history; it does not stop the
+// title being requested again, and a status read can still list it. It is the one rpc that deletes
+// files; `CancelRequest` only withdraws a request and leaves them.
 //
 // Destructive and irreversible, so the host confirms first. When files exist for both the standard
 // and a second version, the host's confirm lets the user choose, and sends one call per version.
