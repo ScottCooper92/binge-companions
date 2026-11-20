@@ -236,6 +236,10 @@ enum ApprovalState {
   APPROVAL_STATE_DECLINED = 3;
   // Approved but fulfilment errored — terminal, distinct from a deliberate decline.
   APPROVAL_STATE_FAILED = 4;
+  // Approved and fulfilled: the media it asked for arrived. The request is kept as history, so a
+  // host shows it without moderation actions. A receiver that does not know this value already
+  // shows the request without moderation, as for any value it cannot place.
+  APPROVAL_STATE_COMPLETED = 5;
 }
 
 // Whether a grabbed download is transferring or still queued on the provider.
@@ -760,9 +764,9 @@ message UnblockTitleResponse {}
 // Deletes a title's downloaded media files for one version on the provider's server and marks the
 // media deleted. It then withdraws the requests for that title and version that are still open: those
 // that are neither declined nor completed. A completed request is one the provider approved and has
-// fulfilled, because the media it asked for arrived. It stays as history; it does not stop the title
-// being requested again, and a status read can still list it, as approved. A failed request counts as
-// open and is withdrawn. It is the one rpc that deletes files; `CancelRequest` only withdraws a
+// fulfilled, because the media it asked for arrived, and it reads `APPROVAL_STATE_COMPLETED`. It stays
+// as history; it does not stop the title being requested again, and a status read can still list it,
+// as completed. A failed request counts as open and is withdrawn. It is the one rpc that deletes files; `CancelRequest` only withdraws a
 // request and leaves them.
 //
 // Destructive and irreversible, so the host confirms first. When files exist for both the standard
