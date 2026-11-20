@@ -759,9 +759,11 @@ message UnblockTitleResponse {}
 
 // Deletes a title's downloaded media files for one version on the provider's server and marks the
 // media deleted. It then withdraws the requests for that title and version that are still open: those
-// that are neither declined nor completed. A completed request stays as history; it does not stop the
-// title being requested again, and a status read can still list it. It is the one rpc that deletes
-// files; `CancelRequest` only withdraws a request and leaves them.
+// that are neither declined nor completed. A completed request is one the provider approved and has
+// fulfilled, because the media it asked for arrived. It stays as history; it does not stop the title
+// being requested again, and a status read can still list it, as approved. A failed request counts as
+// open and is withdrawn. It is the one rpc that deletes files; `CancelRequest` only withdraws a
+// request and leaves them.
 //
 // Destructive and irreversible, so the host confirms first. When files exist for both the standard
 // and a second version, the host's confirm lets the user choose, and sends one call per version.
