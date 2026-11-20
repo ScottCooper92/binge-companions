@@ -236,6 +236,10 @@ enum ApprovalState {
   APPROVAL_STATE_DECLINED = 3;
   // Approved but fulfilment errored — terminal, distinct from a deliberate decline.
   APPROVAL_STATE_FAILED = 4;
+  // Approved and fulfilled: the media it asked for arrived. The request is kept as history, so a
+  // host shows it without moderation actions. A receiver that does not know this value already
+  // shows the request without moderation, as for any value it cannot place.
+  APPROVAL_STATE_COMPLETED = 5;
 }
 
 // Whether a grabbed download is transferring or still queued on the provider.
@@ -658,7 +662,8 @@ message SubmitAdvancedRequestResponse {
 // Withdraws the request on the provider. It never deletes media files: whatever the
 // provider has already downloaded stays where it is, and removing it is the provider's own
 // job. A provider whose "request" is the download itself (a download manager adding a title
-// directly) still only stops the request: the integration does not delete files for it.
+// directly) still only stops the request: the integration does not delete files for it. `DeleteFiles`
+// is the rpc that removes them; see `DeleteFilesRequest` for what it does with the requests.
 message CancelRequestRequest {
   // A `RequestInfo.id`.
   string request_id = 1;
@@ -756,9 +761,13 @@ message UnblockTitleRequest {
 
 message UnblockTitleResponse {}
 
-// Deletes a title's downloaded media files for one version on the provider's server, and then
-// withdraws every request for that title and version, so nothing requests it again. It is the one
-// rpc that deletes files; `CancelRequest` only withdraws a request and leaves them.
+// Deletes a title's downloaded media files for one version on the provider's server and marks the
+// media deleted. It then withdraws the requests for that title and version that are still open: those
+// that are neither declined nor completed. A completed request is one the provider approved and has
+// fulfilled, because the media it asked for arrived, and it reads `APPROVAL_STATE_COMPLETED`. It stays
+// as history; it does not stop the title being requested again, and a status read can still list it,
+// as completed. A failed request counts as open and is withdrawn. It is the one rpc that deletes files; `CancelRequest` only withdraws a
+// request and leaves them.
 //
 // Destructive and irreversible, so the host confirms first. When files exist for both the standard
 // and a second version, the host's confirm lets the user choose, and sends one call per version.
@@ -918,12 +927,12 @@ service RequestService {
   rpc ObserveAttention(ObserveAttentionRequest) returns (stream ObserveAttentionResponse);
   // Requires CAPABILITY_DELETE_FILES, and the host offers it for a version only where that
   // version's `VersionStatus.allowed_actions` carries that capability. Deletes the media files for `media` and
-  // `version_id`, then withdraws every request for them; see `DeleteFilesRequest`.
+  // `version_id`, then withdraws the still-open requests for them; see `DeleteFilesRequest`.
   // INVALID_ARGUMENT for an unspecified `media` or an unknown `version_id`;
   // PERMISSION_DENIED when the user may not delete files; FAILED_PRECONDITION when the
-  // provider's media services cannot delete; NOT_FOUND when the media is gone. A version with a request but no files yet
-  // is not gone: the request is withdrawn and the answer is OK. NOT_FOUND means neither files nor
-  // a request remain. A host that
+  // provider's media services cannot delete; NOT_FOUND when the media is gone. A version with an open request but no
+  // files yet is not gone: the request is withdrawn and the answer is OK. NOT_FOUND means neither files nor
+  // an open request remain. A host that
   // retries after DEADLINE_EXCEEDED and meets NOT_FOUND reads it as done and refreshes.
   rpc DeleteFiles(DeleteFilesRequest) returns (DeleteFilesResponse);
 }
